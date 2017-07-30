@@ -1,6 +1,7 @@
-# Ross Mawhorter
-# test function for the constraints parser
+# Author - Ross Mawhorter
+# short test function for the constraints parser
 # make sure there's no assertion errors!
+# since it's just a few small examples, it's more of a sanity check than a real test
 
 import constraints
 

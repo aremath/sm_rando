@@ -1,0 +1,197 @@
+# Author - Ross Mawhorter
+# parses the level file - in this repo, encoding/rooms.txt - see rooms.txt for more information on level encodings
+# Basic Syntax: a room definition is as follows:
+# title line:
+# ROOM_NAME - ROOM_ADDRESS
+# node definition:
+# NODE_NAME - NODE_CONSTRAINTS (if any)
+# edge_definition:
+# (LIST_OF_NODES) -> (LIST_OF_NODES) - EDGE_CONSTRAINTS
+# an edge definition can also use '<->' to denote edges in both directions.
+# A ROOM is a title line, followed by any number of node and edge definitions.
+
+# DOOR TYPES:
+# (L R B T ET EB TS BS LMB RMB)
+
+from constraints import *
+from graph import *
+import collections
+
+door_types = ["L", "R", "B", "T", "ET", "EB", "TS", "BS", "LMB", "RMB"]
+item_types = ["B", "PB", "SPB", "S", "M", "G", "SA", "V", "GS", "SB", "HJ", "MB", "CB", "WB", "E", "PLB", "Spazer"]
+boss_types = ["Kraid", "Phantoom", "Draygon", "Ridley", "Botwoon", "Spore_Spawn", "Golden_Torizo", "Bomb_Torizo"]
+
+door_hookups = {
+	"L": "R",
+	"R": "L",
+	"T": "B",
+	"B": "T",
+	"ET": "EB",
+	"EB": "ET",
+	"TS": "BS",
+	"BS": "TS",
+	"LMB": "RMB",
+	"RMB": "LMB"
+}
+
+def make_room(room_defn):
+	# room defn is a list of strings, which are the lines of this room definition
+	room_name, room_address = room_defn[0].split(" - ")
+	graph = ConstraintGraph()
+	room_nodes = []
+
+	# key - door direction
+	# value - list of door nodes in that direction
+	door_dict = collections.defaultdict(list)
+
+	parsed_lines = [parse_line(line) for line in room_defn[1:]]
+	node_lines = []
+	edge_lines = []
+	for pline in parsed_lines:
+		if pline[0]:
+			node_lines.append(pline[1])
+		else:
+			edge_lines.append(pline[1])
+
+	# make a node for each node line
+	for name, constraint in node_lines:
+		node_data = parse_node_name(name, constraint)
+		node_name = graph.add_node(room_name + "_" + name, node_data)
+		room_nodes.append(node_name)
+		if isinstance(node_data, Door):
+			door_dict[node_data.facing].append(node_name)
+
+	print graph
+
+	# make it a connected graph
+	for origin_node_name in room_nodes:
+		for destination_node_name in room_nodes:
+			graph.add_edge(origin_node_name, destination_node_name)
+
+	# add in the edge constraints
+	scheduled_for_destruction = []
+	for edges, constraint in edge_lines:
+		if constraint is None:
+			for edge in edges:
+				scheduled_for_destruction.append(edge)
+		else:
+			for node1, node2 in edges:
+				graph.add_edge(room_name + "_" + node1, room_name + "_" + node2, constraint)
+
+	# remove "scheduled_for_destruction" edges
+	for node1, node2 in scheduled_for_destruction:
+		graph.remove_edge(room_name + "_" + node1, room_name + "_" + node2)
+
+	room = Room(room_name, 0, graph)
+	return room, door_dict
+
+def parse_line(line):
+	"""Categorizes and parses an item definition or edge definition line. The syntax is above"""
+	# edge lines have "->" present ALWAYS
+	edge_line = line.split("->")
+	assert len(edge_line) <= 2, "TOO MANY ARROWS: " + line
+	if len(edge_line) == 1:
+		return (True, parse_node_line(line))
+	elif len(edge_line) == 2:
+		return (False, parse_edge_line(line))
+
+def parse_node_line(line):
+	"""Helper function for parse_line - returns a tuple of node_name, constraint_set."""
+	name = ""
+	constraint = MinSetSet()
+
+	split = line.split("-")
+	assert len(split) <= 2, "TOO MANY DASHES: " + line
+	name = split[0].strip()
+	assert len(name) != 0, "WHITESPACE NAME: " + line
+	if len(split) == 2:
+		str_constraint = split[1].strip()
+		if str_constraint == "X":
+			constraint = None
+		else:
+			constraint = parse_constraint(str_constraint)
+
+	return name, constraint
+
+def parse_edge_line(line):
+	"""Helper function for parse_line - returns a tuple of (all affected edges), constraint_set."""
+	back = False
+	left, right = line.split("->")
+	# also reverse?
+	if left[-1] == "<":
+		back = True
+		left = left[:-1]
+	# now, break off the constraint
+	right, str_constraint = right.split("-")
+	# remove unnecessary spaces, and the parens
+	left = left.strip()[1:-1]
+	right = right.strip()[1:-1]
+	str_constraint = str_constraint.strip()
+	# split them into individual node names
+	left = left.split()
+	right = right.split()
+
+	# now make the node pairs that represent edges
+	edges = []
+	for left_node in left:
+		for right_node in right:
+			edges.append((left_node, right_node))
+			if back:
+				edges.append((right_node, left_node))
+
+	if str_constraint == "X":
+		constraint = None
+	else:
+		constraint = parse_constraint(str_constraint)
+	return edges, constraint
+
+def parse_node_name(node_name, constraint):
+	"""Helper function for make_room. categorizes a node name, returning either an
+	Item or a Door"""
+	# TODO: parse a memory addresses file to get the address
+	# get the type by stripping the number from the end
+	node_type = node_name.rstrip("1234567890")
+
+	if node_type in door_types:
+		accessible = True
+		if constraint is None:
+			accessible = False
+		return Door(0, constraint, accessible, node_type)
+	elif node_type in item_types:
+		return Item(0, node_type)
+	elif node_type in boss_types:
+		return Boss(node_type)
+	else:
+		assert False, "Unrecognized Type: " + node_name
+
+
+def parse_rooms(room_file):
+	# open the file
+	f = open(room_file, "r")
+	# read the lines to create the room definitions
+	room_defs = []
+	current_room = []
+	for line in f.readlines():
+		# remove unnecessary characters
+		line = line.strip()
+		# blank line means new room
+		if len(line) == 0:
+			room_defs.append(current_room)
+			current_room = []
+		# skip comments
+		elif line[0] == "#":
+			continue
+		else:
+			current_room.append(line)
+
+	# parse each room definition
+	# key - room name
+	# value - room graph and door dictionary
+	rooms = {}
+	for room_def in room_defs:
+		# if we got a room without any data somehow, chuck it
+		if len(room_def) >= 1:
+			room, door_dict = make_room(room_def)
+			rooms[room.name] = (room, door_dict)
+
+	return rooms
