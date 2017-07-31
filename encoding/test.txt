@@ -1,8 +1,19 @@
-Landing_Site - 791F8
+West_Ocean - 793FE
 L1
 L2
-R1			- PB
-R2			- S
-ALL -> L2	- | SB (& SJ (| B PB SA))
-L2 -> ALL	- | B PB SA
-ALL -> R1	- | SB SJ
+R1
+R2
+R3
+R4
+R5										- X
+R6										- S
+M1
+M2
+M3
+L1 <-> (L2 R1 R2 R3 R5 R6 M1 M2 M3)		- X
+R4 <-> (L2 R1 R2 R3 R5 R6 M1 M2 M3)		- X
+ALL -> M3								- | B PB
+(R1 R2 R3) -> (L2 R6 M2 M3)				- S
+R3 -> ALL								- | B PB SPB
+ALL -> R3								- | B PB SPB
+(L2 R5 R6 M3) -> (R1 R2 R3) 			- X

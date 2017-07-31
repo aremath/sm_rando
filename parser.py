@@ -18,8 +18,9 @@ from graph import *
 import collections
 
 door_types = ["L", "R", "B", "T", "ET", "EB", "TS", "BS", "LMB", "RMB"]
-item_types = ["B", "PB", "SPB", "S", "M", "G", "SA", "V", "GS", "SB", "HJ", "MB", "CB", "WB", "E", "PLB", "Spazer"]
-boss_types = ["Kraid", "Phantoom", "Draygon", "Ridley", "Botwoon", "Spore_Spawn", "Golden_Torizo", "Bomb_Torizo"]
+item_types = ["B", "PB", "SPB", "S", "M", "G", "SA", "V", "GS", "SB", "HJ", "MB", "CB", "WB", "E", "PLB", "Spazer", "Bombs", "RT", "XR", "IB", "SJ"]
+boss_types = ["Kraid", "Phantoom", "Draygon", "Ridley", "Botwoon", "Spore_Spawn", "Golden_Torizo", "Bomb_Torizo", "Mother_Brain", "Crocomire", "Ceres_Ridley"]
+special_types = ["Drain", "Shaktool", "START"]
 
 door_hookups = {
 	"L": "R",
@@ -55,7 +56,6 @@ def make_room(room_defn):
 			node_lines.append(parsed_line[1])
 		else:
 			edge_lines.append(parsed_line[1])
-	print edge_lines
 
 	# make a node for each node line
 	for name, constraint in node_lines:
@@ -68,9 +68,8 @@ def make_room(room_defn):
 	# make it a connected graph
 	for origin_node_name in room_nodes:
 		for destination_node_name in room_nodes:
-			graph.add_edge(origin_node_name, destination_node_name)
-
-	#print graph
+			if origin_node_name != destination_node_name:
+				graph.add_edge(origin_node_name, destination_node_name)
 
 	# add in the edge constraints
 	scheduled_for_destruction = []
@@ -82,11 +81,13 @@ def make_room(room_defn):
 			for node1, node2 in edges:
 				graph.add_edge(room_name + "_" + node1, room_name + "_" + node2, constraint)
 
+
 	# remove "scheduled_for_destruction" edges
+	# first, get rid of duplicates.
+	scheduled_for_destruction = list(set(scheduled_for_destruction))
+
 	for node1, node2 in scheduled_for_destruction:
 		graph.remove_edge(room_name + "_" + node1, room_name + "_" + node2)
-
-	print graph
 
 	room = Room(room_name, 0, graph)
 	return room, door_dict
@@ -180,8 +181,15 @@ def parse_node_name(node_name, constraint):
 			accessible = False
 		return Door(0, constraint, accessible, node_type)
 	elif node_type in item_types:
+		# quick and dirty fix. Otherwise the bombs thing would be parsed as a bottom exit
+		# and not an item node.
+		if node_type == "Bombs":
+			return Item(0, "B")
 		return Item(0, node_type)
-	elif node_type in boss_types:
+	# TODO: for now, special nodes act as bosses - they're the same in that they can't be
+	# randomized, but if I end up with logic giving you items for bosses, I probably want
+	# to change this.
+	elif node_type in boss_types or node_type in special_types:
 		return Boss(node_type)
 	else:
 		assert False, "Unrecognized Type: " + node_name

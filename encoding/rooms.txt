@@ -25,6 +25,7 @@
 #	WB - Wave Beam - I decided not to make you fight botwoon through the wall - Thank me later
 #	E - Energy Tank - Some rooms which are going to hurt you require energy tanks...
 #	PLB - Plasma Beam
+#	IB - Ice Beam
 #
 #	Thanks to http://deanyd.net/sm/index.php?title=Main_Page for the list of rooms.
 #	Thanks to SMILE creator Jathys - http://metroidconstruction.com/resource.php?id=63 - This is really an amazing resource.
@@ -55,7 +56,7 @@ R3					- M
 ALL <-> L1			- | B PB SA
 ALL <-> L2			- MB
 ALL -> R2			- MB
-R2 -> All			- | B PB
+R2 -> ALL			- | B PB
 
 Crateria_Power_Bombs - 793AA
 L
@@ -71,18 +72,18 @@ R1
 R2
 R3
 R4
-R5							- X
-R6							- S
+R5										- X
+R6										- S
 M1
 M2
 M3
-L1 -> !(R4)					- X
-R4 -> !(L1)					- X
-ALL -> M3					- | B PB
-(R1 R2 R3) -> (L2 R6 M2 M3)	- S
-R3 -> ALL					- | B PB SB
-ALL -> R3					- | B PB SB
-(L2 R5 R6 M3) -> (R1 R2 R3) - X
+L1 <-> (L2 R1 R2 R3 R5 R6 M1 M2 M3)		- X
+R4 <-> (L2 R1 R2 R3 R5 R6 M1 M2 M3)		- X
+ALL -> M3								- | B PB
+(R1 R2 R3) -> (L2 R6 M2 M3)				- S
+R3 -> ALL								- | B PB SPB
+ALL -> R3								- | B PB SPB
+(L2 R5 R6 M3) -> (R1 R2 R3) 			- X
 
 Bowling_Path - 79461
 L
@@ -597,7 +598,7 @@ L -> R					- & MB (| IB SPB SJ)
 
 Ice_Beam - 7A890
 L
-I
+IB
 
 Ice_Beam_Snakes - 7A8B9
 R1
@@ -618,7 +619,7 @@ L2
 R1
 R2
 B						- S
-L1 -> All				- SB
+L1 -> ALL				- SB
 ALL -> L1				- X
 ALL <-> ALL				- V
 
@@ -708,7 +709,7 @@ G
 
 Bubble_Reserve - 7AC5A
 R
-Reserve
+RT
 M
 ALL <-> ALL						- V
 
@@ -750,8 +751,8 @@ R1
 R2								- M
 R3
 R4
-ALL -> L1						- X
-L1 -> ALL						- & MB (| PB B SA)
+ALL -> L						- X
+L -> ALL						- & MB (| PB B SA)
 ALL <-> ALL						- V
 
 # I can't prevent you from doing stupid stuff like going into the second part without morph ball...
@@ -937,7 +938,7 @@ R2
 (L1 R1) <-> (L2 R2)				- PB
 ALL <-> ALL						- V
 
-7B3E1
+#7B3E1 - Not sure if this room is ever used, or what it even is...
 
 Mickey_Mouse - 7B40A
 L
@@ -1018,7 +1019,7 @@ R
 M
 ALL <-> ALL						- V
 L <-> ALL						- MB
-ALL -> M						- & MB (|B PB SA)
+ALL -> M						- & MB (| B PB SA)
 
 Ridley_Energy - 7B698
 R
@@ -1047,7 +1048,7 @@ ALL -> E						- | PB S
 Red_Keyhunter_Save - 7B741
 L
 
-WRECKED SHIP
+# WRECKED SHIP
 
 Bowling_Alley - 7C98D
 L1
@@ -1149,15 +1150,15 @@ R1 -> ALL						- S
 # assume it's not possible to collect the item....
 Main_Street - 7CFC9
 R1
-RM2
+RMB2
 R3
 R4								- M
 B
 M
 S
 ALL -> M						- X
-!(RM2) -> S						- X
-!(S) -> RM2						- X
+(R1 R3 R4 B M) <-> S			- X
+(R1 R3 R4 B M) <-> RMB2			- X
 (B R3 R4) -> R1					- GS
 (B R4) -> R3					- GS
 
@@ -1185,12 +1186,12 @@ R -> L							- S
 
 Mount_Everest - 7D0B9
 L1
-LM2
+LMB2
 T
 R
 B1
 B2
-ALL -> LM2						- | GS (& HJ IB)
+ALL -> LMB2						- | GS (& HJ IB)
 B2 -> ALL						- GS
 ALL -> R						- & GS (| SJ SB)
 ALL -> (L1 T R)					- | (& G HJ) (& GS (| SJ G))
@@ -1287,7 +1288,7 @@ L
 R
 TS							- X
 L <-> R						- GS
-T -> ALL					- GS
+TS -> ALL					- GS
 
 Oasis - 7D48E
 L
@@ -1302,7 +1303,7 @@ R
 TS							- X
 L -> R						- GS
 R -> L						- | GS HJ
-T -> ALL					- GS
+TS -> ALL					- GS
 
 West_Sand_Hole - 7D4EF
 TS							- X

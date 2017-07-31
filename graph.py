@@ -29,7 +29,7 @@ class ConstraintGraph:
 			if edge.terminal == node2:
 				edge.items *= items
 				return
-		edge = ConstraintEdge(items, node2)
+		edge = ConstraintEdge(node2, items)
 		self.node_edges[node1].append(edge)
 
 	def add_undirected_edge(self, node1, node2, items=MinSetSet()):
@@ -89,7 +89,7 @@ class Item:
 
 class Boss:
 
-	def __init__(boss_type=""):
+	def __init__(self, boss_type=""):
 		self.type = boss_type
 
 class Room:
