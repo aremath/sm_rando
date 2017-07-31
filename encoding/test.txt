@@ -1,0 +1,8 @@
+Landing_Site - 791F8
+L1
+L2
+R1			- PB
+R2			- S
+ALL -> L2	- | SB (& SJ (| B PB SA))
+L2 -> ALL	- | B PB SA
+ALL -> R1	- | SB SJ

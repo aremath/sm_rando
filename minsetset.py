@@ -57,8 +57,8 @@ class MinSetSet:
 		return False
 
 	def __repr__(self):
-		self_str = ""
+		self_str = "{"
 		for self_set in self.sets:
-			self_str += repr(self_set) + "\n"
-		# remove the trailing \n
-		return self_str[:-1]
+			self_str += repr(self_set) + ", "
+		# remove the trailing ", "
+		return self_str[:-2] + "}"

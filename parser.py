@@ -44,14 +44,18 @@ def make_room(room_defn):
 	# value - list of door nodes in that direction
 	door_dict = collections.defaultdict(list)
 
-	parsed_lines = [parse_line(line) for line in room_defn[1:]]
+	# TODO: make sure all the node definitions come before the edge constraints!
 	node_lines = []
 	edge_lines = []
-	for pline in parsed_lines:
-		if pline[0]:
-			node_lines.append(pline[1])
+	all_nodes = []
+	for line in room_defn[1:]:
+		parsed_line = parse_line(line, all_nodes)
+		if parsed_line[0]:
+			all_nodes.append(parsed_line[1][0])
+			node_lines.append(parsed_line[1])
 		else:
-			edge_lines.append(pline[1])
+			edge_lines.append(parsed_line[1])
+	print edge_lines
 
 	# make a node for each node line
 	for name, constraint in node_lines:
@@ -61,12 +65,12 @@ def make_room(room_defn):
 		if isinstance(node_data, Door):
 			door_dict[node_data.facing].append(node_name)
 
-	print graph
-
 	# make it a connected graph
 	for origin_node_name in room_nodes:
 		for destination_node_name in room_nodes:
 			graph.add_edge(origin_node_name, destination_node_name)
+
+	#print graph
 
 	# add in the edge constraints
 	scheduled_for_destruction = []
@@ -82,10 +86,12 @@ def make_room(room_defn):
 	for node1, node2 in scheduled_for_destruction:
 		graph.remove_edge(room_name + "_" + node1, room_name + "_" + node2)
 
+	print graph
+
 	room = Room(room_name, 0, graph)
 	return room, door_dict
 
-def parse_line(line):
+def parse_line(line, all_nodes=[]):
 	"""Categorizes and parses an item definition or edge definition line. The syntax is above"""
 	# edge lines have "->" present ALWAYS
 	edge_line = line.split("->")
@@ -93,7 +99,7 @@ def parse_line(line):
 	if len(edge_line) == 1:
 		return (True, parse_node_line(line))
 	elif len(edge_line) == 2:
-		return (False, parse_edge_line(line))
+		return (False, parse_edge_line(line, all_nodes))
 
 def parse_node_line(line):
 	"""Helper function for parse_line - returns a tuple of node_name, constraint_set."""
@@ -113,7 +119,7 @@ def parse_node_line(line):
 
 	return name, constraint
 
-def parse_edge_line(line):
+def parse_edge_line(line, all_nodes):
 	"""Helper function for parse_line - returns a tuple of (all affected edges), constraint_set."""
 	back = False
 	left, right = line.split("->")
@@ -123,21 +129,37 @@ def parse_edge_line(line):
 		left = left[:-1]
 	# now, break off the constraint
 	right, str_constraint = right.split("-")
-	# remove unnecessary spaces, and the parens
-	left = left.strip()[1:-1]
-	right = right.strip()[1:-1]
+	# parse left and right
+	# first, remove unnecessary spaces
+	left = left.strip()
+	# it's a set of nodes; remove the parens, then make a list
+	if left[0] == "(":
+		left = left[1:-1].split()
+	# it's all nodes; use our definition for all
+	elif left == "ALL":
+		left = all_nodes
+	# it's a single node; make a list
+	else:
+		left = [left]
+
+	right = right.strip()
+	if right[0] == "(":
+		right = right[1:-1].split()
+	elif right == "ALL":
+		right = all_nodes
+	else:
+		right = [right]
 	str_constraint = str_constraint.strip()
-	# split them into individual node names
-	left = left.split()
-	right = right.split()
 
 	# now make the node pairs that represent edges
 	edges = []
 	for left_node in left:
 		for right_node in right:
-			edges.append((left_node, right_node))
-			if back:
-				edges.append((right_node, left_node))
+			# nodes shouldn't have edges to themselves...
+			if left_node != right_node:
+				edges.append((left_node, right_node))
+				if back:
+					edges.append((right_node, left_node))
 
 	if str_constraint == "X":
 		constraint = None
@@ -183,6 +205,8 @@ def parse_rooms(room_file):
 			continue
 		else:
 			current_room.append(line)
+	# append the last room
+	room_defs.append(current_room)
 
 	# parse each room definition
 	# key - room name

@@ -5,8 +5,9 @@ import parser
 
 if __name__ == "__main__":
 
-	rooms = parser.parse_rooms("encoding/rooms.txt")
+	rooms = parser.parse_rooms("encoding/test.txt")
 
-	print rooms["Frog_Speedway"]
+	#print rooms
+	#print rooms["Landing_Site"]
 
 	# TODO: actually test something too :P do stuff

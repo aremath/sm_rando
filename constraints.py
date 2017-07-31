@@ -18,7 +18,7 @@ def parse_constraint(constraint):
 	# BASE CASE
 	# if it's not a symbol, then it's a variable
 	if constraint[0] != "|" and constraint[0] != "&":
-		return MinSetSet([set(constraint)])
+		return MinSetSet([set([constraint])])
 	# RECURSIVE CASE
 	else:
 		symbol = constraint[0]
