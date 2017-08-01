@@ -1,0 +1,5 @@
+# DOOR_NAME			????	OFFSET
+#?
+Landing_Site_L1		0x893a	0x79481
+Landing_Site_L2		0x8922	0x7947d
+Landing_Site_R1		0x892e	0x7947f

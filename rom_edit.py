@@ -1,0 +1,49 @@
+from struct import *
+
+def read_door_data(source, door_addr):
+	pass
+
+def write_door_data(door, data):
+	pass
+
+# methods for actually writing to / reading from the ROM
+# based on the hexMethods.py file from the other sm door randomizer
+
+#TODO: do this without opening and closing the file repeatedly
+
+def read_bytes(source, offset, length):
+    """Gets length bytes from the given offset"""
+    data = open(source, "rb")
+    currLoc = int(offset,0)
+    data.seek(currLoc)
+    currRead = data.read(length)
+    data.close()
+    array = unpack("B" * length, currRead)
+    return array_to_bytes(array)
+
+def read_raw_bytes(source, offset, length):
+    """Gets the length bytes from the given offset"""
+    data = open(source, "rb")
+    currLoc = int(offset,0)
+    data.seek(currLoc)
+    result = data.read(length)
+    data.close()
+    return result
+
+def write_raw_bytes(source, offset, byte, length):
+    """Writes the byte at the given offset"""
+    data = open(source, "r+b")
+    currLoc = int(offset,0)
+    data.seek(currLoc)
+    data.write(byte)
+    data.close()
+
+def array_to_bytes(array):
+    """Converts an array of integers to bytes"""
+    word = ""
+    for num in array:
+        current_byte = hex(num)[2:]
+        if len(current_byte) < 2:
+            current_byte = "0" + current_byte
+        word = current_byte + word
+    return "0x" + word
