@@ -1,5 +1,25 @@
-# DOOR_NAME			????	OFFSET
-#?
-Landing_Site_L1		0x893a	0x79481
-Landing_Site_L2		0x8922	0x7947d
-Landing_Site_R1		0x892e	0x7947f
+# Use this file to actually rearrange the doors
+# The current data at DOOR1 is the data for LEADS_TO
+# The current offset for DOOR1 is where to write the new data
+# For example, if you want Landing_Site_L1 to lead to Landing_Site_R2, you copy the 12 bytes at the Landing_Site_L1 offset (it's going to be erased), then find the door that leads to Landing_Site_R2. Copy 12 bytes of data from that offset to Landing_Site_L1's offset, and the door is swapped!
+# DOOR_NAME					OFFSET		LEADS_TO
+Landing_Site_L1				0x001892e	Gauntlet_Entrance_R
+Landing_Site_L2				0x0018916	Parlor_R1
+Landing_Site_R1				0x001893a	Crateria_Power_Bombs_L
+Landing_Site_R2				0x0018922	Crateria_Tube_L
+Gauntlet_Entrance_R			0x0018946	Landing_Site_L1
+Gauntlet_Entrance_L			0x0018952	Gauntlet_R
+Parlor_L1					0x001895e	Terminator_Room_R
+Parlor_R1					0x001896a	Landing_Site_L2
+Parlor_R3					0x0018976	Map_Flyway_L
+Parlor_R2					0x0018982	BT_Flyway_L
+Parlor_B					0x001898e	Climb_Room_T
+Parlor_L2					0x001899a	Parlor_Save_Room_R
+Parlor_L3					0x00189a6	Final_Missile_Bombway_R
+Crateria_Power_Bombs_R		0x00189b2	Landing_Site_R1
+Parlor_Save_Room_R			0x00189be	Parlor_L2
+West_Ocean_L2				0x00189ca	Moat_R
+West_Ocean_R6				0x00189d6	Wrecked_Ship_Entrance_L
+West_Ocean_R3				0x00189e2	Bowling_Path_L
+West_Ocean_R1				0x00189ee	Attic_L
+West_Ocean_R2				0x00189fa	Bowling_Alley_L1

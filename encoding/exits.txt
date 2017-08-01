@@ -187,6 +187,7 @@ Bowling_Alley_L1			<>	West_Ocean_R2
 Wrecked_Ship_Entrance_R		<>	Wrecked_Ship_Main_L1
 Attic_B						<>	Wrecked_Ship_Main_T
 Attic_R						<>	Beep_Boop_L
+Attic_L						<>	West_Ocean_R1
 Electric_Room_of_Death_L2	<>	Spiky_Room_of_Death_R
 Sponge_Bath_R				<>	Spiky_Room_of_Death_L
 Sponge_Bath_L				<>	Wrecked_Ship_Main_R2

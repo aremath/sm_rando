@@ -47,3 +47,21 @@ def array_to_bytes(array):
             current_byte = "0" + current_byte
         word = current_byte + word
     return "0x" + word
+
+def make_test_rom(rom_file, offset, direction):
+	"""Makes a test rom to see what door is at offset"""
+	# I want to make either landing site L2 or landing site R2 lead to that door info
+	# 04 is left, 05 is right
+	replace_door = ""
+	if direction == "L":
+		# landing site l1
+		replace_door = "0x001892e"
+	elif direction == "R":
+		# landing site r2
+		replace_door = "0x0018922"
+	else:
+		assert False, "Bad Direction"
+
+	door = read_raw_bytes(rom_file, offset, 12)
+	write_raw_bytes(rom_file, replace_door, door, 12)
+	
