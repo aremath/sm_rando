@@ -1103,6 +1103,7 @@ R
 Wrecked_Ship_Energy - 7CC27
 R
 E
+R -> E							- Phantoom
 
 Sponge_Bath - 7CD5C
 L
