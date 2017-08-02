@@ -3,10 +3,10 @@
 # The current offset for DOOR1 is where to write the new data
 # For example, if you want Landing_Site_L1 to lead to Landing_Site_R2, you copy the 12 bytes at the Landing_Site_L1 offset (it's going to be erased), then find the door that leads to Landing_Site_R2. Copy 12 bytes of data from that offset to Landing_Site_L1's offset, and the door is swapped!
 # DOOR_NAME					OFFSET		LEADS_TO
-Landing_Site_L1				0x001892e	Gauntlet_Entrance_R
 Landing_Site_L2				0x0018916	Parlor_R1
-Landing_Site_R1				0x001893a	Crateria_Power_Bombs_L
 Landing_Site_R2				0x0018922	Crateria_Tube_L
+Landing_Site_L1				0x001892e	Gauntlet_Entrance_R
+Landing_Site_R1				0x001893a	Crateria_Power_Bombs_L
 Gauntlet_Entrance_R			0x0018946	Landing_Site_L1
 Gauntlet_Entrance_L			0x0018952	Gauntlet_R
 Parlor_L1					0x001895e	Terminator_Room_R
@@ -23,3 +23,80 @@ West_Ocean_R6				0x00189d6	Wrecked_Ship_Entrance_L
 West_Ocean_R3				0x00189e2	Bowling_Path_L
 West_Ocean_R1				0x00189ee	Attic_L
 West_Ocean_R2				0x00189fa	Bowling_Alley_L1
+West_Ocean_R5				0x0018a06	Gravity_L
+Bowling_Path_L				0x0018a12	West_Ocean_R3
+Bowling_Path_R				0x0018a1e	Ocean_Ship_Trans_L
+Crateria_Keyhunters_L		0x0018a2a	Crateria_Tube_R
+Crateria_Keyhunters_R		0x0018a36	Moat_L
+Crateria_Keyhunters_B		0x0018a42	Caterpillar_Elevator_T
+Crateria_Maridia_Shaft_T	0x0018a4e	Crateria_Power_Door_B
+Crateria_Maridia_Shaft_ET	0x0018a5a	Maridia_Elevator_EB
+East_Ocean_L				0x0018a66	Electric_Room_of_Death_R
+East_Ocean_R				0x0018a72	Forgotten_Highway_L
+Forgotten_Highway_L			0x0018a7e	East_Ocean_R
+Forgotten_Highway_B			0x0018a8a	Crab_Maze_T
+Crab_Maze_T					0x0018a96	Forgotten_Highway_B
+Crateria_Power_Door_R		0x0018aa2	Crab_Maze_L
+Crab_Maze_L					0x0018aae	Crateria_Power_Door_R
+Crateria_Power_Door_B		0x0018aba	Crateria_Maridia_Shaft_T
+Crateria_Tube_L				0x0018ac6	Landing_Site_R2
+Crateria_Tube_R				0x0018ad2	Crateria_Keyhunters_L
+Moat_L						0x0018ade	Crateria_Keyhunters_R
+Moat_R						0x0018aea	West_Ocean_L2
+Caterpillar_Elevator_T		0x0018af6	Crateria_Keyhunters_B
+Caterpillar_Elevator_ET		0x0018b02	Caterpillar_Room_EB
+Gauntlet_R					0x0018b0e	Gauntlet_Entrance_L
+Gauntlet_L					0x0018b1a	Green_Pirates_Shaft_R1
+Ocean_Ship_Trans_L			0x0018b26	Bowling_Path_R
+Ocean_Ship_Trans_R			0x0018b32	Bowling_Alley_L2
+Climb_Room_T				0x0018b3e	Parlor_B
+Climb_Room_R1				0x0018b4a	Crateria_Supers_L1
+Climb_Room_R2				0x0018b56	Crateria_Supers_L2
+Climb_Room_R3				0x0018b62	Old_Mother_Brain_L
+Climb_Room_L				0x0018b6e	Escape_4_R
+Old_Mother_Brain_L			0x0018b7a	Climb_Room_R3
+Old_Mother_Brain_R			0x0018b86	Blue_Brinstar_Elevator_L
+Blue_Brinstar_Elevator_L	0x0018b92	Old_Mother_Brain_R
+Blue_Brinstar_Elevator_ET	0x0018b9e	Morph_Ball_Room_EB
+Bomb_Torizo_L				0x0018baa	BT_Flyway_R
+BT_Flyway_L					0x0018bb6	Parlor_R2
+BT_Flyway_R					0x0018bc2	Bomb_Torizo_L
+Map_Flyway_L				0x0018bce	Parlor_R3
+Map_Flyway_R				0x0018bda	Crateria_Map_L
+Terminator_Room_L			0x0018be6	Green_Pirates_Shaft_R2
+Terminator_Room_R			0x0018bf2	Parlor_L1
+Brinstar_Elevator_R			0x0018bfe	Kago_Room_L
+Brinstar_Elevator_ET		0x0018c0a	Brinstar_Entrance_EB
+Kago_Room_R					0x0018c16	Green_Pirates_Shaft_L
+Kago_Room_L					0x0018c22	Brinstar_Elevator_R
+Crateria_Map_L				0x0018c2e	Map_Flyway_R
+Green_Pirates_Shaft_R2		0x0018c3a	Terminator_Room_L
+Green_Pirates_Shaft_L		0x0018c46	Kago_Room_R
+Green_Pirates_Shaft_R3		0x0018c52	Statue_Corridor_L
+Green_Pirates_Shaft_R1		0x0018c5e	Gauntlet_L
+Crateria_Supers_L1			0x0018c6a	Climb_Room_R1
+Crateria_Supers_L2			0x0018c76	Climb_Room_R2
+Final_Missile_Bombway_L		0x0018c82	Final_Missile_R
+Final_Missile_Bombway_R		0x0018c8e	Parlor_L3
+Final_Missile_R				0x0018c9a	Final_Missile_Bombway_L
+Brinstar_Entrance_EB		0x0018ca6	Brinstar_Elevator_ET
+Brinstar_Entrance_L1		0x0018cb2	Brinstar_Map_Entrance_R
+Brinstar_Entrance_L5		0x0018cbe	Green_Brinstar_Beetoms_R
+Brinstar_Entrance_L3		0x0018cca	Brinstar_Firefleas_R
+Brinstar_Entrance_R1		0x0018cd6	Early_Supers_L
+Brinstar_Entrance_R2		0x0018ce2	Dachora_Room_L1
+Brinstar_Entrance_R3		0x0018cee	Brinstar_Entrance_L4
+Brinstar_Entrance_L6		0x0018cfa	Green_Brinstar_Energy_R2
+Brinstar_Entrance_L4		0x0018d06	Brinstar_Entrance_R3
+Brinstar_Entrance_L2		0x0018d12	Green_Entrance_Save_R
+Spore_Spawn_Supers_L2		0x0018d1e	Spore_Spawn_Farm_R
+Spore_Spawn_Supers_L1		0x0018d2a	Spore_Spawn_R
+	0x0018d36
+	0x0018d42
+	0x0018d4e
+	0x0018d5a
+	0x0018d66
+	0x0018d72
+	0x0018d7e
+	0x0018d8a
+	0x0018d86

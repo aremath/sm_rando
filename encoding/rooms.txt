@@ -1099,6 +1099,11 @@ L2
 R
 (L1 L2) -> R					- | SJ HJ GS
 
+# it's possible to reach the etank with no items :D
+Wrecked_Ship_Energy - 7CC27
+R
+E
+
 Sponge_Bath - 7CD5C
 L
 R
