@@ -59,6 +59,9 @@ def make_test_rom(rom_file, offset, direction):
 	elif direction == "R":
 		# landing site r2
 		replace_door = "0x0018922"
+	elif direction == "B":
+		# parlor b
+		replace_door = "0x001898e"
 	else:
 		assert False, "Bad Direction"
 

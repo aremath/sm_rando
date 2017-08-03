@@ -91,11 +91,12 @@ Warehouse_Keyhunters_R2		<>	Baby_Kraid_L
 Baby_Kraid_R				<>	Kraid_Eye_Door_L
 Kraid_L						<>	Kraid_Eye_Door_R2
 Statue_Corridor_L			<>	Green_Pirates_Shaft_R3
+Statue_Corridor_R			<>	Statues_L
 Red_Tower_L3				<>	Red_Tower_Refill_R
 Kraid_Refill_L				<>	Kraid_Eye_Door_R1
 Kraid_R						<>	Varia_Suit_L
 Kraid_Save_L				<>	Warehouse_Keyhunters_R1
-Caterpillar_Room_R2			<>	Caterpillar_Save
+Caterpillar_Room_R2			<>	Caterpillar_Save_L
 Cathedral_L					<>	Cathedral_Entrance_R
 Warehouse_Entrance_ET		<>	Business_Center_EB
 Business_Center_R1			<>	Cathedral_Entrance_L

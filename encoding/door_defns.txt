@@ -91,12 +91,121 @@ Brinstar_Entrance_L4		0x0018d06	Brinstar_Entrance_R3
 Brinstar_Entrance_L2		0x0018d12	Green_Entrance_Save_R
 Spore_Spawn_Supers_L2		0x0018d1e	Spore_Spawn_Farm_R
 Spore_Spawn_Supers_L1		0x0018d2a	Spore_Spawn_R
-	0x0018d36
-	0x0018d42
-	0x0018d4e
-	0x0018d5a
-	0x0018d66
-	0x0018d72
-	0x0018d7e
-	0x0018d8a
-	0x0018d86
+Brinstar_Map_Entrance_L		0x0018d36	Brinstar_Map_R
+Brinstar_Map_Entrance_R		0x0018d42	Brinstar_Entrance_L1
+Early_Supers_L				0x0018d4e	Brinstar_Entrance_R1
+Early_Supers_R				0x0018d5a	Brinstar_Reserve_L
+Brinstar_Reserve_L			0x0018d66	Early_Supers_R
+Brinstar_Map_R				0x0018d72	Brinstar_Map_Entrance_L
+Brinstar_Firefleas_L		0x0018d7e	Brinstar_Missile_Refill_R
+Brinstar_Firefleas_R		0x0018d8a	Brinstar_Entrance_L3
+Brinstar_Missile_Refill_R	0x0018d96	Brinstar_Firefleas_L
+Dachora_Room_L1				0x0018da2	Brinstar_Entrance_R2
+Dachora_Room_R				0x0018dae	Big_Pink_L2
+Dachora_Room_L2				0x0018dba	Brinstar_Refill_R
+Big_Pink_R1					0x0018dc6	Pre-Spore_Keyhunters_L
+Big_Pink_L2					0x0018dd2	Dachora_Room_R
+Big_Pink_L4					0x0018dde	Pink_Power_Bombs_R2
+Big_Pink_R4					0x0018dea	Green_Hill_Zone_L
+Big_Pink_L1					0x0018df6	Pink_Save_R
+Big_Pink_L3					0x0018e02	Pink_Power_Bombs_R1
+Big_Pink_L5					0x0018e0e	Waterway_Energy_R
+Big_Pink_R2					0x0018e1a	Pink_Hoppers_L
+Big_Pink_R3					0x0018e26	Spore_Spawn_Farm_L
+Pre-Spore_Keyhunters_L		0x0018e32	Big_Pink_R1
+Pre-Spore_Keyhunters_T		0x0018e3e	Spore_Spawn_B
+Spore_Spawn_R				0x0018e4a	Spore_Spawn_Supers_L1
+Spore_Spawn_B				0x0018e56	Pre-Spore_Keyhunters_T
+Pink_Power_Bombs_R1			0x0018e62	Big_Pink_L3
+Pink_Power_Bombs_R2			0x0018e6e	Big_Pink_L4
+Green_Hill_Zone_L			0x0018e7a	Big_Pink_R4
+Green_Hill_Zone_R1			0x0018e86	Morph_Ball_Room_L
+Green_Hill_Zone_R2			0x0018e92	Noob_Bridge_L
+Morph_Ball_Room_L			0x0018e9e	Green_Hill_Zone_R1
+Morph_Ball_Room_R			0x0018eaa	Construction_Zone_L1
+Morph_Ball_Room_EB			0x0018eb6	Blue_Brinstar_Elevator_ET
+Construction_Zone_L1		0x0018ec2	Morph_Ball_Room_R
+Construction_Zone_R			0x0018ece	Blue_Brinstar_Energy_L2
+Construction_Zone_L2		0x0018eda	First_Missile_R
+Blue_Brinstar_Energy_L2		0x0018ee6	Construction_Zone_R
+Blue_Brinstar_Energy_L1		0x0018ef2	Blue_Brinstar_Boulders_R
+Noob_Bridge_L				0x0018efe	Green_Hill_Zone_R2
+Noob_Bridge_R				0x0018f0a	Red_Tower_L1
+Green_Brinstar_Beetoms_R	0x0018f16	Brinstar_Entrance_L5
+Green_Brinstar_Beetoms_L	0x0018f22	Green_Brinstar_Energy_R1
+Green_Brinstar_Energy_R1	0x0018f2e	Green_Brinstar_Beetoms_L
+Green_Brinstar_Energy_L1	0x0018f3a	Etecoon_Supers_R
+Green_Brinstar_Energy_R2	0x0018f46	Brinstar_Entrance_L6
+Green_Brinstar_Energy_L2	0x0018f52	Green_Beetom_Save_R
+Etecoon_Supers_R			0x0018f5e	Green_Brinstar_Energy_L1
+Brinstar_Refill_R			0x0018f6a	Dachora_Room_L2
+Spore_Spawn_Farm_R			0x0018f76	Spore_Spawn_Supers_L2
+Spore_Spawn_Farm_L			0x0018f82	Big_Pink_R3
+Waterway_Energy_R			0x0018f8e	Big_Pink_L5
+# weird shit
+#	0x0018f9a
+First_Missile_R				0x0018fa6	Construction_Zone_L2
+Pink_Hoppers_L				0x0018fb2	Big_Pink_R2
+Pink_Hoppers_R				0x0018fbe	Hopper_Energy_L
+Hopper_Energy_L				0x0018fca	Pink_Hoppers_R
+Pink_Save_R					0x0018fd6	Big_Pink_L1
+Blue_Brinstar_Boulders_R	0x0018fe2	Blue_Brinstar_Energy_L1
+Blue_Brinstar_Boulders_L	0x0018fee	Billy_Mays_R
+Billy_Mays_R				0x0018ffa	Blue_Brinstar_Boulders_L
+Green_Entrance_Save_R		0x0019006	Brinstar_Entrance_L2
+Green_Beetom_Save_R			0x0019012	Green_Brinstar_Energy_L2
+Red_Tower_R1				0x001901e	Hellway_L
+Red_Tower_L1				0x001902a	Noob_Bridge_R
+Red_Tower_L2				0x0019036	Red_Brinstar_Firefleas_R
+Red_Tower_R2				0x0019042	Bat_Room_L
+Red_Tower_L3				0x001904e	Red_Tower_Refill_R
+Red_Brinstar_Firefleas_L	0x001905a	X-Ray_R
+Red_Brinstar_Firefleas_R	0x0019066	Red_Tower_L2
+X-Ray_R						0x0019072	Red_Brinstar_Firefleas_L
+Hellway_L					0x001907e	Red_Tower_R1
+Hellway_R					0x001908a	Caterpillar_Room_L2
+Caterpillar_Room_L3			0x0019096	Alpha_Power_Bombs_R
+Caterpillar_Room_L1			0x00190a2	Beta_Power_Bombs_R
+Caterpillar_Room_L2			0x00190ae	Hellway_R
+Caterpillar_Room_EB			0x00190ba	Caterpillar_Elevator_ET
+Caterpillar_Room_R1			0x00190c6	McElligot's_Pool_L
+Caterpillar_Room_R2			0x00190d2	Caterpillar_Save_L
+Beta_Power_Bombs_R			0x00190de	Caterpillar_Room_L1
+Alpha_Power_Bombs_R			0x00190ea	Caterpillar_Room_L3
+Bat_Room_L					0x00190f6	Red_Tower_R2
+Bat_Room_R					0x0019102	Spazer_Troll_L
+Spazer_Troll_L				0x001910e	Bat_Room_R 
+Spazer_Troll_R2				0x001911a	West_Tunnel_L
+Spazer_Troll_R1				0x0019126	Spazer_L
+Spazer_L					0x0019132	Spazer_Troll_R1
+Warehouse_Zeelas_L1			0x001913e	Warehouse_Entrance_R
+Warehouse_Zeelas_L2			0x001914a	Warehouse_Energy_R
+Warehouse_Zeelas_T			0x0019156	Warehouse_Keyhunters_B
+Warehouse_Energy_R			0x0019162	Warehouse_Zeelas_L2
+Warehouse_Keyhunters_B		0x001916e	Warehouse_Zeelas_T
+Warehouse_Keyhunters_R2		0x001917a	Baby_Kraid_L
+Warehouse_Keyhunters_R1		0x0019186	Kraid_Save_L
+Baby_Kraid_L				0x0019192	Warehouse_Keyhunters_R2
+Baby_Kraid_R				0x001919e	Kraid_Eye_Door_L
+Kraid_Eye_Door_L			0x00191aa	Baby_Kraid_R
+Kraid_Eye_Door_R2			0x00191b6	Kraid_L
+Kraid_Eye_Door_R1			0x00191c2	Kraid_Refill_L
+Kraid_L						0x00191ce	Kraid_Eye_Door_R2
+Kraid_R						0x00191da	Varia_Suit_L
+Statue_Corridor_L			0x00191e6	Green_Pirates_Shaft_R3
+Statue_Corridor_R			0x00191f2	Statues_L
+Red_Tower_Refill_R			0x00191fe	Red_Tower_L3
+Kraid_Refill_L				0x001920a	Kraid_Eye_Door_R1
+Statues_L					0x0019216	Statue_Corridor_R
+Statues_ET					0x0019222	Tourian_Elevator_EB
+Warehouse_Entrance_L		0x001922e	East_Tunnel_R2
+Warehouse_Entrance_R		0x001923a	Warehouse_Zeelas_L1
+Warehouse_Entrance_ET		0x0019246	Business_Center_EB
+Varia_Suit_L				0x0019252	Kraid_R
+Kraid_Save_L				0x001925e	Warehouse_Keyhunters_R1
+Caterpillar_Save_L			0x001926a	Caterpillar_Room_R2
+Ice_Beam_Acid_R				0x0019276	Ice_Beam_Gate_L2
+	0x0019282
+	0x001928e
+	0x001929a
+	0x00192a6
