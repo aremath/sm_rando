@@ -17,3 +17,8 @@ ALL -> M3								- | B PB
 R3 -> ALL								- | B PB SPB
 ALL -> R3								- | B PB SPB
 (L2 R5 R6 M3) -> (R1 R2 R3) 			- X
+#
+# softlock if facing left
+# put metroids in the animals room
+# extra geemer in the pre-spore room???
+#

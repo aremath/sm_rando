@@ -205,7 +205,205 @@ Varia_Suit_L				0x0019252	Kraid_R
 Kraid_Save_L				0x001925e	Warehouse_Keyhunters_R1
 Caterpillar_Save_L			0x001926a	Caterpillar_Room_R2
 Ice_Beam_Acid_R				0x0019276	Ice_Beam_Gate_L2
-	0x0019282
-	0x001928e
-	0x001929a
-	0x00192a6
+Ice_Beam_Acid_L				0x0019282	Ice_Beam_Snakes_R3
+Cathedral_L					0x001928e	Cathedral_Entrance_R
+Cathedral_R					0x001929a	Rising_Tide_L
+Cathedral_Entrance_L		0x00192a6	Business_Center_R1
+Cathedral_Entrance_R		0x00192b2	Cathedral_L
+Business_Center_L1			0x00192be	Ice_Beam_Gate_R
+Business_Center_R1			0x00192ca	Cathedral_Entrance_L
+Business_Center_L3			0x00192d6	Hi_Jump_Energy_R
+Business_Center_R3			0x00192e2	Crocomire_Escape_L
+Business_Center_EB			0x00192ee	Warehouse_Entrance_ET
+Business_Center_R2			0x00192fa	Business_Save_L
+Business_Center_L2			0x0019306	Norfair_Map_R
+Ice_Beam_Gate_L1			0x0019312	Ice_Beam_Tutorial_R
+Ice_Beam_Gate_L2			0x001931e	Ice_Beam_Acid_R
+Ice_Beam_Gate_R				0x001932a	Business_Center_L1
+Ice_Beam_Gate_L3			0x0019336	Crumble_Shaft_R1
+Ice_Beam_Tutorial_L			0x0019342	Ice_Beam_Snakes_R1
+Ice_Beam_Tutorial_R			0x001934e	Ice_Beam_Gate_L1
+Ice_Beam_L					0x001935a	Ice_Beam_Snakes_R2
+Ice_Beam_Snakes_R3			0x0019366	Ice_Beam_Acid_L
+Ice_Beam_Snakes_R1			0x0019372	Ice_Beam_Tutorial_L
+Ice_Beam_Snakes_R2			0x001937e	Ice_Beam_L
+Crumble_Shaft_R1			0x001938a	Ice_Beam_Gate_L3
+Crumble_Shaft_R2			0x0019396	Crocomire_Speedway_L2
+Crocomire_Speedway_L2		0x00193a2	Crumble_Shaft_R2
+Crocomire_Speedway_L1		0x00193ae	Crocomire_Escape_R
+Crocomire_Speedway_R1		0x00193ba	Crocomire_Save_L
+Crocomire_Speedway_R2		0x00193c6	Acid_Snakes_L
+Crocomire_Speedway_B		0x00193d2	Crocomire_T
+Crocomire_L					0x00193de	Crocomire_Farm_R1
+Crocomire_T					0x00193ea	Crocomire_Speedway_B
+Hi_Jump_R					0x00193f6	Hi_Jump_Energy_L
+Crocomire_Escape_L			0x0019402	Business_Center_R3
+Crocomire_Escape_R			0x001940e	Crocomire_Speedway_L1
+Hi_Jump_Energy_R			0x001941a	Business_Center_L3
+Hi_Jump_Energy_L			0x0019426	Hi_Jump_R
+Crocomire_Farm_R1			0x0019432	Crocomire_L
+Crocomire_Farm_L			0x001943e	Post-Croc_Power_Bombs_R
+Crocomire_Farm_B			0x001944a	Post-Croc_Shaft_T
+Crocomire_Farm_R2			0x0019456	Post-Croc_Save_L
+Post-Croc_Save_L			0x0019462	Crocomire_Farm_R2
+Post-Croc_Power_Bombs_R		0x001946e	Crocomire_Farm_L
+Post-Croc_Shaft_T			0x001947a	Crocomire_Farm_B
+Post-Croc_Shaft_L			0x0019486	Grapple_Hardest_R
+Post-Croc_Shaft_R			0x0019492	Cosine_Room_L
+Post-Croc_Shaft_B			0x001949e	Grapple_Yump_T
+Cosine_Room_L				0x00194aa	Post-Croc_Shaft_R
+Grapple_Hardest_L			0x00194b6	Grapple_Harder_R
+Grapple_Hardest_R			0x00194c2	Post-Croc_Shaft_L
+Grapple_Yump_T				0x00194ce	Post-Croc_Shaft_B
+Grapple_Yump_L				0x00194da	Grapple_R2
+Grapple_Harder_L			0x00194e6	Grapple_Hard_R
+Grapple_Harder_R			0x00194f2	Grapple_Hardest_L
+Grapple_Hard_L				0x00194fe	Grapple_R1
+Grapple_Hard_R				0x001950a	Grapple_Harder_L
+Grapple_R2					0x0019516	Grapple_Yump_L
+Grapple_R1					0x0019522	Grapple_Hard_L
+Bubble_Reserve_R			0x001952e	Bubble_Missiles_L
+Bubble_Missiles_R			0x001953a	Bubble_Mountain_L1
+Bubble_Missiles_L			0x0019546	Bubble_Reserve_R
+Bubble_Mountain_L1			0x0019552	Bubble_Missiles_R
+Bubble_Mountain_L3			0x001955e	Rising_Tide_R
+Bubble_Mountain_L4			0x001956a	Upper_Norfair_Farm_R
+Bubble_Mountain_B			0x0019576	Purple_Shaft_T
+Bubble_Mountain_R2			0x0019582	Single_Chamber_L
+Bubble_Mountain_R1			0x001958e	Bat_Cave_L
+Bubble_Mountain_L2			0x001959a	Bubble_Save_R
+Go_Fast_L					0x00195a6	Bat_Cave_R
+Go_Fast_R					0x00195b2	Speed_Booster_L
+Speed_Booster_L				0x00195be	Go_Fast_R
+Single_Chamber_L			0x00195ca	Bubble_Mountain_R2
+Single_Chamber_R2			0x00195d6	Double_Chamber_L1
+Single_Chamber_R3			0x00195e2	Double_Chamber_L2
+Single_Chamber_R4			0x00195ee	Spiky_Platforms_L
+Single_Chamber_R1			0x00195fa	Three_Musketeers_L
+Double_Chamber_L1			0x0019606	Single_Chamber_R2
+Double_Chamber_L2			0x0019612	Single_Chamber_R3
+Double_Chamber_R			0x001961e	Wave_Beam_L
+Wave_Beam_L					0x001962a	Double_Chamber_R
+Spiky_Platforms_L			0x0019636	Single_Chamber_R4
+Spiky_Platforms_R			0x0019642	Volcano_Room_L1
+Volcano_Room_L1				0x001964e	Spiky_Platforms_R
+Volcano_Room_L2				0x001965a	Kronic_Boost_R
+Kronic_Boost_L1				0x0019666	Magdollite_Tunnel_R
+Kronic_Boost_R				0x0019672	Volcano_Room_L2
+Kronic_Boost_L3				0x001967e	Lava_Dive_R
+Kronic_Boost_L2				0x001968a	Spiky_Acid_Snakes_R
+Magdollite_Tunnel_L			0x0019696	Purple_Shaft_R2
+Magdollite_Tunnel_R			0x00196a2	Kronic_Boost_L1
+Purple_Shaft_T				0x00196ae	Bubble_Mountain_B
+Purple_Shaft_R2				0x00196ba	Magdollite_Tunnel_L
+Purple_Shaft_R1				0x00196c6	Purple_Farm_L
+Lava_Dive_R					0x00196d2	Kronic_Boost_L3
+Lava_Dive_L					0x00196de	Lower_Elevator_R
+Lower_Elevator_R			0x00196ea	Lava_Dive_L
+Lower_Elevator_ET			0x00196f6	Main_Hall_EB
+Lower_Elevator_L			0x0019702	Lower_Elevator_Save_R
+Upper_Norfair_Farm_L1		0x001970e	Frog_Speedway_R
+Upper_Norfair_Farm_R		0x001971a	Bubble_Mountain_L4
+Upper_Norfair_Farm_L2		0x0019726	Red_Pirates_Shaft_R
+Rising_Tide_L				0x0019732	Cathedral_R
+Rising_Tide_R				0x001973e	Bubble_Mountain_L3
+Acid_Snakes_L				0x001974a	Crocomire_Speedway_R2
+Acid_Snakes_R				0x0019756	Croc_Recharge_L
+Acid_Snakes_T				0x0019762	Red_Pirates_Shaft_B
+Spiky_Acid_Snakes_L			0x001976e	Croc_Recharge_R
+Spiky_Acid_Snakes_R			0x001977a	Kronic_Boost_L2
+Croc_Recharge_L				0x0019786	Acid_Snakes_R
+Croc_Recharge_R				0x0019792	Spiky_Acid_Snakes_L
+Purple_Farm_L				0x001979e	Purple_Shaft_R1
+Bat_Cave_L					0x00197aa	Bubble_Mountain_R1
+Bat_Cave_R					0x00197b6	Go_Fast_L
+Norfair_Map_R				0x00197c2	Business_Center_L2
+Bubble_Save_R				0x00197ce	Bubble_Mountain_L2
+Frog_Speedway_L				0x00197da	Business_Save_R
+Frog_Speedway_R				0x00197e6	Upper_Norfair_Farm_L1
+Red_Pirates_Shaft_R			0x00197f2	Upper_Norfair_Farm_L2
+Red_Pirates_Shaft_B			0x00197fe	Acid_Snakes_T
+Business_Save_R				0x001980a	Frog_Speedway_L
+Business_Save_L				0x0019816	Business_Center_R2
+Crocomire_Save_L			0x0019822	Crocomire_Speedway_R1
+Lower_Elevator_Save_R		0x001982e	Lower_Elevator_L
+Water_Closet_R2				0x001983a	Golden_Torizo_L
+Water_Closet_R1				0x0019846	Main_Hall_L
+Main_Hall_L					0x0019852	Water_Closet_R1
+Main_Hall_R					0x001985e	Fast_Pillars_Setup_L1
+Main_Hall_EB				0x001986a	Lower_Elevator_ET
+Golden_Torizo_L				0x0019876	Water_Closet_R2
+Golden_Torizo_R				0x0019882	Screw_Attack_L
+Fast_Rippers_L				0x001988e	Screw_Attack_R1
+Fast_Rippers_R				0x001989a	Fast_Pillars_Setup_L2
+Golden_Recharge_L			0x00198a6	Screw_Attack_R2
+Ridley_L					0x00198b2	Ridley_Energy_R
+Ridley_R					0x00198be	Lower_Norfair_Farm_L
+Lower_Norfair_Farm_L		0x00198ca	Ridley_R
+Lower_Norfair_Farm_R		0x00198d6	Plowerhouse_L
+Fast_Pillars_Setup_L1		0x00198e2	Main_Hall_R
+Fast_Pillars_Setup_R1		0x00198ee	Mickey_Mouse_L
+# this one is a duplicate of 0x0019e2
+#	0x00198fa
+Fast_Pillars_Setup_L2		0x0019906	Fast_Rippers_R
+Fast_Pillars_Setup_R2		0x0019912	Pillars_L
+Mickey_Mouse_L				0x001991e	Fast_Pillars_Setup_R1
+# this one is a duplicate of 0x001991e
+#	0x001992a
+Mickey_Mouse_R				0x0019936	The_Worst_Room_in_the_Game_L1
+Pillars_L					0x0019942	Fast_Pillars_Setup_R2
+Pillars_R					0x001994e	The_Worst_Room_in_the_Game_L2
+Plowerhouse_L				0x001995a	Lower_Norfair_Farm_R
+Plowerhouse_R				0x0019966	Metal_Pirates_L
+The_Worst_Room_in_the_Game_L1	0x0019972	Mickey_Mouse_R
+The_Worst_Room_in_the_Game_R	0x001997e	Amphitheatre_L
+The_Worst_Room_in_the_Game_L2	0x001998a	Pillars_R
+Amphitheatre_L				0x0019996	The_Worst_Room_in_the_Game_R
+Amphitheatre_R				0x00199a2	Red_Keyhunter_Shaft_L
+Hotarubi_L					0x00199ae	Three_Musketeers_R
+Hotarubi_R					0x00199ba	Lower_Firefleas_L1
+Hotarubi_B					0x00199c6	Escape_Power_Bombs_T
+Escape_Power_Bombs_L		0x00199d2	Lower_Firefleas_R
+Escape_Power_Bombs_T		0x00199de	Hotarubi_B
+Red_Keyhunter_Shaft_B		0x00199ea	Wasteland_T
+Red_Keyhunter_Shaft_L		0x00199f6	Amphitheatre_R
+Red_Keyhunter_Shaft_R1		0x0019a02	Lower_Firefleas_L2
+Red_Keyhunter_Shaft_R2		0x0019a0e	Red_Keyhunter_Save_L
+Wasteland_L					0x0019a1a	Metal_Pirates_R
+Wasteland_T					0x0019a26	Red_Keyhunter_Shaft_B
+Metal_Pirates_L				0x0019a32	Plowerhouse_R
+Metal_Pirates_R				0x0019a3e	Wasteland_L
+Three_Musketeers_L			0x0019a4a	Single_Chamber_R1
+Three_Musketeers_R			0x0019a56	Hotarubi_L
+Ridley_Energy_R				0x0019a62	Ridley_L
+Screw_Attack_R1				0x0019a6e	Fast_Rippers_L
+Screw_Attack_R2				0x0019a7a	Golden_Recharge_L
+Screw_Attack_L				0x0019a86	Golden_Torizo_R
+Lower_Firefleas_L1			0x0019a92	Hotarubi_R
+Lower_Firefleas_R			0x0019a9e	Escape_Power_Bombs_L
+Lower_Firefleas_L2			0x0019aaa	Red_Keyhunter_Shaft_R1
+Red_Keyhunter_Save_L		0x0019ab6	Red_Keyhunter_Shaft_R2
+	0x0019ac2
+	0x0019ace
+	0x0019ada
+	0x0019ae6
+	0x0019af2
+	0x0019afe
+	0x0019b0a
+	0x0019b16
+b22
+b2e
+b3a
+b46
+b52
+b5e
+b6a
+b76
+b82
+b8e
+b9a
+ba6
+bb2
+bbe
+bca
+bd6

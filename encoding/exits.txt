@@ -155,7 +155,7 @@ Upper_Norfair_Farm_L1		<>	Frog_Speedway_R
 Upper_Norfair_Farm_L2		<>	Red_Pirates_Shaft_R
 Red_Pirates_Shaft_B			<>	Acid_Snakes_T
 Business_Save_R				<>	Frog_Speedway_L
-Bubble_Save_L				<>	Business_Center_R2
+Business_Save_L				<>	Business_Center_R2
 Crocomire_Save_L			<>	Crocomire_Speedway_R1
 Lower_Elevator_Save_R		<>	Lower_Elevator_L
 Main_Hall_L					<>	Water_Closet_R1
@@ -176,6 +176,7 @@ Red_Keyhunter_Shaft_B		<>	Wasteland_T
 Metal_Pirates_R				<>	Wasteland_L
 Metal_Pirates_L				<>	Plowerhouse_R
 Three_Musketeers_R			<>	Hotarubi_L
+Three_Musketeers_L			<>	Single_Chamber_R1
 Ridley_L					<>	Ridley_Energy_R
 Screw_Attack_R1				<>	Fast_Rippers_L
 Screw_Attack_R2				<>	Golden_Recharge_L

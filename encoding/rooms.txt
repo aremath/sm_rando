@@ -619,8 +619,8 @@ L2
 R1
 R2
 B						- S
-L1 -> ALL				- SB
-ALL -> L1				- X
+L2 -> ALL				- SB
+ALL -> L2				- X
 ALL <-> ALL				- V
 
 Crocomire - 7A98D
