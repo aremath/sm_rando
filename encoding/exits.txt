@@ -197,6 +197,9 @@ Sponge_Bath_R				<>	Spiky_Room_of_Death_L
 Sponge_Bath_L				<>	Wrecked_Ship_Main_R2
 Wrecked_Ship_Supers_R		<>	Wrecked_Ship_Main_L2
 Beep_Boop_Supers_L			<>	Wrecked_Ship_Main_R3
+Basement_T					<>	Wrecked_Ship_Main_B
+Basement_L					<>	Wrecked_Ship_Map_R
+Basement_R					<>	Phantoon_L
 Gravity_L					<>	West_Ocean_R5
 Bowling_Alley_L3			<>	Gravity_R
 Wrecked_Save_L				<>	Wrecked_Ship_Main_R1

@@ -532,7 +532,7 @@ L
 Statues - 7A66A
 L
 ET
-L <-> ET				- & Kraid Phantoom Draygon Ridley
+L <-> ET				- & Kraid Phantoon Draygon Ridley
 
 Warehouse_Entrance - 7A6A1
 L
@@ -1050,7 +1050,7 @@ L
 
 # WRECKED SHIP
 
-Bowling_Alley - 7C98D
+Bowling_Alley - 7C98E
 L1
 L2								- X
 L3
@@ -1059,7 +1059,7 @@ M
 L1 <-> ALL						- X
 L2 -> ALL						- | G E
 L3 -> L2						- X
-ALL -> (M RT)					- Phantoom
+ALL -> (M RT)					- Phantoon
 ALL -> M						- | B PB
 ALL -> RT						- & SB PB
 
@@ -1068,20 +1068,21 @@ L
 R
 
 Attic - 7CA52
-L								- Phantoom
-R								- Phantoom
+L								- Phantoon
+R								- Phantoon
 B
 
 Beep_Boop - 7CAAE
 L
 M
+L -> M							- Phantoon
 
 Wrecked_Ship_Main - 7CAF6
 T
 L1
-L2								- Phantoom
+L2								- Phantoon
 R1
-R2								- Phantoom
+R2								- Phantoon
 R3
 B								- S
 M
@@ -1103,7 +1104,21 @@ R
 Wrecked_Ship_Energy - 7CC27
 R
 E
-R -> E							- Phantoom
+R -> E							- Phantoon
+
+Basement - 7CC6F
+L
+T
+R								- M
+ALL <-> R						- | B PB
+
+Wrecked_Ship_Map - 7CCCB
+R
+
+Phantoon - 7CD13
+L								- Phantoon
+Phantoon
+L -> Phantoon					- CB
 
 Sponge_Bath - 7CD5C
 L
@@ -1113,18 +1128,18 @@ L -> R							- | HJ GS SJ
 Wrecked_Ship_Supers - 7CDA8
 R
 S
-R -> S							- Phantoom
+R -> S							- Phantoon
 
 Beep_Boop_Supers - 7CDF1
 L
 S
-L -> S							- & Phantoom (| B PB)
+L -> S							- & Phantoon (| B PB)
 
 Gravity - 7CE40
 L
 R
 GS
-ALL -> GS						- Phantoom
+ALL -> GS						- Phantoon
 
 Wrecked_Save - 7CE8A
 L

@@ -2,7 +2,11 @@
 # The current data at DOOR1 is the data for LEADS_TO
 # The current offset for DOOR1 is where to write the new data
 # For example, if you want Landing_Site_L1 to lead to Landing_Site_R2, you copy the 12 bytes at the Landing_Site_L1 offset (it's going to be erased), then find the door that leads to Landing_Site_R2. Copy 12 bytes of data from that offset to Landing_Site_L1's offset, and the door is swapped!
+# Note that the order of rooms is the same order of the memory addresses for the rooms, which is the order the rooms are listed in in rooms.txt
 # DOOR_NAME					OFFSET		LEADS_TO
+# are these from ceres?
+# ???						0x00188fe	???
+# ???						0x0018916	???
 Landing_Site_L2				0x0018916	Parlor_R1
 Landing_Site_R2				0x0018922	Crateria_Tube_L
 Landing_Site_L1				0x001892e	Gauntlet_Entrance_R
@@ -383,27 +387,21 @@ Lower_Firefleas_L1			0x0019a92	Hotarubi_R
 Lower_Firefleas_R			0x0019a9e	Escape_Power_Bombs_L
 Lower_Firefleas_L2			0x0019aaa	Red_Keyhunter_Shaft_R1
 Red_Keyhunter_Save_L		0x0019ab6	Red_Keyhunter_Shaft_R2
-	0x0019ac2
-	0x0019ace
-	0x0019ada
-	0x0019ae6
-	0x0019af2
-	0x0019afe
-	0x0019b0a
-	0x0019b16
-b22
-b2e
-b3a
-b46
-b52
-b5e
-b6a
-b76
-b82
-b8e
-b9a
-ba6
-bb2
-bbe
-bca
-bd6
+# short break in mem addresses, not sure what's in there.
+Bowling_Alley_L1			0x001a18c	West_Ocean_R2
+Bowling_Alley_L2			0x001a198	Ocean_Ship_Trans_R
+Bowling_Alley_L3			0x001a1a4	Gravity_R
+Wrecked_Ship_Entrance_L		0x001a1b0	West_Ocean_R6
+Wrecked_Ship_Entrance_R		0x001a1bc	Wrecked_Ship_Main_L1
+Attic_B						0x001a1c8	Wrecked_Ship_Main_T
+Attic_R						0x001a1d4	Beep_Boop_L
+Attic_L						0x001a1e0	West_Ocean_R1
+Beep_Boop_L					0x001a1ec	Attic_R
+Wrecked_Ship_Main_L1		0x001a1f8	Wrecked_Ship_Entrance_R
+Wrecked_Ship_Main_R2		0x001a204	Sponge_Bath_L
+Wrecked_Ship_Main_L2		0x001a210	Wrecked_Ship_Supers_R
+Wrecked_Ship_Main_B			0x001a21c	Basement_T
+Wrecked_Ship_Main_T			0x001a228	Attic_B
+Wrecked_Ship_Main_R3		0x001a234	Beep_Boop_Supers_L
+Wrecked_Ship_Main_R1		0x001a240	Wrecked_Save_L
+	0x001a24c

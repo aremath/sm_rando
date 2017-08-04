@@ -19,7 +19,7 @@ import collections
 
 door_types = ["L", "R", "B", "T", "ET", "EB", "TS", "BS", "LMB", "RMB"]
 item_types = ["B", "PB", "SPB", "S", "M", "G", "SA", "V", "GS", "SB", "HJ", "MB", "CB", "WB", "E", "PLB", "Spazer", "Bombs", "RT", "XR", "IB", "SJ"]
-boss_types = ["Kraid", "Phantoom", "Draygon", "Ridley", "Botwoon", "Spore_Spawn", "Golden_Torizo", "Bomb_Torizo", "Mother_Brain", "Crocomire", "Ceres_Ridley"]
+boss_types = ["Kraid", "Phantoon", "Draygon", "Ridley", "Botwoon", "Spore_Spawn", "Golden_Torizo", "Bomb_Torizo", "Mother_Brain", "Crocomire", "Ceres_Ridley"]
 #TODO: Crateria_Awake for final missile?
 #TODO: Figure out what's going on with Volcano_Room
 special_types = ["Drain", "Shaktool", "START"]
