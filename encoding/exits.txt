@@ -212,7 +212,7 @@ Glass_Tunnel_T				<>	Main_Street_B
 Fish_Tank_L					<>	Main_Street_R3
 Mama_Turtle_L				<>	Fish_Tank_R
 Crab_Tunnel_L				<>	Main_Street_R4
-Mount_Everest_LM2			<>	Main_Street_RM2
+Mount_Everest_LMB2			<>	Main_Street_RMB2
 Botwoon_Hallway_B			<>	Aqueduct_T
 Mount_Everest_L1			<>	Main_Street_R1
 Mount_Everest_B1			<>	Fish_Tank_T1

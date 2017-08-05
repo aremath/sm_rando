@@ -404,4 +404,109 @@ Wrecked_Ship_Main_B			0x001a21c	Basement_T
 Wrecked_Ship_Main_T			0x001a228	Attic_B
 Wrecked_Ship_Main_R3		0x001a234	Beep_Boop_Supers_L
 Wrecked_Ship_Main_R1		0x001a240	Wrecked_Save_L
-	0x001a24c
+Spiky_Room_of_Death_L		0x001a24c	Sponge_Bath_R
+Spiky_Room_of_Death_R		0x001a258	Electric_Room_of_Death_L2
+Electric_Room_of_Death_R	0x001a264	East_Ocean_L
+Electric_Room_of_Death_L2	0x001a270	Spiky_Room_of_Death_R
+Electric_Room_of_Death_L1	0x001a27c	Wrecked_Ship_Energy_R
+Wrecked_Ship_Energy_R		0x001a288	Electric_Room_of_Death_L1
+Basement_T					0x001a294	Wrecked_Ship_Main_B
+Basement_L					0x001a2a0	Wrecked_Ship_Map_R
+Basement_R					0x001a2ac	Phantoon_L
+Wrecked_Ship_Map_R			0x001a2b8	Basement_L
+Phantoon_L					0x001a2c4	Basement_R
+Sponge_Bath_L				0x001a2d0	Wrecked_Ship_Main_R2
+Sponge_Bath_R				0x001a2dc	Spiky_Room_of_Death_L
+Wrecked_Ship_Supers_R		0x001a2e8	Wrecked_Ship_Main_L2
+Beep_Boop_Supers_L			0x001a2f4	Wrecked_Ship_Main_R3
+Gravity_L					0x001a300	West_Ocean_R5
+Gravity_R					0x001a30c	Bowling_Alley_L3
+Wrecked_Save_L				0x001a318	Wrecked_Ship_Main_R1
+Glass_Tunnel_Save_L			0x001a324	Glass_Tunnel_R2
+Glass_Tunnel_T				0x001a330	Main_Street_B
+Glass_Tunnel_L				0x001a33c	West_Tunnel_R
+Glass_Tunnel_R1				0x001a348	East_Tunnel_L
+Glass_Tunnel_R2				0x001a354	Glass_Tunnel_Save_L
+West_Tunnel_R				0x001a360	Glass_Tunnel_L
+West_Tunnel_L				0x001a36c	Spazer_Troll_R2
+East_Tunnel_L				0x001a378	Glass_Tunnel_R1
+East_Tunnel_R2				0x001a384	Warehouse_Entrance_L
+East_Tunnel_R1				0x001a390	Crab_Hole_L2
+Main_Street_B				0x001a39c	Glass_Tunnel_T
+Main_Street_R4				0x001a3a8	Crab_Tunnel_L
+Main_Street_R3				0x001a3b4	Fish_Tank_L
+Main_Street_R1				0x001a3c0	Mount_Everest_L1
+Main_Street_RMB2			0x001a3cc	Mount_Everest_LMB1
+Fish_Tank_L					0x001a3d8	Main_Street_R3
+Fish_Tank_R					0x001a3e4	Mama_Turtle_L
+Fish_Tank_T1				0x001a3f0	Mount_Everest_B1
+Fish_Tank_T2				0x001a3fc	Mount_Everest_B2
+Mama_Turtle_L				0x001a408	Fish_Tank_R
+Crab_Tunnel_L				0x001a414	Main_Street_R4
+Crab_Tunnel_R				0x001a420	Crab_Hole_L1
+Mount_Everest_T				0x001a42c	McElligot's_Pool_B
+Mount_Everest_L1			0x001a438	Main_Street_R1
+Mount_Everest_B1			0x001a444	Fish_Tank_T1
+Mount_Everest_B2			0x001a450	Fish_Tank_T2
+Mount_Everest_LMB2			0x001a45c	Main_Street_RMB2
+Mount_Everest_R				0x001a468	Crab_Shaft_L
+McElligot's_Pool_B			0x001a474	Mount_Everest_T
+McElligot's_Pool_L			0x001a480	Caterpillar_Room_R1
+Watering_Hole_R				0x001a48c	Bug_Room_L
+Bug_Room_L					0x001a498	Watering_Hole_R
+Bug_Room_R					0x001a4a4	Pseudo_Plasma_Spark_L
+Crab_Shaft_L				0x001a4b0	Mount_Everest_R
+Crab_Shaft_T				0x001a4bc	Pseudo_Plasma_Spark_B
+Crab_Shaft_R				0x001a4c8	Aqueduct_L1
+Pseudo_Plasma_Spark_L		0x001a4d4	Bug_Room_R
+Pseudo_Plasma_Spark_B		0x001a4e0	Crab_Shaft_T
+# ???
+#	0x001a4ec
+Crab_Hole_L1				0x001a4f8	Crab_Tunnel_R
+Crab_Hole_R1				0x001a504	Tiny_Crab_L
+Crab_Hole_L2				0x001a510	East_Tunnel_R1
+Crab_Hole_R2				0x001a51c	Maridia_Map_L
+Tiny_Crab_L					0x001a528	Crab_Hole_R1
+Tiny_Crab_R					0x001a534	West_Sand_Hall_L
+Plasma_Tutorial_L			0x001a540	Kassiuz_R
+Plasma_Tutorial_R			0x001a54c	Plasma_L
+Plasma_L					0x001a558	Plasma_Tutorial_R
+Thread_The_Needle_L			0x001a564	Grabber_Hole_R
+Thread_The_Needle_R			0x001a570	Maridia_Elevator_L
+Maridia_Elevator_L			0x001a57c	Thread_The_Needle_R
+Maridia_Elevator_R			0x001a588	Maridia_First_Save_L
+Maridia_Elevator_EB			0x001a594	Crateria_Maridia_Shaft_ET
+Plasma_Spark_R3				0x001a5a0	Butterfly_Room_L
+Plasma_Spark_B				0x001a5ac	Zip_Tube_T
+Plasma_Spark_R1				0x001a5b8	Kassiuz_L
+Plasma_Spark_R2				0x001a5c4	Grabber_Hole_L
+Kassiuz_L					0x001a5d0	Plasma_Spark_R1
+Kassiuz_R					0x001a5dc	Plasma_Tutorial_L
+Maridia_Map_L				0x001a5e8	Crab_Hole_R2
+Maridia_First_Save_L		0x001a5f4	Maridia_Elevator_R
+Zip_Tube_B					0x001a600	Oasis_T
+Zip_Tube_T					0x001a60c	Plasma_Spark_B
+618
+624
+630
+63c
+648
+654
+660
+66c
+678
+694
+6a0
+6ac
+6b8
+6c4
+6e0
+6ec
+6f8
+704
+710
+71c
+728
+734
+740
+74c

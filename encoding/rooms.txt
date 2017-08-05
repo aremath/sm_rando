@@ -1249,12 +1249,13 @@ B
 M
 ALL -> L						- | GS (HJ IB)
 
+# technically you can get from L2 R2 -> L1 R1 without high jump or space jump if you have ice beam, but it's a little inconsistent.
 Crab_Hole - 7D21C
 L1
 L2
 R1
 R2								- M
-(L2 R2) -> (L1 R1)				- & GS IB SPB
+(L2 R2) -> (L1 R1)				- & GS MB (| HJ SJ)
 (L1 R1) -> (L2 R2)				- MB
 
 Tiny_Crab - 7D252
