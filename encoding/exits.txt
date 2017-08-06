@@ -267,6 +267,7 @@ Halfie_Climb_R2				<>	Halfie_Refill_L
 Halfie_Climb_R1				<>	Colosseum_L
 Botwoon_L					<>	Botwoon_Hallway_R
 Draygon_Recharge_L			<>	Draygon_Save_R
+Colosseum_R2				<>	The_Precious_Room_L1
 Draygon_R					<>	The_Precious_Room_L2
 Draygon_L					<>	Space_Jump_R
 Cactus_Hallway_L			<>	Butterfly_Room_R

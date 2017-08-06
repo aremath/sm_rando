@@ -21,27 +21,6 @@ ALL -> R3								- | B PB SPB
 # softlock if facing left
 # put metroids in the animals room
 # extra geemer in the pre-spore room???
-#	0x0019ac2
-	0x0019ace
-	0x0019ada
-	0x0019ae6
-	0x0019af2
-	0x0019afe
-	0x0019b0a
-	0x0019b16
-b22
-b2e
-b3a
-b46
-b52
-b5e
-b6a
-b76
-b82
-b8e
-b9a
-ba6
-bb2
-bbe
-bca
-bd6
+#
+# don't randomize pants room - it's too weird.
+# maybe put dead-ends past croc, kraid, shaktool, spospo?

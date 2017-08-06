@@ -7,6 +7,7 @@
 # are these from ceres?
 # ???						0x00188fe	???
 # ???						0x0018916	???
+# CRATERIA
 Landing_Site_L2				0x0018916	Parlor_R1
 Landing_Site_R2				0x0018922	Crateria_Tube_L
 Landing_Site_L1				0x001892e	Gauntlet_Entrance_R
@@ -83,6 +84,7 @@ Crateria_Supers_L2			0x0018c76	Climb_Room_R2
 Final_Missile_Bombway_L		0x0018c82	Final_Missile_R
 Final_Missile_Bombway_R		0x0018c8e	Parlor_L3
 Final_Missile_R				0x0018c9a	Final_Missile_Bombway_L
+# BRINSTAR
 Brinstar_Entrance_EB		0x0018ca6	Brinstar_Elevator_ET
 Brinstar_Entrance_L1		0x0018cb2	Brinstar_Map_Entrance_R
 Brinstar_Entrance_L5		0x0018cbe	Green_Brinstar_Beetoms_R
@@ -208,6 +210,7 @@ Warehouse_Entrance_ET		0x0019246	Business_Center_EB
 Varia_Suit_L				0x0019252	Kraid_R
 Kraid_Save_L				0x001925e	Warehouse_Keyhunters_R1
 Caterpillar_Save_L			0x001926a	Caterpillar_Room_R2
+# NORFAIR
 Ice_Beam_Acid_R				0x0019276	Ice_Beam_Gate_L2
 Ice_Beam_Acid_L				0x0019282	Ice_Beam_Snakes_R3
 Cathedral_L					0x001928e	Cathedral_Entrance_R
@@ -388,6 +391,7 @@ Lower_Firefleas_R			0x0019a9e	Escape_Power_Bombs_L
 Lower_Firefleas_L2			0x0019aaa	Red_Keyhunter_Shaft_R1
 Red_Keyhunter_Save_L		0x0019ab6	Red_Keyhunter_Shaft_R2
 # short break in mem addresses, not sure what's in there.
+# WRECKED SHIP
 Bowling_Alley_L1			0x001a18c	West_Ocean_R2
 Bowling_Alley_L2			0x001a198	Ocean_Ship_Trans_R
 Bowling_Alley_L3			0x001a1a4	Gravity_R
@@ -422,6 +426,7 @@ Beep_Boop_Supers_L			0x001a2f4	Wrecked_Ship_Main_R3
 Gravity_L					0x001a300	West_Ocean_R5
 Gravity_R					0x001a30c	Bowling_Alley_L3
 Wrecked_Save_L				0x001a318	Wrecked_Ship_Main_R1
+# MARIDIA
 Glass_Tunnel_Save_L			0x001a324	Glass_Tunnel_R2
 Glass_Tunnel_T				0x001a330	Main_Street_B
 Glass_Tunnel_L				0x001a33c	West_Tunnel_R
@@ -486,27 +491,129 @@ Maridia_Map_L				0x001a5e8	Crab_Hole_R2
 Maridia_First_Save_L		0x001a5f4	Maridia_Elevator_R
 Zip_Tube_B					0x001a600	Oasis_T
 Zip_Tube_T					0x001a60c	Plasma_Spark_B
-618
-624
-630
-63c
-648
-654
-660
-66c
-678
-694
-6a0
-6ac
-6b8
-6c4
-6e0
-6ec
-6f8
-704
-710
-71c
-728
-734
-740
-74c
+Grabber_Hole_R				0x001a618	Thread_The_Needle_L
+Grabber_Hole_BS				0x001a624	Butterfly_Sand_Pit_TS
+Grabber_Hole_L				0x001a630	Plasma_Spark_R2
+West_Sand_Hall_L			0x001a63c	Tiny_Crab_R
+West_Sand_Hall_R			0x001a648	Oasis_L
+West_Sand_Hall_TS			0x001a654	West_Sand_Hole_TS
+Oasis_L						0x001a660	West_Sand_Hall_R
+Oasis_R						0x001a66c	East_Sand_Hall_L
+Oasis_T						0x001a678	Zip_Tube_B
+East_Sand_Hall_L			0x001a684	Oasis_R
+East_Sand_Hall_R			0x001a690	Pants_L1
+East_Sand_Hall_TS			0x001a69c	East_Sand_Hole_BS
+West_Sand_Hole_TS			0x001a6a8	West_Sand_Pit_BS
+West_Sand_Hole_BS			0x001a6b4	West_Sand_Hall_TS
+East_Sand_Hole_TS			0x001a6c0	East_Sand_Pit_BS
+East_Sand_Hole_BS			0x001a6cc	East_Sand_Hall_TS
+West_Sand_Pit_TS			0x001a6d8	Aqueduct_BS1
+West_Sand_Pit_BS			0x001a6e4	West_Sand_Hole_TS
+East_Sand_Pit_TS			0x001a6f0	Aqueduct_BS2
+East_Sand_Pit_BS			0x001a6fc	East_Sand_Hole_TS
+Aqueduct_L1					0x001a708	Crab_Shaft_R
+Aqueduct_BS1				0x001a714	West_Sand_Pit_TS
+Aqueduct_BS2				0x001a720	East_Sand_Pit_TS
+Aqueduct_T					0x001a72c	Botwoon_Hallway_B
+Aqueduct_R					0x001a738	Botwoon_Energy_Farm_L
+Aqueduct_L2					0x001a744	Aqueduct_Save_R
+Butterfly_Room_L			0x001a750	Plasma_Spark_R3
+Butterfly_Room_R			0x001a75c	Cactus_Hallway_L
+Botwoon_Hallway_B			0x001a768	Aqueduct_T
+Botwoon_Hallway_R			0x001a774	Botwoon_L
+Pants_L1					0x001a780	East_Sand_Hall_R
+Pants_R2					0x001a78c	Pants_Right_L
+Pants_R1					0x001a798	Shaktool_L
+Pants_Right_L				0x001a7a4	Pants_R2
+# this is essentially a copy of 0x001a7a4
+#	0x001a7b0
+Pants_Right_R				0x001a7bc	Shaktool_L
+Spring_Ball_L				0x001a7c8	Shaktool_R
+Botwoon_Energy_Farm_L		0x001a7d4	Aqueduct_R
+Colosseum_L					0x001a7e0	Halfie_Climb_R1
+Colosseum_R1				0x001a7ec	Draygon_Save_L
+Colosseum_R2				0x001a7f8	The_Precious_Room_L1
+# wat
+#	0x001a804
+# Halfie_Climb_R2				0x001a810	Halfie_Refill_L
+# this is a copy of 0x001a7f8
+#	0x001a81c
+Aqueduct_Save_R				0x001a828	Aqueduct_L2
+The_Precious_Room_L1		0x001a834	Colosseum_R2
+The_Precious_Room_L2		0x001a840	Draygon_R
+Botwoon_Energy_L			0x001a84c	Botwoon_R
+Botwoon_Energy_BS2			0x001a858	Botwoon_Energy_Pit_TS1
+Botwoon_Energy_BS1			0x001a864	Botwoon_Energy_Pit_TS2
+Botwoon_Energy_R			0x001a870	Halfie_Climb_L2
+Draygon_Save_R				0x001a87c	Draygon_Recharge_L
+Draygon_Save_L				0x001a888	Colosseum_R1
+Halfie_Refill_L				0x001a894	Halfie_Climb_R2
+Butterfly_Sand_Pit_BS		0x001a8a0	Butterfly_Room_TS
+Botwoon_Energy_Pit_BS1		0x001a8ac	Botwoon_Energy_Farm_TS1
+Botwoon_Energy_Pit_BS2		0x001a8b8	Botwoon_Energy_Farm_TS1
+Shaktool_L					0x001a8c4	Pants_Right_R
+Shaktool_R					0x001a8d0	Spring_Ball_L
+Halfie_Climb_L2				0x001a8dc	Botwoon_Energy_R
+Halfie_Climb_R1				0x001a8e8	Colosseum_L
+Halfie_Climb_R2				0x001a8f4	Halfie_Refill_L
+Halfie_Climb_L1				0x001a900	Cactus_Alley_R
+Botwoon_L					0x001a90c	Botwoon_Hallway_R
+Botwoon_R					0x001a918	Botwoon_Energy_L
+Space_Jump_R				0x001a924	Draygon_L
+Draygon_Recharge_L			0x001a930	Draygon_Save_R
+Cactus_Hallway_L			0x001a93c	Butterfly_Room_R
+Cactus_Hallway_R			0x001a948	Cactus_Alley_L
+Cactus_Alley_L				0x001a954	Cactus_Hallway_R
+Cactus_Alley_R				0x001a960	Halfie_Climb_L1
+Draygon_R					0x001a96c	The_Precious_Room_L2
+Draygon_L					0x001a978	Space_Jump_R
+# TOURIAN
+Tourian_Elevator_L			0x001a984	Metroid_Can_He_Crawl_R
+Tourian_Elevator_EB			0x001a990	Statues_ET
+Tourian_Elevator_R			0x001a99c	Tourian_Save_L
+Metroid_Can_He_Crawl_R		0x001a9a8	Tourian_Elevator_L
+Metroid_Can_He_Crawl_L		0x001a9b4	Metroid_The_Return_of_Samus_R1
+Metroid_The_Return_of_Samus_R1	0x001a9c0	Metroid_Can_He_Crawl_L
+Metroid_The_Return_of_Samus_R2	0x001a9cc	Metroid_Fusion?_L
+Metroid_Fusion?_L			0x001a9d8	Metroid_The_Return_of_Samus_R2
+Metroid_Fusion?_R			0x001a9e4	Metroid_Zero_Mission_L
+Metroid_Zero_Mission_L		0x001a9f0	Metroid_Fusion?_R
+Metroid_Zero_Mission_B		0x001a9fc	Blue_Hoppers_T
+Blue_Hoppers_T				0x001aa08	Metroid_Zero_Mission_B
+Blue_Hoppers_L				0x001aa14	RIP_Torizo_R
+RIP_Torizo_R				0x001aa20	Blue_Hoppers_L
+RIP_Torizo_L				0x001aa2c	Metroid_Skip_R
+Metroid_Skip_R				0x001aa38	RIP_Torizo_L
+Metroid_Skip_L				0x001aa44	Seaweed_Room_R1
+Seaweed_Room_R1				0x001aa50	Metroid_Skip_L
+Seaweed_Room_R2				0x001aa5c	Tourian_Eye_Door_L
+Seaweed_Room_L				0x001aa68	Tourian_Refill_R
+Tourian_Refill_R			0x001aa74	Seaweed_Room_L
+Mother_Brain_R				0x001aa80	Rinka_Shaft_L3
+Mother_Brain_L				0x001aa8c	Escape_1_R
+Tourian_Eye_Door_L			0x001aa98	Seaweed_Room_R2
+Tourian_Eye_Door_R			0x001aaa4	Rinka_Shaft_L1
+Rinka_Shaft_L1				0x001aab0	Tourian_Eye_Door_R
+Rinka_Shaft_L2				0x001aabc	Mother_Brain_Save_R
+Rinka_Shaft_L3				0x001aac8	Mother_Brain_R
+Mother_Brain_Save_R			0x001aad4	Rinka_Shaft_L2
+Escape_1_R					0x001aae0	Mother_Brain_L
+Escape_1_B					0x001aaec	Escape_2_T
+Escape_2_T					0x001aaf8	Escape_1_B
+Escape_2_R					0x001ab04	Escape_3_L
+Escape_3_L					0x001ab10	Escape_2_R
+Escape_3_R					0x001ab1c	Escape_4_L
+Escape_4_L					0x001ab28	Escape_3_R
+Escape_4_R					0x001ab34	Climb_Room_L
+Tourian_Save_L				0x001ab40	Tourian_Elevator_R
+# CERES STATION
+Ceres_Entrance_R			0x001ab4c	Ceres_1_L
+# ???				 		0x001ab58	Ceres_Entrance_EB
+Ceres_1_R					0x001ab64	Ceres_2_L
+Ceres_2_L					0x001ab70	Ceres_1_R
+Ceres_2_R					0x001ab7c	Ceres_3_L
+Ceres_3_L					0x001ab88	Ceres_2_R
+Ceres_3_R					0x001ab94	Ceres_4_L
+Ceres_4_L					0x001aba0	Ceres_3_R
+Ceres_4_R					0x001abac	Ceres_Ridley_L
+Ceres_Ridley_L				0x001abb8	Ceres_4_R
