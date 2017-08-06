@@ -30,8 +30,8 @@ def read_raw_bytes(source, offset, length):
     data.close()
     return result
 
-def write_raw_bytes(source, offset, byte, length):
-    """Writes the byte at the given offset"""
+def write_raw_bytes(source, offset, byte):
+    """Writes the byte at the given offset, overwriting the memory that was there."""
     data = open(source, "r+b")
     currLoc = int(offset,0)
     data.seek(currLoc)
@@ -66,5 +66,35 @@ def make_test_rom(rom_file, offset, direction):
 		assert False, "Bad Direction"
 
 	door = read_raw_bytes(rom_file, offset, 12)
-	write_raw_bytes(rom_file, replace_door, door, 12)
+	write_raw_bytes(rom_file, replace_door, door)
 	
+
+def parse_doors(door_file, clean_rom):
+	"""Use the door definitions files so that door nodes can be used to acces
+	door data. Creates two dictionaries, from and to. From is indexed by door name
+	and has the memory address for each door. Writing to that memory address will alter
+	that door. To is indexed by door name, and contains the door data. Writing this memory
+	to another door memory address with make that door lead to the specified door."""
+	f = open(door_file, "r")
+	# key - door name
+	# value - memory address to write to to affect that door
+	door_from = {}
+	# key - door name
+	# value - data to write to connect a door to that door
+	door_to = {}
+
+	for line in f.readlines():
+		# remove unnecessary characters
+		line = line.strip()
+		# skip comments
+		if line[0] == "#":
+			continue
+		(d_from, mem_addr, d_to) = line.split()
+		door_from[d_from] = mem_addr
+		door_to[d_to] = read_raw_bytes(clean_rom, mem_addr, 12)
+
+	return door_from, door_to
+
+# as an example, if you use write_raw_bytes("example.smc", door_from["Parlor_L1"], door_to["Crocomire_Speedway_R1"]),
+# then heading through Parlor L1 will bring you out at Crocomire Speedway R1. Note that to also get the reverse, you must
+# write_raw_bytes("example.smc", door_from["Crocomire_Speedway_R1"], door_to["Parlor_L1"])
