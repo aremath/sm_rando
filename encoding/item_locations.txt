@@ -1,0 +1,111 @@
+# Thanks to dessyreqt for finding the item memory addresses!
+# To change an item, simply write the 2 byte code for that item (see item_definitions.txt) on its memory address.
+# In this case, the item locations correspond to nodes in the room graph detailed in rooms.txt
+# ITEM LOCATION				MEMORY_ADDRESS		TYPE
+Crateria_Power_Bombs_PB		0x781cc				N
+West_Ocean_M3				0x781e8				N
+West_Ocean_M1				0x781ee				H
+West_Ocean_M2				0x781f4				N
+Moat_M						0x78248				N
+Gauntlet_E					0x78264				N
+# ?
+Old_Mother_Brain_M			0x783ee				N
+Bomb_Torizo_Bombs			0x78404				C
+# ?
+Terminator_Room_E			0x78432				N
+Green_Pirates_Shaft_M1		0x78464				N
+Green_Pirates_Shaft_M2		0x7846a				N
+Crateria_Supers_S			0x78478				N
+# ?
+Final_Missile_M				0x78486				N
+# ?
+Brinstar_Entrance_PB		0x784ac				C
+# ?
+Spore_Spawn_Supers_S		0x784e4				C
+Early_Supers_M				0x78518				N
+Early_Supers_S				0x7851e				N
+Brinstar_Reserve_RT			0x7852c				C
+Brinstar_Reserve_M2			0x78532				H
+Brinstar_Reserve_M1			0x78538				N
+# ?
+Big_Pink_M1					0x78608				N
+Big_Pink_M2					0x7860e				N
+Big_Pink_CB					0x78614				C
+Pink_Power_Bombs_PB			0x7865c				N
+Green_Hill_Zone_M			0x78676				N
+Morph_Ball_Room_MB			0x786de				N
+Morph_Ball_Room_PB			0x7874c				N
+Blue_Brinstar_Energy_M		0x78798				N
+Blue_Brinstar_Energy_E		0x7879e				H
+Green_Brinstar_Energy_E		0x787C2				N
+Etecoon_Supers_S			0x787d0				N
+Waterway_Energy_E			0x787fa				N
+First_Missile_M				0x78802				C
+Hopper_Energy_E				0x78824				N
+Billy_Mays_M1				0x78836				N
+Billy_Mays_M2				0x7883c				H
+X-Ray_XR					0x78876				C
+Beta_Power_Bombs_PB			0x788ca				N
+Alpha_Power_Bombs_PB		0x7890e				C
+Alpha_Power_Bombs_M			0x78914				N
+Spazer_Spazer				0x7896e				C
+Warehouse_Energy_E			0x7899c				H
+Warehouse_Keyhunters_M		0x789ec				H
+Varia_Suit_V				0x78aca				C
+# ?
+Cathedral_M					0x78ae4				H
+Ice_Beam_IB					0x78b24				C
+Crumble_Shaft_M				0x78b46				H
+Crocomire_E					0x78ba4				N
+Hi_Jump_HJ					0x78bac				C
+# ?
+Crocomire_Escape_M			0x78bc0				N
+Hi_Jump_Energy_M			0x78be6				N
+Hi_Jump_Energy_E			0x78bec				N
+Post-Croc_Power_Bombs_PB	0x78c04				N
+Cosine_Room_M				0x78c14				N
+Grapple_Yump_M				0x78c2a				N
+Grapple_G					0x78c36				C
+Bubble_Reserve_RT			0x78c3e				C
+Bubble_Reserve_M			0x78c44				H
+Bubble_Missiles_M			0x78c66				N
+Bubble_Mountain_M			0x78c66				N
+Go_Fast_M					0x78c74				H
+Speed_Booster_SB			0x78c82				C
+Double_Chamber_M			0x78cbc				N
+Wave_Beam_WB				0x78cca				C
+Golden_Torizo_M				0x78e6e				N
+Golden_Torizo_S				0x78e74				H
+Mickey_Mouse_M				0x78f30				N
+Hotarubi_M					0x78fca				N
+Escape_Power_Bombs_PB		0x78fd2				N
+Wasteland_PB				0x790c0				N
+Three_Musketeers_M			0x79100				N
+Ridley_Energy_E				0x79108				H
+Screw_Attack_SA				0x79110				C
+Lower_Firefleas_E			0x79184				N
+Wrecked_Ship_Main_M			0x7c265				N
+Bowling_Alley_RT			0x7c2e9				C
+Bowling_Alley_M				0x7c2ef				N
+Beep_Boop_M					0x7c2ef				N
+Wrecked_Ship_Energy_E		0x7c337				N
+Wrecked_Ship_Supers_S		0x7c357				N
+Beep_Boop_Supers_S			0x7c365				N
+Gravity_GS					0x7c36d				C
+Main_Street_M				0x7c437				N
+Main_Street_S				0x7c43d				N
+Mama_Turtle_E				0x7c47d				N
+Mama_Turtle_M				0x7c483				H
+Watering_Hole_S				0x7c4af				N
+Watering_Hole_M				0x7c4b5				N
+Pseudo_Plasma_Spark_M		0x7c533				N
+Plasma_PLB					0x7c559				C
+East_Sand_Hole_M			0x7c5dd				N
+West_Sand_Hole_RT			0x7c5e3				C
+West_Sand_Hole_M			0x7c5eb				N
+Aqueduct_M					0x7c603				N
+Aqueduct_S					0x7c609				N
+Spring_Ball_SPB				0x7c6e5				C
+The_Precious_Room_M			0x7c74d				H
+Botwoon_Energy_E			0x7c755				N
+Space_Jump_SJ				0x7c7a7				N

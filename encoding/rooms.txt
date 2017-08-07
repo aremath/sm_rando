@@ -176,6 +176,7 @@ R
 Terminator_Room - 7990D
 L
 R
+E
 
 Brinstar_Elevator - 79938
 R
