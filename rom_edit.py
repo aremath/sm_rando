@@ -1,15 +1,12 @@
 from struct import *
-
-def read_door_data(source, door_addr):
-	pass
-
-def write_door_data(door, data):
-	pass
+import collections
+import item_definitions
 
 # methods for actually writing to / reading from the ROM
 # based on the hexMethods.py file from the other sm door randomizer
 
 #TODO: do this without opening and closing the file repeatedly
+#TODO: clean up usage of defns - either remove it or use definitions!
 
 def read_bytes(source, offset, length):
     """Gets length bytes from the given offset"""
@@ -71,7 +68,7 @@ def make_test_rom(rom_file, offset, direction):
 
 def parse_doors(door_file, clean_rom):
 	"""Use the door definitions files so that door nodes can be used to acces
-	door data. Creates two dictionaries, from and to. From is indexed by door name
+	door data. Creates two dictionaries, from and to. From is indexed by door names
 	and has the memory address for each door. Writing to that memory address will alter
 	that door. To is indexed by door name, and contains the door data. Writing this memory
 	to another door memory address with make that door lead to the specified door."""
@@ -98,3 +95,72 @@ def parse_doors(door_file, clean_rom):
 # as an example, if you use write_raw_bytes("example.smc", door_from["Parlor_L1"], door_to["Crocomire_Speedway_R1"]),
 # then heading through Parlor L1 will bring you out at Crocomire Speedway R1. Note that to also get the reverse, you must
 # write_raw_bytes("example.smc", door_from["Crocomire_Speedway_R1"], door_to["Parlor_L1"])
+
+def make_doors(door_list, clean_rom, write_rom):
+	"""Make the doors specified by door_list in write_rom, using the memory locations from clean_rom."""
+	# door_list is a list of tuples (d1, d2), where d1 and d2 are the names of door nodes.
+	# this connects door1 to door2, and vice versa.
+
+	# first, get the door dictionary
+	door_from, door_to = parse_doors("encoding/door_defns.txt", clean_rom)
+
+	for door1, door2 in door_list:
+		# special-case the pants room!
+		# TODO: this didn't quite work...
+		if door1 == "Pants_R":
+			write_raw_bytes(write_rom, door_from[door1], door_to[door2])
+			write_raw_bytes(write_rom, door_from[door2], door_to["Pants_Right_R"])
+		elif door2 == "Pants_R":
+			write_raw_bytes(write_rom, door_from[door2], door_to[door1])
+			write_raw_bytes(write_rom, door_from[door1], door_to["Pants_Right_R"])
+		else:
+			# skip doors that don't exist
+			#TODO: only certain TS and BS doors
+			if door1 in door_from and door2 in door_to:
+				write_raw_bytes(write_rom, door_from[door1], door_to[door2])
+			if door2 in door_from and door1 in door_to:
+				write_raw_bytes(write_rom, door_from[door2], door_to[door1])
+
+"""
+def parse_item_defns(item_definitions_file):
+	f = open(item_definitions_file, "r")
+	# key1 - item type (M, S, SJ, SA, etc.)
+	# key2 - location type ((N)ormal, (C)hozo, (H)idden)
+	# value - item memory to write to get that item
+	item_defs = collections.defaultdict(dict)
+	for line in f.readlines():
+		# remove junk
+		line = line.strip()
+		# skip comments
+		if line[0] == "#":
+			continue
+		(item_type, n_item, c_item, h_item) = line.split()
+		item_defs[item_type]["N"] = exec(n_item)
+		item_defs[item_type]["C"] = exec(c_item)
+		item_defs[item_type]["H"] = exec(h_item)
+	return item_defs
+"""
+
+def parse_item_locations(item_locations_file):
+	f = open(item_locations_file)
+	# key - item node name
+	# value - (memory_address, location_type)
+	item_locations = {}
+	for line in f.readlines():
+		line = line.strip()
+		if line[0] == "#":
+			continue
+		(location, memory_address, location_type) = line.split()
+		item_locations[location] = (memory_address, location_type)
+	return item_locations
+
+
+def make_items(item_list, write_rom):
+	"""Make the items specified by the item list in write_rom"""
+	# item_list is a list of tuples, (location, item) where location is the name of 
+	# an item node, and item is the name of an item.
+	item_defns = item_definitions.make_item_definitions()
+	item_locations = parse_item_locations("encoding/item_locations.txt")
+	for location, item in item_list:
+		address, location_type = item_locations[location]
+		write_raw_bytes(write_rom, address, item_defns[item][location_type])

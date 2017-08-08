@@ -13,6 +13,8 @@
 # DOOR TYPES:
 # (L R B T ET EB TS BS LMB RMB)
 
+#TODO: rename this file! this only parses the rooms file!
+
 from constraints import *
 from graph import *
 import collections
@@ -47,6 +49,8 @@ def make_room(room_defn):
 	# value - list of door nodes in that direction
 	door_dict = collections.defaultdict(list)
 
+	item_nodes = []
+
 	# TODO: make sure all the node definitions come before the edge constraints!
 	node_lines = []
 	edge_lines = []
@@ -66,6 +70,8 @@ def make_room(room_defn):
 		room_nodes.append(node_name)
 		if isinstance(node_data, Door):
 			door_dict[node_data.facing].append(node_name)
+		if isinstance(node_data, Item):
+			item_nodes.append(node_name)
 
 	# make it a connected graph
 	for origin_node_name in room_nodes:
@@ -92,7 +98,7 @@ def make_room(room_defn):
 		graph.remove_edge(room_name + "_" + node1, room_name + "_" + node2)
 
 	room = Room(room_name, 0, graph)
-	return room, door_dict
+	return room, door_dict, item_nodes
 
 def parse_line(line, all_nodes=[]):
 	"""Categorizes and parses an item definition or edge definition line. The syntax is above"""
@@ -225,7 +231,7 @@ def parse_rooms(room_file):
 	for room_def in room_defs:
 		# if we got a room without any data somehow, chuck it
 		if len(room_def) >= 1:
-			room, door_dict = make_room(room_def)
-			rooms[room.name] = (room, door_dict)
+			room, door_dict, room_items = make_room(room_def)
+			rooms[room.name] = (room, door_dict, room_items)
 
 	return rooms

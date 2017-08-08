@@ -1,11 +1,11 @@
 # Author - Ross Mawhorter
 # test function to ensure parser is working properly.
 
-import parser
+import parse_rooms
 
 if __name__ == "__main__":
 
-	rooms = parser.parse_rooms("encoding/rooms.txt")
+	rooms = parse_rooms.parse_rooms("encoding/rooms.txt")
 	#rooms = parser.parse_rooms("encoding/test.txt")
 
 	#print rooms["West_Ocean"][0].graph

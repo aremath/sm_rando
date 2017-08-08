@@ -66,19 +66,15 @@ Parlor_Save_Room - 793D5
 R
 
 West_Ocean - 793FE
-L1
 L2
 R1
 R2
 R3
-R4
 R5										- X
 R6										- S
 M1
 M2
 M3
-L1 <-> (L2 R1 R2 R3 R5 R6 M1 M2 M3)		- X
-R4 <-> (L2 R1 R2 R3 R5 R6 M1 M2 M3)		- X
 ALL -> M3								- | B PB
 (R1 R2 R3) -> (L2 R6 M2 M3)				- S
 R3 -> ALL								- | B PB SPB
@@ -361,7 +357,7 @@ L1 -> ALL				- | B PB
 ALL -> L1				- PB
 ALL -> E				- & PB SB
 
-Noob Bridge - 79FBA
+Noob_Bridge - 79FBA
 L
 R						- S
 
@@ -423,7 +419,7 @@ M2
 Green_Entrance_Save - 7A201
 R
 
-Green_Beeom_Save - 7A22A
+Green_Beetom_Save - 7A22A
 R
 
 Red_Tower - 7A253
@@ -471,7 +467,7 @@ PB
 M
 R -> M					- PB
 
-Bat Room - 7A3DD
+Bat_Room - 7A3DD
 L
 R
 
@@ -496,7 +492,7 @@ R						- | M S B PB
 E
 
 Warehouse_Keyhunters - 7A4DA
-T
+B
 R1
 R2
 M
@@ -869,8 +865,9 @@ Red_Pirates_Shaft - 7B139
 R
 B
 
-Business_Save - R7B167
+Business_Save - 7B167
 L
+R
 
 Crocomire_Save - 7B192
 L

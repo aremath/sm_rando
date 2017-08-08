@@ -21,7 +21,7 @@ Parlor_R2					0x0018982	BT_Flyway_L
 Parlor_B					0x001898e	Climb_Room_T
 Parlor_L2					0x001899a	Parlor_Save_Room_R
 Parlor_L3					0x00189a6	Final_Missile_Bombway_R
-Crateria_Power_Bombs_R		0x00189b2	Landing_Site_R1
+Crateria_Power_Bombs_L		0x00189b2	Landing_Site_R1
 Parlor_Save_Room_R			0x00189be	Parlor_L2
 West_Ocean_L2				0x00189ca	Moat_R
 West_Ocean_R6				0x00189d6	Wrecked_Ship_Entrance_L
@@ -441,7 +441,7 @@ Main_Street_B				0x001a39c	Glass_Tunnel_T
 Main_Street_R4				0x001a3a8	Crab_Tunnel_L
 Main_Street_R3				0x001a3b4	Fish_Tank_L
 Main_Street_R1				0x001a3c0	Mount_Everest_L1
-Main_Street_RMB2			0x001a3cc	Mount_Everest_LMB1
+Main_Street_RMB2			0x001a3cc	Mount_Everest_LMB2
 Fish_Tank_L					0x001a3d8	Main_Street_R3
 Fish_Tank_R					0x001a3e4	Mama_Turtle_L
 Fish_Tank_T1				0x001a3f0	Mount_Everest_B1
@@ -568,12 +568,12 @@ Cactus_Alley_R				0x001a960	Halfie_Climb_L1
 Draygon_R					0x001a96c	The_Precious_Room_L2
 Draygon_L					0x001a978	Space_Jump_R
 # TOURIAN
-Tourian_Elevator_L			0x001a984	Metroid_Can_He_Crawl_R
+Tourian_Elevator_L			0x001a984	Metroid_Can_He_Crawl?_R
 Tourian_Elevator_EB			0x001a990	Statues_ET
 Tourian_Elevator_R			0x001a99c	Tourian_Save_L
-Metroid_Can_He_Crawl_R		0x001a9a8	Tourian_Elevator_L
-Metroid_Can_He_Crawl_L		0x001a9b4	Metroid_The_Return_of_Samus_R1
-Metroid_The_Return_of_Samus_R1	0x001a9c0	Metroid_Can_He_Crawl_L
+Metroid_Can_He_Crawl?_R		0x001a9a8	Tourian_Elevator_L
+Metroid_Can_He_Crawl?_L		0x001a9b4	Metroid_The_Return_of_Samus_R1
+Metroid_The_Return_of_Samus_R1	0x001a9c0	Metroid_Can_He_Crawl?_L
 Metroid_The_Return_of_Samus_R2	0x001a9cc	Metroid_Fusion?_L
 Metroid_Fusion?_L			0x001a9d8	Metroid_The_Return_of_Samus_R2
 Metroid_Fusion?_R			0x001a9e4	Metroid_Zero_Mission_L
@@ -608,7 +608,7 @@ Escape_4_R					0x001ab34	Climb_Room_L
 Tourian_Save_L				0x001ab40	Tourian_Elevator_R
 # CERES STATION
 Ceres_Entrance_R			0x001ab4c	Ceres_1_L
-# ???				 		0x001ab58	Ceres_Entrance_EB
+Ceres_1_L				 	0x001ab58	Ceres_Entrance_R
 Ceres_1_R					0x001ab64	Ceres_2_L
 Ceres_2_L					0x001ab70	Ceres_1_R
 Ceres_2_R					0x001ab7c	Ceres_3_L

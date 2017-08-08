@@ -45,8 +45,45 @@ class ConstraintGraph:
 				return
 		assert False, "No such edge: " + node1 + " -> " + node2
 
-	def BFS(self, node1, node2, items=set()):
-		pass
+	def BFS_target(self, start, end, items=set()):
+		offers = {}
+		finished = set()
+		# TODO: queue
+		stack = [start]
+		node = ""
+		found = False
+		while len(stack) != 0:
+			# get the next node
+			node = stack.pop()
+			# mark the node as finished
+			finished |= set(node)
+			# if we reached the target, we're done
+			if node == end:
+				found = True
+				break
+
+			# TODO - what happens here?
+			if isinstance(self.node_names[node], Item) or isinstance(self.node_names[node], Boss):
+				pass
+
+			# add neighbors to the stack and record their previous nodes
+			for neighbor_edge in self.node_edges[node]:
+				if neighbor_edge.terminal not in finished and neighbor_edge.items.matches(items):
+					offers[neighbor] = node
+					stack.append(neighbor)
+		path = None
+		if found:
+			path = []
+			node = end
+			while node != start:
+				path.append(node)
+				node = offers[node]
+			path.append(start)
+		return path
+
+	def BFS(self, start, items=set()):
+		reachable = []
+
 
 	def __repr__(self):
 		self_str = ""
@@ -98,3 +135,52 @@ class Room:
 		self.name = name
 		self.mem_address = address
 		self.graph = graph
+
+class BasicGraph:
+
+	def __init__():
+		self.node_edges = {}
+		self.nnodes = 0
+
+	def add_node(self, name):
+		if name is None:
+			name = str(self.nodes)
+		assert name not in self.node_edges, "A node with this name already exists: " + name
+		self.nnodes += 1
+		self.node_edges[name] = []
+		pass
+
+	def add_edge(self, node1, node2):
+		assert node1 in self.node_edges, "Node does not exist: " + node1
+		assert node2 in self.node_edges, "Node does not exist: " + node2
+		self.node_edges[node1].append(node2)
+
+	def BFS(self, start, end=None):
+		# key - node
+		# value - the previous node in the BFS
+		offers = {}
+		finished = set()
+		stack = [start]
+		node = ""
+		while len(stack > 0):
+			node = stack.pop()
+			if end is not None and node == end:
+				break
+			finished |= set(node)
+			for neighbor in self.node_edges[node]:
+				if neighbor not in finished:
+					stack.append(neighbor)
+					offer[neighbor] = node
+
+		if end is None:
+			return finished
+		else:
+			path = []
+			while node != start:
+				path.append(node)
+				node = offer[node]
+			return path
+
+def convert_to_basic():
+	"""converts a ConstraintGraph to a BasicGraph"""
+	pass
