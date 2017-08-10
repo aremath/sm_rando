@@ -1,4 +1,4 @@
-# Ross Mawhorter
+# Author - Aremath
 # Creates a MinSetSet from a constraint.
 # Expects constraints with the following recursive syntax:
 # Symbol () () ...

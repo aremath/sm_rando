@@ -1,4 +1,4 @@
-# Author - Ross Mawhorter
+# Author - Aremath
 # test function to ensure parser is working properly.
 
 import parse_rooms

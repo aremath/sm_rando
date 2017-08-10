@@ -1,4 +1,4 @@
-# Author - Ross Mawhorter
+# Author - Aremath
 # MinSetSet - used for keeping track of a set of minimal sets of items.
 # I expect items to be denoted as strings, but really you can use whatever you
 # want, as long as it's hashable.

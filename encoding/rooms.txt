@@ -1294,7 +1294,7 @@ L
 Maridia_First_Save - 7D3DF
 L
 
-Zip_Tube - 7D40F
+Zip_Tube - 7D408
 T
 B
 
@@ -1450,7 +1450,7 @@ BS2
 TS2 -> BS1					- X
 TS1 -> BS2					- X
 
-Shaktool - 7D865
+Shaktool - 7D8C5
 L
 R
 Shaktool

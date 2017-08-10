@@ -1,9 +1,10 @@
+# Author - Aremath
+# methods for actually writing to / reading from the ROM
+# based on the hexMethods.py file from the other sm door randomizer
+
 from struct import *
 import collections
 import item_definitions
-
-# methods for actually writing to / reading from the ROM
-# based on the hexMethods.py file from the other sm door randomizer
 
 #TODO: do this without opening and closing the file repeatedly
 #TODO: clean up usage of defns - either remove it or use definitions!
@@ -166,3 +167,78 @@ def make_items(item_list, write_rom):
 	for location, item in item_list:
 		address, location_type = item_locations[location]
 		write_raw_bytes(write_rom, address, item_defns[item][location_type])
+
+
+# applying patches!
+def apply_patches(patches, write_rom):
+	"""patches in the simple form of a list of address, bytes pairs"""
+	for address, data in patches:
+		write_raw_bytes(write_rom, address, data)
+
+#TODO: credit to the item_randomzer for this function....
+#TODO: does theirs parse the file in the same way? little vs. big - endian?
+#TODO: seems like this is working!
+# seems like the .ips format is:
+# 3 bytes of address
+# 2 bytes of length
+# <length> bytes of data to write at that address
+# repeat
+def apply_ips(ips_file, write_rom, offset=5):
+	"""applies an IPS patch to write_rom"""
+	# list of tuples of the form (address, bytes)
+	# where address is the address in the rom file, and bytes is the bytes to
+	# write there.
+	bytes_to_write = []
+	ips_address = ""
+	while True:
+		# get bytes from the (possibly new) offset
+		ips_address = read_raw_bytes(ips_file, hex(offset), 3)
+		# this is the ips end code - we're done
+		if ips_address == "\x45\x4f\x46":
+			break
+		ips_length = read_raw_bytes(ips_file, hex(offset + 3), 2)
+
+		# convert to numbers
+		true_address = hex_to_int(ips_address)
+		true_length = hex_to_int(ips_length)
+
+		# update offset past the end of the bytes we just read
+		offset += 5
+
+		# 0000 is the code for - get a new length, then write one byte that many times
+		if true_length == 0:
+			new_ips_length = read_raw_bytes(ips_file, hex(offset), 2)
+			new_true_length = hex_to_int(new_ips_length)
+			data = read_raw_bytes(ips_file, hex(offset + 2), 1) * new_true_length
+			bytes_to_write.append((hex(true_address), data))
+			offset += 3
+		# get length bytes at offset, and add them to the write list
+		else:
+			data = read_raw_bytes(ips_file, hex(offset), true_length)
+			bytes_to_write.append((hex(true_address), data))
+			offset += true_length
+
+	# write the data
+	print bytes_to_write
+	for address, data in bytes_to_write:
+		write_raw_bytes(write_rom, address, data)
+
+# utilities for messing with hex integers
+
+def hex_to_int(hex_string):
+	"""converts a string of hex bytes to an integer - little-endian"""
+	base = 8 * (len(hex_string) - 1)
+	converted = 0
+	for char in hex_string:
+		converted += int(char.encode("hex"), 16) << base
+		base -= 8
+	return converted
+
+def int_to_hex(convert_int):
+	"""converts an into to a string of hex bytes - little-endian"""
+	# get the number as a hex string
+	hex_str = "%x" % convert_int
+	# pad with zeroes so even length - necessary to use decode
+	padded_hex_str = ("0" * (len(hex_str) % 2)) + hex_str
+	# decode it to a byte (or set of bytes)
+	return padded_hex_str.decode("hex")

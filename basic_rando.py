@@ -11,6 +11,10 @@ import sys
 #TODO: figure out what's going on with Zip Tube
 #TODO: graphical glitches after kraid? why?
 #TODO: sand pits don't always connect up - different sizes
+#TODO: remove varia / gravity suit cutscene
+#TODO: make sand easier to jump out of - write 00 to 0x2348c and 00 to 0x234bd ?
+#TODO: change scroll "colors" in kraid, crocomire, sporespawn, shaktool rooms?
+#TODO: ask dessy about how to remove G4 cutscene and gravity/varia cutscenes
 
 def basic_rando(rooms):
 	landing_site = rooms.pop("Landing_Site")
@@ -129,7 +133,6 @@ def basic_rando(rooms):
 	# return the list of door and item changes
 	return door_changes, item_changes, current_graph
 
-
 def make_door(door1, direction1, door2, direction2, new_room, graph, exits_to_place, door_changes, item_changes, items_to_place):
 	"""Connects door1 and door2, and updates all the accessories. Door1 is an already-placed door, and door2 is a door in new_room."""
 	assert door_hookups[direction1] == direction2, door1 + " <-> " + door2
@@ -207,17 +210,11 @@ def rom_setup(rom, time):
 	minutes = time / 60
 	seconds = time % 60
 
-	# get the number as hex
-	minute_hex = "%x" % minutes
-	# pad with zeroes so even length
-	minute_hex = ("0" * (len(minute_hex) % 2)) + minute_hex
-	# decode it as hex bytes
-	minute_bytes = (minute_hex).decode("hex")
-	# do the same for seconds
-	second_hex = "%x" % seconds
-	second_hex = ("0" * (len(second_hex) % 2)) + second_hex
-	second_bytes = (second_hex).decode("hex")
+	# get the number as hex bytes
+	minute_bytes = int_to_hex(minutes)
+	second_bytes = int_to_hex(seconds)
 
+	# can't write more than one byte!
 	assert len(minute_bytes) == 1, "Minutes too long"
 	assert len(second_bytes) == 1, "Seconds too long"
 
@@ -273,6 +270,9 @@ if __name__ == "__main__":
 				# TODO: find a way to disable grey doors during escape
 				# TODO: might wanna make sure they don't have to, like, defeat crocomire during escape
 				# or at least they have the time necessary to do so :P
+				# - to do this: if there's a "problematic" node in the shortest escape path,
+				# remove it from the graph and do another BFS. If there's no path, then award them time to beat that node
+				# If there is another path, then just award them time to complete that path
 				items = all_items | set(["Kraid", "Phantoon", "Draygon", "Ridley"])
 				bfs_offers, bfs_finished, bfs_found, bfs_set = graph.BFS_target("Escape_4_R", ("Landing_Site_L2", items), items)
 				node = "Landing_Site_L2"

@@ -1,3 +1,4 @@
+# Author - Aremath
 # contains the bytes for writing to files.
 # so does item_definitions.txt, but parsing it is a pain :(
 # thanks to dessyreqt for the item memory values!

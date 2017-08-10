@@ -1,4 +1,4 @@
-# Author - Ross Mawhorter
+# Author - Aremath
 # parses the level file - in this repo, encoding/rooms.txt - see rooms.txt for more information on level encodings
 # Basic Syntax: a room definition is as follows:
 # title line:
