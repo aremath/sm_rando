@@ -18,6 +18,12 @@ def parse_constraint(constraint):
 	# BASE CASE
 	# if it's not a symbol, then it's a variable
 	if constraint[0] != "|" and constraint[0] != "&":
+		# special case - bombs, power bombs, and springball all require morph ball
+		if constraint == "B" or constraint == "PB" or constraint == "SPB":
+			return MinSetSet([set(["MB", constraint])])
+		# special case - super missiles are sufficient for all missile requirements
+		if constraint == "M":
+			return MinSetSet([set([constraint]), set(["S"])])
 		return MinSetSet([set([constraint])])
 	# RECURSIVE CASE
 	else:

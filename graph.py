@@ -1,8 +1,10 @@
 # all classes for implementing ConstraintGraph
 
 from minsetset import *
+import collections
+from Queue import *
 
-class ConstraintGraph:
+class ConstraintGraph(object):
 
 	def __init__(self):
 		self.name_node = {}
@@ -21,16 +23,16 @@ class ConstraintGraph:
 		self.nnodes += 1
 		return name
 
-	def add_edge(self, node1, node2, items=MinSetSet()):
-		assert node1 in self.name_node, "Node does not exist: " + node1
-		assert node2 in self.name_node, "Node does not exist: " + node2
+	def add_edge(self, start, end, items=MinSetSet()):
+		assert start in self.name_node, "Node does not exist: " + start
+		assert end in self.name_node, "Node does not exist: " + end
 		# check if an edge already exists: if it does, and their sets
-		for edge in self.node_edges[node1]:
-			if edge.terminal == node2:
+		for edge in self.node_edges[start]:
+			if edge.terminal == end:
 				edge.items *= items
 				return
-		edge = ConstraintEdge(node2, items)
-		self.node_edges[node1].append(edge)
+		edge = ConstraintEdge(end, items)
+		self.node_edges[start].append(edge)
 
 	def add_undirected_edge(self, node1, node2, items=MinSetSet()):
 		self.add_edge(node1, node2, items)
@@ -45,45 +47,47 @@ class ConstraintGraph:
 				return
 		assert False, "No such edge: " + node1 + " -> " + node2
 
-	def BFS_target(self, start, end, items=set()):
-		offers = {}
-		finished = set()
-		# TODO: queue
-		stack = [start]
-		node = ""
-		found = False
-		while len(stack) != 0:
-			# get the next node
-			node = stack.pop()
-			# mark the node as finished
-			finished |= set(node)
-			# if we reached the target, we're done
-			if node == end:
-				found = True
+	def BFS_target(self, start, end=None, items=set()):
+		#TODO: is there a way to not do some of these linear-time searches?
+		#TODO: review this - does it really process every combo only once?
+		# key - node name
+		# value - list of item sets paired with their (node, item set) predecessor
+		offers = collections.defaultdict(list)
+
+		# key - node name
+		# value - list of item sets already visited for that node
+		finished = collections.defaultdict(list)
+
+		completing_set = None
+
+		# queue to hold node, item pairs
+		queue = Queue()
+
+		queue.put((start, items))
+		while queue.qsize() > 0:
+			node, items = queue.get()
+			# we've reached the goal with at least the right items
+			if end is not None and node == end[0] and items >= end[1]:
+				completing_set = items
 				break
-
-			# TODO - what happens here?
-			if isinstance(self.node_names[node], Item) or isinstance(self.node_names[node], Boss):
-				pass
-
-			# add neighbors to the stack and record their previous nodes
-			for neighbor_edge in self.node_edges[node]:
-				if neighbor_edge.terminal not in finished and neighbor_edge.items.matches(items):
-					offers[neighbor] = node
-					stack.append(neighbor)
-		path = None
-		if found:
-			path = []
-			node = end
-			while node != start:
-				path.append(node)
-				node = offers[node]
-			path.append(start)
-		return path
-
-	def BFS(self, start, items=set()):
-		reachable = []
-
+			# make an offer to every adjacent node reachable with this item set
+			for edge in self.node_edges[node]:
+				if edge.items.matches(items):
+					# if we haven't already visited terminal with those items...
+					if items not in finished[edge.terminal]:
+						offers[edge.terminal].append((items, (node, items)))
+						finished[edge.terminal].append(items)
+						queue.put((edge.terminal, items))
+			# make an offer to pick up an item or defeat a boss
+			node_data = self.name_node[node].data
+			if isinstance(node_data, Item) or isinstance(node_data, Boss):
+				new_items = items | set([node_data.type])
+				# if we haven't already visited node iwth the new item set...
+				if new_items not in finished[node]:
+					offers[node].append((new_items, (node, items)))
+					finished[node].append(new_items)
+					queue.put((node, new_items))
+		return offers, finished, completing_set is not None, completing_set
 
 	def __repr__(self):
 		self_str = ""
@@ -95,14 +99,14 @@ class ConstraintGraph:
 		return self_str[:-1]
 
 
-class ConstraintEdge:
+class ConstraintEdge(object):
 
 	def __init__(self, terminal, items=MinSetSet()):
 		# terminal is a node name
 		self.terminal = terminal
 		self.items = items
 
-class ConstraintNode:
+class ConstraintNode(object):
 
 	def __init__(self, name, data):
 		self.name = name
@@ -110,7 +114,7 @@ class ConstraintNode:
 
 #TODO - Door, Item, and Boss should inherit from NodeData or some such type
 
-class Door:
+class Door(object):
 
 	def __init__(self, address, items=MinSetSet(), accessible=True, facing="L"):
 		self.mem_address = address
@@ -118,25 +122,25 @@ class Door:
 		self.accessible = accessible
 		self.facing = facing
 
-class Item:
+class Item(object):
 
 	def __init__(self, address, item_type=""):
 		self.mem_address = address
 		self.type = item_type
 
-class Boss:
+class Boss(object):
 
 	def __init__(self, boss_type=""):
 		self.type = boss_type
 
-class Room:
+class Room(object):
 
 	def __init__(self, name, address, graph):
 		self.name = name
 		self.mem_address = address
 		self.graph = graph
 
-class BasicGraph:
+class BasicGraph(object):
 
 	def __init__():
 		self.node_edges = {}

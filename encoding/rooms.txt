@@ -79,7 +79,7 @@ ALL -> M3								- | B PB
 (R1 R2 R3) -> (L2 R6 M2 M3)				- S
 R3 -> ALL								- | B PB SPB
 ALL -> R3								- | B PB SPB
-(L2 R5 R6 M3) -> (R1 R2 R3) 			- X
+(L2 R5 R6 M3) -> (R1 R2 R3 M1) 			- X
 
 Bowling_Path - 79461
 L
@@ -748,8 +748,8 @@ R1
 R2								- M
 R3
 R4
-ALL -> L						- X
-L -> ALL						- & MB (| PB B SA)
+ALL -> R1						- X
+R1 -> ALL						- & MB (| PB B SA)
 ALL <-> ALL						- V
 
 # I can't prevent you from doing stupid stuff like going into the second part without morph ball...
@@ -1278,8 +1278,8 @@ L
 R								- M
 
 Plasma_Spark - 7D340
-R1
-R2								- Draygon
+R1								- Draygon
+R2
 R3
 B								- S
 R3 -> ALL						- | GS HJ

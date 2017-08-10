@@ -110,9 +110,11 @@ def make_doors(door_list, clean_rom, write_rom):
 		if door1 == "Pants_R":
 			write_raw_bytes(write_rom, door_from[door1], door_to[door2])
 			write_raw_bytes(write_rom, door_from[door2], door_to["Pants_Right_R"])
+			write_raw_bytes(write_rom, door_from["Pants_Right_R"], door_to[door2])
 		elif door2 == "Pants_R":
 			write_raw_bytes(write_rom, door_from[door2], door_to[door1])
 			write_raw_bytes(write_rom, door_from[door1], door_to["Pants_Right_R"])
+			write_raw_bytes(write_rom, door_from["Pants_Right_R"], door_to[door1])
 		else:
 			# skip doors that don't exist
 			#TODO: only certain TS and BS doors

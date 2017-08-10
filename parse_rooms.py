@@ -177,8 +177,8 @@ def parse_edge_line(line, all_nodes):
 	return edges, constraint
 
 def parse_node_name(node_name, constraint):
-	"""Helper function for make_room. categorizes a node name, returning either an
-	Item or a Door"""
+	"""Helper function for make_room. categorizes a node name, returning an
+	Item, a Door, or a Boss"""
 	# TODO: parse a memory addresses file to get the address
 	# get the type by stripping the number from the end
 	node_type = node_name.rstrip("1234567890")
