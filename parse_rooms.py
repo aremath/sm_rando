@@ -13,8 +13,6 @@
 # DOOR TYPES:
 # (L R B T ET EB TS BS LMB RMB)
 
-#TODO: rename this file! this only parses the rooms file!
-
 from constraints import *
 from graph import *
 import collections
@@ -194,9 +192,8 @@ def parse_node_name(node_name, constraint):
 		if node_type == "Bombs":
 			return Item(0, "B")
 		return Item(0, node_type)
-	# TODO: for now, special nodes act as bosses - they're the same in that they can't be
-	# randomized, but if I end up with logic giving you items for bosses, I probably want
-	# to change this.
+	# Special nodes act as bosses - they're the same in that they can't be
+	# randomized
 	elif node_type in boss_types or node_type in special_types:
 		return Boss(node_type)
 	else:

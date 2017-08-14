@@ -9,74 +9,31 @@ import sys
 #TODO: a better file structure would keep all the rando algorithms that produce door changes and item changes somewhere else
 # this file should just be the executable
 #TODO: figure out what's going on with Zip Tube
-#TODO: graphical glitches after kraid? why?
+#TODO: graphical glitches after kraid? - can pause to fix, or also just leave kraid's room connected to the kraid eye door room
 #TODO: sand pits don't always connect up - different sizes
-#TODO: remove varia / gravity suit cutscene
 #TODO: make sand easier to jump out of - write 00 to 0x2348c and 00 to 0x234bd ?
+	# Botwoon_Energy_Farm doesn't require any items now
+	# Both sand halls can be done with HJ
+	# Butterfly room doesn't require HJ
+	# colosseum can be done with either only gravity or only grapple beam :D
 #TODO: change scroll "colors" in kraid, crocomire, sporespawn, shaktool rooms?
-#TODO: ask dessy about how to remove G4 cutscene and gravity/varia cutscenes
+#TODO: G4 and varia cutscene .ipss
+#TODO: door leading to top of bowling turns grey once you beat phantoon?
 
 def basic_rando(rooms):
+
+	# remove rooms we're not randomizing
+	clean_rooms(rooms)
+	# do this after cleaning - pants room plays havoc with this since there's
+	# two right doors that both lead to shaktool.
+	check_door_totals(rooms)
+
 	landing_site = rooms.pop("Landing_Site")
 	current_graph = landing_site[0].graph
 	current_exits = landing_site[1]
 
-	#TODO: this doesn't quite work... poping a room means I don't want to randomize any of its doors
-
-	# get rid of pants_right - we're not using it.
-	rooms.pop("Pants_Right")
-	# don't randomize Ceres
-	rooms.pop("Ceres_Entrance")
-	rooms.pop("Ceres_1")
-	rooms.pop("Ceres_2")
-	rooms.pop("Ceres_3")
-	rooms.pop("Ceres_4")
-	rooms.pop("Ceres_Ridley")
-	# don't randomize tourian or escape
-	rooms.pop("Tourian_Elevator")
-	rooms.pop("Metroid_Can_He_Crawl?")
-	rooms.pop("Metroid_The_Return_of_Samus")
-	rooms.pop("Metroid_Fusion?")
-	rooms.pop("Metroid_Zero_Mission")
-	rooms.pop("Blue_Hoppers")
-	rooms.pop("RIP_Torizo")
-	rooms.pop("Metroid_Skip")
-	rooms.pop("Seaweed_Room")
-	rooms.pop("Tourian_Refill")
-	rooms.pop("Mother_Brain")
-	rooms.pop("Tourian_Eye_Door")
-	rooms.pop("Rinka_Shaft")
-	rooms.pop("Mother_Brain_Save")
-	rooms.pop("Escape_1")
-	rooms.pop("Escape_2")
-	rooms.pop("Escape_3")
-	rooms.pop("Tourian_Save")
-
-	#TODO: this doesn't quite work either - the resulting graph is messed up!
-	# doesn't matter for the Pants room, but doesn't allow travel through escape, for example...
-
-	# don't randomize Statues_ET
-	rooms["Statues"][1]["ET"].remove("Statues_ET")
-	# don't randomize Escape_4_L
-	rooms["Escape_4"][1]["L"].remove("Escape_4_L")
-	# don't randomize Pants_R2 or Pants_L2
-	rooms["Pants"][1]["R"].remove("Pants_R2")
-	rooms["Pants"][1]["L"].remove("Pants_L2")
-
-	door_totals = collections.Counter()
-	# check the total number of doors:
-	for room in rooms.values():
-		room_doors = room[1]
-		for direction, dir_doors in room_doors.items():
-			door_totals[direction] += len(dir_doors)
-	for door, partner in door_hookups.items():
-		assert door_totals[door] == door_totals[partner], door + ": " + str(door_totals[door]) + ", " + partner + ": " + str(door_totals[partner])
-
 	# get a random order for items
-	items_to_place = item_types + 45 * ["M"] + 9 * ["S"] + 9 * ["S"] + 13 * ["E"] + 2 * ["RT"]
-	# stupid special cases
-	items_to_place.remove("Bombs")
-	items_to_place.append("B")
+	items_to_place = map_items()
 	random.shuffle(items_to_place)
 
 	# get a random order for rooms
@@ -132,6 +89,44 @@ def basic_rando(rooms):
 	print "ROOMS NOT PLACED - " + str(len(rooms_to_place))
 	# return the list of door and item changes
 	return door_changes, item_changes, current_graph
+
+def completable_rando(rooms):
+	"""creates the door transitions and items for a completable randomizer seed"""
+	clean_rooms(rooms)
+	check_door_totals(rooms)
+
+	landing_site = rooms.pop("Landing_Site")
+	current_graph = landing_site[0].graph
+	exits_to_connect = landing_site[1]
+	# approximate position of the ship
+	current_node = "Landing_Site_L2"
+	# keeps track of items we've picked up
+	current_items = set()
+	# keeps track of items we haven't gotten yet
+	missing_items = set(item_types) # | set(["Kraid", "Ridley", "Phantoon", "Draygon"])
+	# keeps track of exits reachable from current node
+	reachable_exits = [ ]
+
+	# get a random order for items
+	items_to_place = map_items()
+	random.shuffle(items_to_place)
+
+	# get a random order for rooms
+	rooms_to_place = rooms.keys()
+	random.shuffle(rooms_to_place)
+
+	door_changes = []
+	item_changes = []
+
+	# update reachable_exits
+	# calculate paths-through for current items for rooms until we find one with a path-through
+	# update items if path-through contained an item #NOTE - doesn't guarantee we will ever place a useful item T_T
+	# place that room, and go to the terminal of path_through
+	#NOTE: paths-through is not sufficient, otherwise how will we ever place phantoon, for example (unless L -> phantoon -> L is a meaningful path_through)
+	#then for each path-through we need to make sure that there is still a reachable exit before we place that room...
+
+	# if rooms is empty - move on. now we just need to hook up the rest of the doors
+
 
 def make_door(door1, direction1, door2, direction2, new_room, graph, exits_to_place, door_changes, item_changes, items_to_place):
 	"""Connects door1 and door2, and updates all the accessories. Door1 is an already-placed door, and door2 is a door in new_room."""
@@ -189,6 +184,68 @@ def connect_doors(door1, direction1, door2, direction2, graph, exits_to_place, d
 	if door2_data.items is not None:
 		graph.add_edge(door2, door1, door2_data.items)
 
+def clean_rooms(rooms):
+	"""remove some rooms we don't want to change from the dictionary of rooms"""
+	#TODO: this doesn't quite work... poping a room means I don't want to randomize any of its doors
+
+	# get rid of pants_right - we're not using it: the cases in rom_edit will handle this.
+	rooms.pop("Pants_Right")
+	# don't randomize Ceres
+	rooms.pop("Ceres_Entrance")
+	rooms.pop("Ceres_1")
+	rooms.pop("Ceres_2")
+	rooms.pop("Ceres_3")
+	rooms.pop("Ceres_4")
+	rooms.pop("Ceres_Ridley")
+	# don't randomize tourian or escape
+	rooms.pop("Tourian_Elevator")
+	rooms.pop("Metroid_Can_He_Crawl?")
+	rooms.pop("Metroid_The_Return_of_Samus")
+	rooms.pop("Metroid_Fusion?")
+	rooms.pop("Metroid_Zero_Mission")
+	rooms.pop("Blue_Hoppers")
+	rooms.pop("RIP_Torizo")
+	rooms.pop("Metroid_Skip")
+	rooms.pop("Seaweed_Room")
+	rooms.pop("Tourian_Refill")
+	rooms.pop("Mother_Brain")
+	rooms.pop("Tourian_Eye_Door")
+	rooms.pop("Rinka_Shaft")
+	rooms.pop("Mother_Brain_Save")
+	rooms.pop("Escape_1")
+	rooms.pop("Escape_2")
+	rooms.pop("Escape_3")
+	rooms.pop("Tourian_Save")
+
+	#TODO: this doesn't quite work either - the resulting graph is messed up!
+	# doesn't matter for the Pants room, but doesn't allow travel through escape, for example...
+
+	# don't randomize Statues_ET
+	rooms["Statues"][1]["ET"].remove("Statues_ET")
+	# don't randomize Escape_4_L
+	rooms["Escape_4"][1]["L"].remove("Escape_4_L")
+	# don't randomize Pants_R2 or Pants_L2
+	rooms["Pants"][1]["R"].remove("Pants_R2")
+	rooms["Pants"][1]["L"].remove("Pants_L2")
+
+def check_door_totals(rooms):
+	"""checks door totals - make sure the number of left doors is equal to the number of right doors etc."""
+	door_totals = collections.Counter()
+	# check the total number of doors:
+	for room in rooms.values():
+		room_doors = room[1]
+		for direction, dir_doors in room_doors.items():
+			door_totals[direction] += len(dir_doors)
+	for door, partner in door_hookups.items():
+		assert door_totals[door] == door_totals[partner], door + ": " + str(door_totals[door]) + ", " + partner + ": " + str(door_totals[partner])
+
+def map_items():
+	"""get the items for the map - default behavior is just the normal numbers"""
+	items_to_place = item_types + 45 * ["M"] + 9 * ["S"] + 9 * ["S"] + 13 * ["E"] + 2 * ["RT"]
+	# stupid special cases
+	items_to_place.remove("Bombs")
+	items_to_place.append("B")
+	return items_to_place
 
 def seed_rng(seed):
 	seed = args.seed
@@ -222,6 +279,8 @@ def rom_setup(rom, time):
 	write_raw_bytes(rom, "0x0001e21", second_bytes)
 	# write minutes
 	write_raw_bytes(rom, "0x0001e22", minute_bytes)
+
+	#TODO: apply other IPSs
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Welcome to the Super Metroid Door randomizer!")

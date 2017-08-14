@@ -23,6 +23,7 @@ def parse_constraint(constraint):
 			return MinSetSet([set(["MB", constraint])])
 		# special case - super missiles are sufficient for all missile requirements
 		if constraint == "M":
+		#TODO - does gravity suit stop environmental damage or not?
 			return MinSetSet([set([constraint]), set(["S"])])
 		return MinSetSet([set([constraint])])
 	# RECURSIVE CASE

@@ -432,10 +432,11 @@ ALL <-> L1				- PB
 (L3 R2) -> (L1 L2 R1)	- | HJ SJ IB
 ALL -> R1				- | IB (& SJ SA)
 
+# this forces you to damageboost pretty hard :P
 Red_Brinstar_Firefleas - 7A293
 L						- M
 R
-L <-> R					- | G (& HJ E) SJ
+L <-> R					- | G (& HJ V E) SJ
 
 X-Ray - 7A2CE
 R
@@ -625,7 +626,7 @@ T
 L
 E
 Crocomire
-ALL -> E					- | G SJ 2E
+ALL -> E					- | G SJ E
 T -> L						- Crocomire
 L -> Crocomire				- X
 T -> Crocomire				- CB
@@ -687,8 +688,8 @@ T
 L
 M
 L -> T							- MB
-L -> M							- | (& PB SB) (| SJ G) (& GS SB 2E) 
-T -> (M L)						- | (& PB SB) (& MB SJ) (& MB GS SB 2E)
+L -> M							- | (& PB SB) (| SJ G) (& GS SB E) 
+T -> (M L)						- | (& PB SB) (& MB SJ) (& MB GS SB E)
 
 Grapple_Harder - 7ABD2
 L
@@ -1367,11 +1368,12 @@ L
 R							- Draygon
 L <-> R						- | GS HJ B
 
+# no ice clip for you >:D
 Botwoon_Hallway - 7D617
 B
 R
 B -> R						- & GS SB
-R -> B						- X
+R -> B						- & GS SB
 
 Pants - 7D646
 L1
@@ -1420,16 +1422,16 @@ L2							- M
 M
 L2 -> (L1 M)				- & GS (| HJ SJ)
 
+# there's a swag shortcharge to get from R to L
 Botwoon_Energy - 7D7E4
 L
 R
 E
 BS1
 BS2
-L -> R						- | (& GS SB) (& GS (| B PB SPB)) (& HJ SPB)
+L -> R						- | (& GS (| B PB SPB SB)) (& HJ SPB)
 L -> E						- & MB (| GS HJ)
-R -> (E L BS2)				- | (& HJ SPB) (& GS (| B PB SPB))
-R -> BS1					- MB
+R -> (E L BS1 BS2)			- | (& HJ SPB) (& GS (| B PB SPB))
 
 Draygon_Save - 7D81A
 L
@@ -1499,7 +1501,7 @@ L
 R
 Draygon
 R -> L						- Draygon
-L -> R						- & Draygon GS HJ
+L -> R						- & Draygon GS (| HJ SJ)
 (L R) -> Draygon			- & GS E S (| CB G) 
 
 Tourian_Elevator - 7DAAE
