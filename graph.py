@@ -75,6 +75,20 @@ class ConstraintGraph(object):
 				return
 		assert False, "No such edge: " + node1 + " -> " + node2
 
+	def remove_node(self, node):
+		assert node in self.name_node, "Node does not exist: " + node
+		del self.name_node[node]
+		del self.node_edges[node]
+		indices_to_remove = {}
+		# find all edges to node
+		for inode, edges in self.node_edges.items():
+			for index, edge in enumerate(edges):
+				if edge.terminal == node:
+					indices_to_remove[inode] = index
+		# remove them
+		for inode, index in indices_to_remove.items():
+			del self.node_edges[inode][index]
+
 	def BFS_target(self, start, end=None, items=set()):
 		#TODO: is there a way to not do some of these linear-time searches?
 		#TODO: review this - does it really process every combo only once?
@@ -117,13 +131,17 @@ class ConstraintGraph(object):
 					queue.put((node, new_items))
 		return offers, finished, completing_set is not None, completing_set
 
-	def BFS_items(self, start, end=None, items=set()):
+	def BFS_items(self, start, end=None, wildcards=set(), items=set(), assignments={}, fixed_items=set()):
 		"""Finds a satsifying assignment of items to reach end from start. finished[end] will wind up with
 		a list of (unassigned but reached items, item set needed, and possible item assignments). Each assignment
-		is a dictionary, where key = item node name, and value = string value for item assigned there. Currently, does
-		not allow any items to be fixed. """
+		is a dictionary, where key = item node name, and value = string value for item assigned there. Currently does
+		not allow items to be fixed, but an already-assigned items dictionary can be passed, and if every item there is in
+		items, then the behavior should be correct."""
 
-		#TODO: do we need offers?
+		#TODO: I think there's a way to make finished store less stuff - after all, we are only interested in keeping the
+		# elements with a maximal number of wildcards for each item set.
+
+		#TODO: do we need offers? - just interested in finding a completable assignment
 		# key - node name
 		# value - list of 
 		#offers = collections.defaultdict(list)
@@ -144,52 +162,88 @@ class ConstraintGraph(object):
 		#	- assignment dictionary - key: item node, value: type assigned there
 		# however two search terms are equal if the number of wildcards and the
 		# obtained items are the same - that's why finished just includes the number
-		queue.put((start, set(), set(), {}))
-		while queue.qsize > 0:
+		# - add start node to the finished list
+		finished[start].append((wildcards.copy(), items.copy(), assignments.copy()))
+		queue.put((start, wildcards, items, assignments))
+		while queue.qsize() > 0:
 			node, wildcards, items, assignments = queue.get()
+			#print node, len(wildcards), len(items)
+			node_data = self.name_node[node].data
 			if end is not None and node == end:
 				completing_set = items
 				break
 			if isinstance(node_data, Item):
 				# if we don't already have this item, pick it up
 				if node not in wildcards and node not in assignments:
-					wildcards |= node
-					# if there's no entry for this item set with this number of wildcards, then add it
-					if len([x for x in finished[node] if len(x[0]) == len(wildcards) and x[1] == items]) == 0:
-						finished[node].append((wildcards, items, assignments))
-						queue.put((node, wildcards, items, assignments))
+					wildcards.add(node)
+					# if there's not already an entry for this item set with at least as many wildcards, then add it
+					if len([x for x in finished[node] if len(x[0]) >= len(wildcards) and x[1] >= items]) == 0:
+						finished[node].append((wildcards.copy(), items.copy(), assignments.copy()))
+						queue.put((node, wildcards.copy(), items.copy(), assignments.copy()))
 					# there's no need to process edges - picking up that item will allow you to cross strictly more edges
-					break
+					continue
 			elif isinstance(node_data, Boss):
 				# if we haven't defeated this boss yet, do so.
-				if Boss.type not in items:
-					items |= Boss.type
-					finished[node].append((wildcards, items, assignments))
-					queue.put((node, wildcards, items, assignments))
+				if node_data.type not in items:
+					items |= set([node_data.type])
+					finished[node].append((wildcards.copy(), items.copy(), assignments.copy()))
+					queue.put((node, wildcards.copy(), items.copy(), assignments.copy()))
 					# there's no need to process edges - defeating that boss will allow you to cross strictly more edges
-					break
+					continue
 			# now cross edges
 			for edge in self.node_edges[node]:
+
 				# for each set, use some wildcards to cross it, then add that node with those assignments to the queue
-				for item_set in edge.sets:
+				for item_set in edge.items.sets:
 					# items in item set that we don't already have
 					need_items = item_set - items
-					# if we have enough wildcards to satisfy need_items
-					if len(need_items) <= len(wildcards):
+					# if we have enough wildcards to satisfy need_items and there are no fixed items that we do not already have
+					if len(need_items) <= len(wildcards) and len(need_items & fixed_items) == 0:
 						wildcards_copy = wildcards.copy()
 						items_copy = items.copy()
-						assingments_copy = assignments.copy()
+						assignments_copy = assignments.copy()
 						# make an assignment that allows crossing that edge
 						for item in need_items:
 							wildcard = wildcards_copy.pop()
 							assignments_copy[wildcard] = item
 							items_copy.add(item)
-						# if there's no entry for this item set with this number of wildcards, then add it
-						if len([x for x in finished[node] if len(x[0]) == len(wildcards) and x[1] == items]) == 0:
-							finished[edge.terminal].append((wildcards_copy, items_copy, assignments_copy))
-							queue.put((edge.terminal, wildcards_copy, items_copy, assingments_copy))
+						# if there's not already an entry for this item set with at least as many wildcards, then add it
+						if len([x for x in finished[edge.terminal] if len(x[0]) >= len(wildcards) and x[1] >= items]) == 0:
+							# make sure finished has different pointers than queue!
+							finished[edge.terminal].append((wildcards_copy.copy(), items_copy.copy(), assignments_copy.copy()))
+							queue.put((edge.terminal, wildcards_copy, items_copy, assignments_copy))
 
 		return finished, completing_set is not None, completing_set
+
+	def add_room(self, door1, door2, room_graph):
+		"""adds a room to self, connecting door1 in self to door2 in room_graph"""
+		assert door1 in self.name_node, door1
+		assert door2 in room_graph.name_node, door2
+
+		for node_name, node in room_graph.name_node.items():
+			self.add_node(node_name, node.data)
+		for node_name, node_edges in room_graph.node_edges.items():
+			for edge in node_edges:
+				self.add_edge(node_name, edge.terminal, edge.items)
+
+		# connect up the two doors!
+		door1_data = self.name_node[door1].data
+		door2_data = self.name_node[door2].data
+		# none means an impassable door
+		if door1_data.items is not None:
+			self.add_edge(door1, door2, door1_data.items)
+		if door2_data.items is not None:
+			self.add_edge(door2, door1, door2_data.items)
+
+	def copy(self):
+		"""returns a copy of self - pointers to data might still be entangled"""
+		new_graph = ConstraintGraph()
+		for node_name, node in self.name_node.items():
+			new_graph.add_node(node_name, node.data)
+		for node_name, node_edges in self.node_edges.items():
+			for edge in node_edges:
+				new_graph.add_edge(node_name, edge.terminal, edge.items)
+		return new_graph
 
 	def __repr__(self):
 		self_str = ""

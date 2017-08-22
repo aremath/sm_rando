@@ -21,7 +21,7 @@
 #	HJ - Hi Jump
 #	SB - Speed Booster - Requires knowing there's a run button to use
 #	MB - Morph Ball
-#	CB - Charge Beam - I require this for most bosses, since you're not guaranteed to have enough ammmo
+#	CB - Charge Beam - I require this for most bosses, since you're not guaranteed to have enough ammo
 #	WB - Wave Beam - I decided not to make you fight botwoon through the wall - Thank me later
 #	E - Energy Tank - Some rooms which are going to hurt you require energy tanks...
 #	PLB - Plasma Beam
@@ -36,8 +36,8 @@ L1
 L2
 R1			- PB
 R2			- S
-ALL -> L2	- | SB (& SJ (| B PB SA))
-L2 -> ALL	- | B PB SA
+ALL -> L1	- | (& SB E) (& SJ (| B PB SA))
+L1 -> ALL	- | B PB SA
 ALL -> R1	- | SB SJ
 
 Gauntlet_Entrance - 792B3
@@ -79,7 +79,7 @@ ALL -> M3								- | B PB
 (R1 R2 R3) -> (L2 R6 M2 M3)				- S
 R3 -> ALL								- | B PB SPB
 ALL -> R3								- | B PB SPB
-(L2 R5 R6 M3) -> (R1 R2 R3 M1) 			- X
+(L2 R5 R6 M3) -> (R1 R2 R3 M1 M2) 		- X
 
 Bowling_Path - 79461
 L
@@ -195,6 +195,7 @@ M2
 ALL -> R1					- X
 (R2 R3 L M2) -> M1			- X
 (R2 R3 L M1) -> M2			- X
+R1 -> ALL					- MB
 
 Crateria_Supers - 799F9
 L1
@@ -210,9 +211,11 @@ L
 R
 R -> L						- | B PB
 
+#The missile isn't there unless you've awakened brinstar first
 Final_Missile - 79A90
 R
 M
+R -> M						- X
 
 #Unsure whether to randomize R3 and L4
 Brinstar_Entrance - 79AD9
@@ -227,8 +230,8 @@ R1										- M
 R2										- M
 R3										- X
 PB
-(L1 L2 L3 R1 R2) <-> (R3 L5)			- PB
-(L1 L2 L3 L5 R1 R2 R3) -> (L4 L6 PB)	- X
+(EB L1 L2 L3 R1 R2) <-> (R3 L5)			- PB
+(EB L1 L2 L3 L5 R1 R2 R3) -> (L4 L6 PB)	- X
 (L4 L6) -> PB							- MB
 (L4 L6 PB) -> (L5 R3)					- MB
 
@@ -626,10 +629,10 @@ T
 L
 E
 Crocomire
-ALL -> E					- | G SJ E
+ALL -> E					- | G SJ E Crocomire
 T -> L						- Crocomire
 L -> Crocomire				- X
-T -> Crocomire				- CB
+ALL -> Crocomire			- CB
 
 Hi_Jump - 7A9E5
 R
@@ -900,7 +903,7 @@ S
 M
 Golden_Torizo
 (Golden_Torizo R S) -> (L M)	- X
-L -> Golden_Torizo				- & PLB E
+ALL -> Golden_Torizo			- & CB PLB E
 M -> L							- X
 ALL <-> ALL						- V
 ALL -> S						- | SA PB
@@ -922,7 +925,7 @@ R
 Ridley
 ALL <-> ALL						- V
 L <-> R							- Ridley
-ALL -> Ridley					- S
+ALL -> Ridley					- & S CB
 
 Lower_Norfair_Farm - 7B37A
 L								- | M S
@@ -1246,7 +1249,7 @@ Pseudo_Plasma_Spark - 7D1DD
 L
 B
 M
-ALL -> L						- | GS (HJ IB)
+ALL -> L						- | GS (| HJ IB)
 
 # technically you can get from L2 R2 -> L1 R1 without high jump or space jump if you have ice beam, but it's a little inconsistent.
 Crab_Hole - 7D21C
@@ -1315,7 +1318,7 @@ Oasis - 7D48E
 L
 R
 T							- S
-(L R) -> T					- | PB SA (SPB B)
+(L R) -> T					- | PB SA (& SPB B)
 T -> (L R)					- | B PB SA
 
 East_Sand_Hall - 7D4C2
