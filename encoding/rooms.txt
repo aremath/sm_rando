@@ -76,7 +76,7 @@ M1
 M2
 M3
 ALL -> M3								- | B PB
-(R1 R2 R3) -> (L2 R6 M2 M3)				- S
+(R1 R2 R3 M1) -> (L2 R6 M2 M3)				- S
 R3 -> ALL								- | B PB SPB
 ALL -> R3								- | B PB SPB
 (L2 R5 R6 M3) -> (R1 R2 R3 M1 M2) 		- X
@@ -203,8 +203,8 @@ L2
 S
 L1 <-> S					- & MB E
 L1 -> L2					- X
-L2 -> S						- & SB IB
-L2 -> L1					- & SB IB MB
+L2 -> S						- & SB IB PLB
+L2 -> L1					- & SB IB MB PLB
 
 Final_Missile_Bombway - 79A44
 L
@@ -469,7 +469,7 @@ Alpha_Power_Bombs - 7A3AE
 R
 PB
 M
-R -> M					- PB
+ALL -> M					- PB
 
 Bat_Room - 7A3DD
 L
@@ -1007,6 +1007,7 @@ L								- S
 ALL <-> L						- PB
 ALL -> PB						- | B PB (SA MB)
 ALL <-> T						- | B PB
+ALL <-> ALL						- V
 
 # I want to make sure there's at least some source of recurrable damage
 Metal_Pirates - 7B62B
@@ -1204,8 +1205,8 @@ ALL -> E						- | SJ G
 Crab_Tunnel - 7D08A
 L
 R
-L -> R							- X
-R -> L							- S
+R -> L							- X
+L -> R							- S
 
 Mount_Everest - 7D0B9
 L1

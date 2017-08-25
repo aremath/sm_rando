@@ -89,6 +89,60 @@ class ConstraintGraph(object):
 		for inode, index in indices_to_remove.items():
 			del self.node_edges[inode][index]
 
+	#TODO: this doesn't work!
+	def BFS_optimized(self, start, end=None, items=set()):
+		"""I don't care about every possible way to get everywhere -
+		just BFS until you find end, noting that picking up items is
+		always beneficial."""
+
+		def already_finished(item_set, sets_finished):
+			"""have we already looked at this node with a superset of those items?"""
+			for set_finished in sets_finished:
+				if item_set <= set_finished:
+					return True
+			return False
+
+		# key - node name
+		# value - list of item sets paired with their (node, item set) predecessor
+		offers = collections.defaultdict(list)
+
+		# key - node name
+		# value - list of item sets already visited for that node
+		finished = collections.defaultdict(list)
+
+		completing_set = None
+
+		# queue to hold node, item pairs
+		queue = Queue()
+
+		queue.put((start, items))
+		while queue.qsize() > 0:
+			node, items = queue.get()
+			items = items.copy()
+			# we've reached the goal with at least the right items
+			if end is not None and node == end[0] and items >= end[1]:
+				completing_set = items
+				break
+			# make an offer to pick up an item or defeat a boss
+			node_data = self.name_node[node].data
+			if isinstance(node_data, Item) or isinstance(node_data, Boss):
+				new_items = items | set([node_data.type])
+				# if we haven't already visited this node with the new item set...
+				if not already_finished(items, finished[node]):
+					offers[node].append((new_items, (node, items)))
+					finished[node].append(new_items)
+					# don't have to make a new queue item - pick up the item/boss is the only option
+					items = new_items
+			# make an offer to every adjacent node reachable with this item set
+			for edge in self.node_edges[node]:
+				if edge.items.matches(items):
+					# if we haven't already visited terminal with those items...
+					if not already_finished(items, finished[edge.terminal]):
+						offers[edge.terminal].append((items, (node, items)))
+						finished[edge.terminal].append(items)
+						queue.put((edge.terminal, items))	
+		return offers, finished, completing_set is not None, completing_set
+
 	def BFS_target(self, start, end=None, items=set()):
 		#TODO: is there a way to not do some of these linear-time searches?
 		#TODO: review this - does it really process every combo only once?
@@ -108,6 +162,7 @@ class ConstraintGraph(object):
 		queue.put((start, items))
 		while queue.qsize() > 0:
 			node, items = queue.get()
+			items = items.copy()
 			# we've reached the goal with at least the right items
 			if end is not None and node == end[0] and items >= end[1]:
 				completing_set = items
@@ -124,7 +179,7 @@ class ConstraintGraph(object):
 			node_data = self.name_node[node].data
 			if isinstance(node_data, Item) or isinstance(node_data, Boss):
 				new_items = items | set([node_data.type])
-				# if we haven't already visited node iwth the new item set...
+				# if we haven't already visited this node with the new item set...
 				if new_items not in finished[node]:
 					offers[node].append((new_items, (node, items)))
 					finished[node].append(new_items)

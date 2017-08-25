@@ -142,13 +142,15 @@ if __name__ == "__main__":
 		door_changes, item_changes, graph = item_quota_rando(rooms)
 
 		# check completability - get to golden statues with all items
-		bfs_offers, bfs_finished, bfs_found, bfs_set = graph.BFS_target("Landing_Site_L2", ("Statues_ET", set()))
-		print bfs_finished["Statues_L"]
-		print bfs_finished["Statues_ET"]
-		print "Completable: " + str(bfs_found)
+		#bfs_offers, bfs_finished, bfs_found, bfs_set = graph.BFS_target("Landing_Site_L2", ("Statues_ET", set()))
+		#print bfs_finished["Statues_L"]
+		#print bfs_finished["Statues_ET"]
+		#print "Completable with no items: " + str(bfs_found)
 		bfs_offers, bfs_finished, bfs_found, bfs_set = graph.BFS_target("Landing_Site_L2", ("Statues_ET", all_items), all_items)
+		print "Completable unoptimized: " + str(bfs_found)
+		bfs_offers, bfs_finished, bfs_found, bfs_set = graph.BFS_optimized("Landing_Site_L2", ("Statues_ET", all_items), all_items)
 		print bfs_finished["Statues_ET"]
-		print "Completable: " + str(bfs_found)
+		print "Completable with all items: " + str(bfs_found)
 		if bfs_found:
 			node = "Statues_ET"
 			items = bfs_set

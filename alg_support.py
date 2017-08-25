@@ -175,3 +175,6 @@ def map_items():
 def get_fixed_items():
 	"""get the set of items whose locations cannot be changed"""
 	return set(boss_types) | set(special_types)
+
+def door_direction(door_name):
+	return door_name.split("_")[-1].rstrip("0123456789")
