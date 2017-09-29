@@ -76,10 +76,11 @@ M1
 M2
 M3
 ALL -> M3								- | B PB
-(R1 R2 R3 M1) -> (L2 R6 M2 M3)				- S
+(R1 R2 R3 M1) -> (L2 R6 M2 M3)			- & S MB
 R3 -> ALL								- | B PB SPB
 ALL -> R3								- | B PB SPB
 (L2 R5 R6 M3) -> (R1 R2 R3 M1 M2) 		- X
+ALL -> M1								- HJ
 
 Bowling_Path - 79461
 L
@@ -205,6 +206,7 @@ L1 <-> S					- & MB E
 L1 -> L2					- X
 L2 -> S						- & SB IB PLB
 L2 -> L1					- & SB IB MB PLB
+S -> L2						- X
 
 Final_Missile_Bombway - 79A44
 L
@@ -281,7 +283,8 @@ L1
 L2
 R
 L1 <-> R				- | B PB SA SB
-ALL <-> L2				- SB
+ALL -> L2				- SB
+L2 -> ALL				- & SB E
 
 Big_Pink - 79D19
 L1
@@ -312,8 +315,7 @@ Spore_Spawn - 79DC7
 B						- S
 R
 Spore_Spawn
-B -> R					- Spore_Spawn
-R -> B					- Spore_Spawn
+B <-> R					- Spore_Spawn
 B -> Spore_Spawn		- CB
 R -> Spore_Spawn		- X
 
@@ -489,7 +491,7 @@ Warehouse_Zeelas - 7A471
 L1
 L2						- Kraid
 T
-(L1 L2) -> T			- | B PB
+(L1 L2) <-> T			- | B PB
 
 Warehouse_Energy - 7A4B1
 R						- | M S B PB
@@ -654,6 +656,7 @@ M
 E
 (L M) -> (E R)					- B
 (E R) -> (L M)					- MB
+L <-> M							- MB
 
 Crocomire_Farm - 7AA82
 L								- M
@@ -671,8 +674,8 @@ PB
 
 Post-Croc_Shaft - 7AB07
 T
-L								- M
-R
+L
+R								- M
 B
 
 Cosine_Room - 7AB3B
@@ -726,7 +729,7 @@ L1								- S
 L2
 L3
 L4
-R1
+R1								- S
 R2
 B
 M
@@ -1506,7 +1509,7 @@ R
 Draygon
 R -> L						- Draygon
 L -> R						- & Draygon GS (| HJ SJ)
-(L R) -> Draygon			- & GS E S (| CB G) 
+ALL -> Draygon				- & GS E S (| CB G) 
 
 Tourian_Elevator - 7DAAE
 EB

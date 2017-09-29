@@ -3,6 +3,8 @@ from alg_support import *
 
 import random
 
+#TODO: some of the outputs for this don't make sense - for example it placed Space Jump then gave up (instead of putting a Super at space jump.)
+
 # new idea - give the player some items, then just randomly place the rest of the map
 def item_quota_rando(rooms, nitems=6):
 	clean_rooms(rooms)

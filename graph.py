@@ -128,10 +128,11 @@ class ConstraintGraph(object):
 			if isinstance(node_data, Item) or isinstance(node_data, Boss):
 				new_items = items | set([node_data.type])
 				# if we haven't already visited this node with the new item set...
-				if not already_finished(items, finished[node]):
+				if not already_finished(new_items, finished[node]):
 					offers[node].append((new_items, (node, items)))
 					finished[node].append(new_items)
 					# don't have to make a new queue item - pick up the item/boss is the only option
+					# the following for-loop handles creating the new queue items...
 					items = new_items
 			# make an offer to every adjacent node reachable with this item set
 			for edge in self.node_edges[node]:
