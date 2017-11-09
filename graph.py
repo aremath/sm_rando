@@ -75,6 +75,15 @@ class ConstraintGraph(object):
 				return
 		assert False, "No such edge: " + node1 + " -> " + node2
 
+        def is_edge(node1, node2):
+            """is there an edge from node1 to node2?"""
+            assert node1 in self.name_node, "Node does not exist: " + node1
+            assert node2 in self.name_node, "Node does not exist: " + node2
+            for edge in self.node_edges[node1]:
+                if edge.terminal == node2:
+                    return True
+            return False
+
 	def remove_node(self, node):
 		assert node in self.name_node, "Node does not exist: " + node
 		del self.name_node[node]
@@ -89,7 +98,6 @@ class ConstraintGraph(object):
 		for inode, index in indices_to_remove.items():
 			del self.node_edges[inode][index]
 
-	#TODO: this doesn't work!
 	def BFS_optimized(self, start, end=None, items=set()):
 		"""I don't care about every possible way to get everywhere -
 		just BFS until you find end, noting that picking up items is

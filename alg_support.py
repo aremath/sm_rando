@@ -178,3 +178,31 @@ def get_fixed_items():
 
 def door_direction(door_name):
 	return door_name.split("_")[-1].rstrip("0123456789")
+
+def check_backtrack(graph, current_node, backtrack_node, dummy_exits, current_wildcards, current_items, current_assignments, fixed_items):
+        #print "backtracking to: " + backtrack_exit
+        # pretend like they are connected - remove their dummy nodes from the list of dummies...
+        # make a shallow copy first - if it turns out that backtracking was a bad decision, we need the original
+        dummy_copy = dummy_exits[:]
+        if current_node + "dummy" in dummy_copy:
+                dummy_copy.remove(current_node + "dummy")
+        if backtrack_node + "dummy" in dummy_copy:
+                dummy_copy.remove(backtrack_+ "dummy")
+        # and put edges between them
+        current_node_constraints = current_graph.name_node[current_node].data.items
+        backtrack_node_constraints = current_graph.name_node[backtrack_exit].data.items
+        if current_node_constraints is not None:
+                graph.add_edge(current_node, backtrack_node, current_node_constraints)
+        if backtrack_node_constraints is not None:
+                graph.add_edge(backtrack_node, current_node, backtrack_node_constraints)
+        # find the reachable exits under the new scheme (start from current node, to ensure you can get to backtrack exit)
+        backtrack_finished, _, _ = current_graph.BFS_items(current_node, None, current_wildcards, current_items, current_assignments, fixed_items)
+        backtrack_exits = {exit: backtrack_finished[exit] for exit in dummy_copy if len(bfs_finished[exit]) != 0}
+        # remove the edges we added
+        if graph.is_edge(current_node, backtrack_node):
+            graph.remove_edge(current_node, backtrack_node)
+        if graph.is_edge(backtrack_node, current_node):
+            graph.remove_edge(backtrack_node, current_node)
+
+        return backtrack_exits, dummy_copy
+

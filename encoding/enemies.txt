@@ -1,0 +1,8 @@
+Enemy Name		Enemy Weakness Address		Enemy Weakness Ptr		Enemy Drop Address		Enemy Drop Ptr		Drop %s
+Alcoon			?							?						?						?					0.4xSE 101.6xPB
+Beetom			?							?						?						?					0.4xSE 101.6xPB
+Boyon			x
+Choot			?							?						?						?					2xN 24xSE 24xBE 24xM 24xS 4xPB
+Geemer			?							?						?						?					22xSE 10xBE 68xM 2xS
+Grey Geemer		x
+Red Geemer		?							?						

@@ -471,7 +471,7 @@ Alpha_Power_Bombs - 7A3AE
 R
 PB
 M
-ALL -> M					- PB
+ALL -> M				- PB
 
 Bat_Room - 7A3DD
 L
@@ -563,6 +563,7 @@ L
 R						- S
 M
 ALL <-> ALL				- V
+ALL -> M				- MB
 
 Cathedral_Entrance - 7A7B3
 L
@@ -694,7 +695,7 @@ T
 L
 M
 L -> T							- MB
-L -> M							- | (& PB SB) (| SJ G) (& GS SB E) 
+L -> M							- | (& PB SB) (| SJ G) (& GS SB E)
 T -> (M L)						- | (& PB SB) (& MB SJ) (& MB GS SB E)
 
 Grapple_Harder - 7ABD2

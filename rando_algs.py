@@ -4,6 +4,12 @@ from alg_support import *
 import random
 
 #TODO: some of the outputs for this don't make sense - for example it placed Space Jump then gave up (instead of putting a Super at space jump.)
+#TODO: This currently places a room at Warehouse_Zeelas_L2 without having Kraid
+# -> something is broken :(
+#TODO: This doesn't always take the "right" path-through. For example,
+# with Hopper_Energy, there are two paths from L. L, and L -> E -> L.
+# if L -> E -> L isn't taken, we don't wind up with the item like usual.
+# also with Alpha_Power_Bombs
 
 # new idea - give the player some items, then just randomly place the rest of the map
 def item_quota_rando(rooms, nitems=6):
@@ -28,7 +34,7 @@ def item_quota_rando(rooms, nitems=6):
 	items_to_place = map_items()
 	random.shuffle(items_to_place)
 
-	# get the list of unchangeable items
+	# get the list of items which have fixed locations (bosses, etc.)
 	fixed_items = get_fixed_items()
 
 	# get a random order for rooms
@@ -48,17 +54,21 @@ def item_quota_rando(rooms, nitems=6):
 	while len(rooms_to_place) > 0:
 	#while len(current_items) < nitems:
 		# wildcard BFS to find reachable exits
+                print "loop"
+                print current_node
+                print current_wildcards
 		bfs_finished, _, _ = current_graph.BFS_items(current_node, None, current_wildcards, current_items, current_assignments, fixed_items)
 		# dict comprehensions! - filter bfs_finished for the entries that are dummy exits, and actually have a path to them.
 		reachable_exits = {exit: bfs_finished[exit] for exit in dummy_exits if len(bfs_finished[exit]) != 0}
 
-		#TODO: check why it never backtracks!
+		#TODO: I think this works now... Consider multiple backtracks?
 		# if there are more reachable exits by backtracking, do so!
 		# choose a random (already-placed) door that this door can hook up with
 		current_direction = door_direction(current_node)
-		# if there is a valid backtracking exit
-		if len(exits_to_connect[door_hookups[current_direction]]) > 0:
+		# if we haven't already connected the current exit and if there is a valid backtracking exit
+		if current_node in exits_to_connect[current_direction] and len(exits_to_connect[door_hookups[current_direction]]) > 0:
 			backtrack_exit = random.choice(exits_to_connect[door_hookups[current_direction]])
+                        #print "backtracking to: " + backtrack_exit
 			# pretend like they are connected - remove their dummy nodes from the list of dummies...
 			# make a shallow copy first - if it turns out that backtracking was a bad decision, we need the original
 			dummy_copy = dummy_exits[:]
@@ -77,7 +87,10 @@ def item_quota_rando(rooms, nitems=6):
 			# find the reachable exits under the new scheme (start from current node, to ensure you can get to backtrack exit)
 			backtrack_finished, _, _ = current_graph.BFS_items(current_node, None, current_wildcards, current_items, current_assignments, fixed_items)
 			backtrack_exits = {exit: backtrack_finished[exit] for exit in dummy_copy if len(bfs_finished[exit]) != 0}
+                        #print len(backtrack_exits)
+                        #print len(reachable_exits)
 
+                        #TODO: greater than or equal to?
 			# if there are more reachable exits by backtracking, do so!
 			if len(backtrack_exits.keys()) > len(reachable_exits.keys()):
 				print "BACKTRACKED!"
@@ -138,8 +151,9 @@ def item_quota_rando(rooms, nitems=6):
 				chosen_room_path = random.choice(paths_through.keys())
 				# remove "dummy"
 				current_node = chosen_room_path[:-5]
+                                print paths_through
 				#print paths_through[chosen_room_path]
-				current_wildcards, current_items, current_assignments = paths_through[chosen_room_path][0]
+				current_wildcards, current_items, current_assignments = paths_through[chosen_room_path][0] #is 0 the right one?
 
 				# connect the two rooms at chosen_exit , chosen_entrance
 				room_unassigned_items = [x for x in room[2] if x not in current_assignments]
@@ -180,12 +194,14 @@ def item_quota_rando(rooms, nitems=6):
 	if not found:
 		assert False, "No rooms with a path-through"
 
+        print "Loop end"
 	item_changes.extend(current_assignments.items())
 	# make the current assignment a reality (in the graph)
 	for node, item in current_assignments.items():
 		current_graph.name_node[node].data.type = item
-	print door_changes
+	#print door_changes
 	print current_items
+        print current_wildcards
 	#print current_node, current_wildcards, current_items, current_assignments
 	#print unassigned_item_nodes
 	# place unassigned items
