@@ -116,3 +116,4 @@ def make_item_definitions():
 	item_definitions["SA"]["H"] = "\xc7\xef"
 
 	return item_definitions
+

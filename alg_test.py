@@ -10,11 +10,14 @@ if __name__ == "__main__":
         current_node = "Warehouse_Zeelas_L1"
         warehouse_zeelas = rooms.pop("Warehouse_Zeelas")
 
+        fixed_items = alg_support.get_fixed_items()
+        print fixed_items
+
         wz_graph, wz_exits = alg_support.dummy_exit_graph(warehouse_zeelas[0].graph, warehouse_zeelas[1])
         print wz_exits
         print wz_graph
 
-	finished, completed, complete_items = wz_graph.BFS_items(current_node, wildcards=set(["Item_Dummy", "Item_Dummy1"]))
+	finished, completed, complete_items = wz_graph.BFS_items(current_node, wildcards=set(["Item_Dummy", "Item_Dummy1"]), fixed_items=fixed_items)
         reachable_exits = {exit: finished[exit] for exit in wz_exits if len(finished[exit]) != 0}
 	print reachable_exits
         #TODO: UH OH

@@ -32,6 +32,41 @@ from minsetset import *
 import collections
 from Queue import *
 
+# oh, how I wish Python had adts
+class BFSState(object):
+
+    def __init__(self, node_, items_=set()):
+        self.node = node_
+        self.items = items_
+    
+    def __eq__(self, other):
+        return self.node == other.node and self.items == other.items
+
+    def __le__(self, other):
+        return self.node == other.node and self.items <= other.items
+
+    def copy(self):
+        return BFSState(self.node, self.items.copy())
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __repr__(self):
+        return self.node + "\n" + str(self.items) + "\n"
+
+class BFSItemsState(object):
+
+    def __init__(self, node_, items_=set(), wildcards_=set(), assignments_={}):
+        self.node = node_
+        self.items = items_
+        self.wildcards = wildcards_
+        self.assignments = assignments_
+
+    # we still only care about where! (I think)
+    def __eq__(self, other):
+        return self.node == other.node and self.items == other.items
+
+
 class ConstraintGraph(object):
 
 	def __init__(self):
@@ -98,7 +133,7 @@ class ConstraintGraph(object):
 		for inode, index in indices_to_remove.items():
 			del self.node_edges[inode][index]
 
-	def BFS_optimized(self, start, end=None, items=set()):
+	def BFS_optimized(self, start_state, end_state=None):
 		"""I don't care about every possible way to get everywhere -
 		just BFS until you find end, noting that picking up items is
 		always beneficial."""
@@ -118,18 +153,19 @@ class ConstraintGraph(object):
 		# value - list of item sets already visited for that node
 		finished = collections.defaultdict(list)
 
-		completing_set = None
+		final_state = None
 
 		# queue to hold node, item pairs
 		queue = Queue()
 
-		queue.put((start, items))
+		queue.put(start_state)
 		while queue.qsize() > 0:
-			node, items = queue.get()
-			items = items.copy()
+			state = queue.get().copy()
+			node = state.node
+                        items = state.items
 			# we've reached the goal with at least the right items
-			if end is not None and node == end[0] and items >= end[1]:
-				completing_set = items
+			if end_state is not None and state >= end_state:
+				final_state = state
 				break
 			# make an offer to pick up an item or defeat a boss
 			node_data = self.name_node[node].data
@@ -137,7 +173,7 @@ class ConstraintGraph(object):
 				new_items = items | set([node_data.type])
 				# if we haven't already visited this node with the new item set...
 				if not already_finished(new_items, finished[node]):
-					offers[node].append((new_items, (node, items)))
+					offers[node].append((new_items, state))
 					finished[node].append(new_items)
 					# don't have to make a new queue item - pick up the item/boss is the only option
 					# the following for-loop handles creating the new queue items...
@@ -147,12 +183,12 @@ class ConstraintGraph(object):
 				if edge.items.matches(items):
 					# if we haven't already visited terminal with those items...
 					if not already_finished(items, finished[edge.terminal]):
-						offers[edge.terminal].append((items, (node, items)))
+						offers[edge.terminal].append((items, state))
 						finished[edge.terminal].append(items)
-						queue.put((edge.terminal, items))	
-		return offers, finished, completing_set is not None, completing_set
+						queue.put(BFSState(edge.terminal, items))	
+		return offers, finished, final_state is not None, final_state
 
-	def BFS_target(self, start, end=None, items=set()):
+	def BFS_target(self, start_state, end_state=None):
 		#TODO: is there a way to not do some of these linear-time searches?
 		#TODO: review this - does it really process every combo only once?
 		# key - node name
@@ -163,37 +199,38 @@ class ConstraintGraph(object):
 		# value - list of item sets already visited for that node
 		finished = collections.defaultdict(list)
 
-		completing_set = None
+		final_state = None
 
 		# queue to hold node, item pairs
 		queue = Queue()
 
-		queue.put((start, items))
+		queue.put(start_state)
 		while queue.qsize() > 0:
-			node, items = queue.get()
-			items = items.copy()
+			state = queue.get().copy()
 			# we've reached the goal with at least the right items
-			if end is not None and node == end[0] and items >= end[1]:
-				completing_set = items
+			if end_state is not None and start_state >= end_state:
+			        final_state = state
 				break
+                        node = state.node
+                        items = state.items
 			# make an offer to every adjacent node reachable with this item set
 			for edge in self.node_edges[node]:
 				if edge.items.matches(items):
 					# if we haven't already visited terminal with those items...
 					if items not in finished[edge.terminal]:
-						offers[edge.terminal].append((items, (node, items)))
+						offers[edge.terminal].append((items, state))
 						finished[edge.terminal].append(items)
-						queue.put((edge.terminal, items))
+						queue.put(BFSState(edge.terminal, items))
 			# make an offer to pick up an item or defeat a boss
 			node_data = self.name_node[node].data
 			if isinstance(node_data, Item) or isinstance(node_data, Boss):
 				new_items = items | set([node_data.type])
 				# if we haven't already visited this node with the new item set...
 				if new_items not in finished[node]:
-					offers[node].append((new_items, (node, items)))
+					offers[node].append((new_items, state))
 					finished[node].append(new_items)
-					queue.put((node, new_items))
-		return offers, finished, completing_set is not None, completing_set
+					queue.put(BFSState(node, new_items))
+		return offers, finished, final_state is not None, final_state
 
 	def BFS_items(self, start, end=None, wildcards=set(), items=set(), assignments={}, fixed_items=set()):
 		"""Finds a satsifying assignment of items to reach end from start. finished[end] will wind up with
@@ -278,6 +315,17 @@ class ConstraintGraph(object):
 							queue.put((edge.terminal, wildcards_copy, items_copy, assignments_copy))
 
 		return finished, completing_set is not None, completing_set
+
+
+        #TODO: is this really useful?
+        def check_completability(self, start_state, end_state):
+            """given a room graph, determine if it is possible to reach (end_node, end_items) from (start_node, start_items)
+              if it is, return the paths"""
+            bfs_offers, bfs_finished, bfs_found, bfs_set = self.BFS_optimized(start_state, end_state)
+            if not bfs_found:
+                return None
+            else:
+                return bfs_backtrack(start_state, end_state, bfs_offers)
 
 	def add_room(self, door1, door2, room_graph):
 		"""adds a room to self, connecting door1 in self to door2 in room_graph"""
@@ -381,6 +429,7 @@ class BasicGraph(object):
 	def BFS(self, start, end=None):
 		# key - node
 		# value - the previous node in the BFS
+                #TODO: derp use a queue!
 		offers = {}
 		finished = set()
 		stack = [start]
@@ -404,6 +453,24 @@ class BasicGraph(object):
 				node = offer[node]
 			return path
 
-def convert_to_basic():
-	"""converts a ConstraintGraph to a BasicGraph"""
-	pass
+def bfs_backtrack(start_state, end_state, bfs_offers):
+    """Backtracks BFS offers to find the target node. Errors if the target node wasn't in the search.
+       Intended for use with BFS_opt and BFS_target."""
+    path = []
+    # since BFS only guarantees that end_state items will be a superset of items, pick an offer for end_node that matches
+    ending_states = [offer[1] for offer in bfs_offers[end_state.node] if offer[0] >= end_state.items]
+    assert len(ending_states) > 0, "Backtrack: no path to reach " + end_state.node
+    #print bfs_offers["Kraid_Kraid"]
+    state = ending_states[0]
+    # loop from the end state until we reach the start state
+    while state != start_state:
+        path.insert(0, state.node)
+        # get all the offers for the current state
+        next_states = [offer[1] for offer in bfs_offers[state.node] if offer[0] == state.items]
+        #print(next_states)
+        assert len(next_states) > 0, "Backtrack: no path to reach " + end_state.node
+        state = next_states[0]
+    # put the current node (which is the start node) now that we've reached it
+    path.insert(0, state.node)
+    return path
+

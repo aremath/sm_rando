@@ -59,116 +59,88 @@ def seed_rng(seed):
 	return seed
 
 if __name__ == "__main__":
-	parser = argparse.ArgumentParser(description="Welcome to the Super Metroid Door randomizer!")
-	parser.add_argument("--clean", metavar="<filename>", required=True, help="The path to a clean rom file from the current directory.")
-	parser.add_argument("--create", metavar="<filename>", required=True, help="The path to the rom file you want to create.")
-	parser.add_argument("--seed", metavar="<seed>", required=False, help="The seed you want to use for the RNG.")
-	parser.add_argument("--completable", action="store_true", help="generate until you find a completable map.")
-	#TODO argument for algorithm to use
+    parser = argparse.ArgumentParser(description="Welcome to the Super Metroid Door randomizer!")
+    parser.add_argument("--clean", metavar="<filename>", required=True, help="The path to a clean rom file from the current directory.")
+    parser.add_argument("--create", metavar="<filename>", required=True, help="The path to the rom file you want to create.")
+    parser.add_argument("--seed", metavar="<seed>", required=False, help="The seed you want to use for the RNG.")
+    parser.add_argument("--completable", action="store_true", help="generate until you find a completable map.")
+    #TODO argument for which algorithm to use
 
-	args = parser.parse_args()
+    args = parser.parse_args()
+    seed = seed_rng(args.seed)
+    spoiler_file = open(args.create + ".spoiler.txt", "w")
 
-	seed = seed_rng(args.seed)
+    # setup
+    rooms = parse_rooms("encoding/rooms.txt")
+    all_items = set(item_types)
+    all_items.remove("Bombs")
+    all_items.add("B")
+    escape_timer = 0
 
-	spoiler_file = open(args.create + ".spoiler.txt", "w")
+    if args.completable:
+        completable = False
+        while not completable:
+            door_changes, item_changes, graph = basic_rando(rooms)
+            start_state = BFSState("Landing_Site_L2", all_items)
+            end_state = BFSState("Statues_ET", all_items)
+            # check completability - get to golden statues with all items
+            path_to_statues = graph.check_completability(start_state, end_state)
+            completable = path_to_statues is not None
+            seed = seed_rng(None)
+            
+            if completable:
+                spoiler_file.write("Path to Statues:\n")
+                spoiler_file.write(str(path_to_statues))
+                spoiler_file.write("\n")
 
-	# setup
-	rooms = parse_rooms("encoding/rooms.txt")
-	all_items = set(item_types)
-	all_items.remove("Bombs")
-	all_items.add("B")
-	escape_timer = 0
+                # find the escape path
+                # TODO: am I really going to assume they picked up everything? this might make escape pretty hard...
+                # TODO: find a way to disable grey doors during escape
+                # TODO: might wanna make sure they don't have to, like, defeat crocomire during escape
+                # or at least they have the time necessary to do so :P
+                # - to do this: if there's a "problematic" node in the shortest escape path,
+                # remove it from the graph and do another BFS. If there's no path, then award them time to beat that node
+                # If there is another path, then just award them time to complete that path
+                items = all_items | set(["Kraid", "Phantoon", "Draygon", "Ridley"])
+                escape_start = BFSState("Escape_4_R", items)
+                escape_end = BFSState("Landing_Site_L2", items)
+                escape_path = graph.check_completability(escape_start, escape_end)
 
-	if args.completable:
-		completable = False
-		while not completable:
-			door_changes, item_changes, graph = basic_rando(rooms)
-			# check completability - make item assignment
-			#items_finished, _, _ = graph.BFS_items("Landing_Site_L2", "Statues_ET")
-			#print items_finished["Statues_ET"]
+                # trace back
+                if escape_path is None:
+                    # if there's no escape path, then the seed isn't completable
+                    completable = False
+                else:
+                    spoiler_file.write("Path to Escape:\n")
+                    spoiler_file.write(str(escape_path))
+                    # one minute to get out of tourian, then 20 seconds per room
+                    #TODO: is this fair? the player might need to farm and explore...
+                    escape_time = 60 + 10 * len(escape_path)
+                    spoiler_file.write("\n")
+                    spoiler_file.write("Esape Timer: " + str(escape_time))
+    else:
+        #door_changes, item_changes, graph = basic_rando(rooms)
+        door_changes = []
+        item_changes = []
+        door_changes, item_changes, graph = item_quota_rando(rooms)
 
-			# check completability - get to golden statues with all items
-			bfs_offers, bfs_finished, bfs_found, bfs_set = graph.BFS_target("Landing_Site_L2", ("Statues_ET", all_items), all_items)
-			completable = bfs_found
-			#if len(items_finished["Statues_ET"]) == 0: completable = False
-			seed = seed_rng(None)
-			rooms = parse_rooms("encoding/rooms.txt")
-			
-			if completable:
-				# find the path to statues
-				node = "Statues_ET"
-				items = bfs_set
-				path_to_statues = []
-				# trace back
-				while node != "Landing_Site_L2" or items != all_items:
-					path_to_statues.insert(0, node)
-					next_p = [next_n[1] for next_n in bfs_offers[node] if next_n[0] == items]
-					node, items = next_p[0]
-				spoiler_file.write("Path to Statues:\n")
-				spoiler_file.write(str(path_to_statues))
-				spoiler_file.write("\n")
+        # check completability - get to golden statues
+        start_state = BFSState("Landing_Site_L2", all_items)
+        end_state = BFSState("Statues_ET", set())
+        path_to_statues = graph.check_completability(start_state, end_state)
+        completable = path_to_statues is not None
+        print "Completable: " + str(completable)
+        if completable:
+            print path_to_statues
 
-				# find the escape path
-				escape_path = []
-				# TODO: am I really going to assume they picked up everything? this might make escape pretty hard...
-				# TODO: find a way to disable grey doors during escape
-				# TODO: might wanna make sure they don't have to, like, defeat crocomire during escape
-				# or at least they have the time necessary to do so :P
-				# - to do this: if there's a "problematic" node in the shortest escape path,
-				# remove it from the graph and do another BFS. If there's no path, then award them time to beat that node
-				# If there is another path, then just award them time to complete that path
-				items = all_items | set(["Kraid", "Phantoon", "Draygon", "Ridley"])
-				bfs_offers, bfs_finished, bfs_found, bfs_set = graph.BFS_target("Escape_4_R", ("Landing_Site_L2", items), items)
-				node = "Landing_Site_L2"
+    print "RNG SEED - " + str(seed)
 
-				# trace back
-				assert bfs_found, "CANT ESCAPE!"
-				#TODO: BFS_traceback function
-				while node != "Escape_4_R":
-					escape_path.insert(0, node)
-					next_p = [next_n[1] for next_n in bfs_offers[node] if next_n[0] == items]
-					node, items = next_p[0]
-				spoiler_file.write("Path to Escape:\n")
-				spoiler_file.write(str(escape_path))
-				# one minute to get out of tourian, then 20 seconds per room
-				#TODO: is this fair? the player might need to farm and explore...
-				escape_time = 60 + 10 * len(escape_path)
-				spoiler_file.write("\n")
-				spoiler_file.write("Esape Timer: " + str(escape_time))
-	else:
-		#door_changes, item_changes, graph = basic_rando(rooms)
-		door_changes = []
-		item_changes = []
-		door_changes, item_changes, graph = item_quota_rando(rooms)
+    # now that we have the door changes and the item changes, implement them!
+    # first, make the new rom file:
+    shutil.copyfile(args.clean, args.create)
+    rom_setup(args.create, escape_timer)
 
-		# check completability - get to golden statues
-		bfs_offers, bfs_finished, bfs_found, bfs_set = graph.BFS_optimized("Landing_Site_L2", ("Statues_ET", set()), all_items)
-		#print bfs_finished["Statues_L"]
-		#print bfs_finished["Statues_ET"]
-		#print "Completable with no items: " + str(bfs_found)
-		#bfs_offers, bfs_finished, bfs_found, bfs_set = graph.BFS_target("Landing_Site_L2", ("Statues_ET", all_items), all_items)
-		#print "Completable unoptimized: " + str(bfs_found)
-		#bfs_offers, bfs_finished, bfs_found, bfs_set = graph.BFS_optimized("Landing_Site_L2", ("Statues_ET", all_items), all_items)
-		print bfs_finished["Statues_ET"]
-		print "Completable: " + str(bfs_found)
-		if bfs_found:
-			node = "Statues_ET"
-			items = bfs_set
-			path_to_statues = []
-			while node != "Landing_Site_L2" or items != all_items:
-				path_to_statues.insert(0, node)
-				next_p = [next_n[1] for next_n in bfs_offers[node] if next_n[0] == items]
-				node, items = next_p[0]
-			print path_to_statues
-			
+    # then make the necessary changes
+    make_items(item_changes, args.create)
+    make_doors(door_changes, args.clean, args.create)
 
-	print "RNG SEED - " + str(seed)
-
-	# now that we have the door changes and the item changes, implement them!
-	# first, make the new rom file:
-	shutil.copyfile(args.clean, args.create)
-	rom_setup(args.create, escape_timer)
-
-	# then make the necessary changes
-	make_items(item_changes, args.create)
-	make_doors(door_changes, args.clean, args.create)
