@@ -32,21 +32,21 @@ from minsetset import *
 import collections
 from Queue import *
 
-# oh, how I wish Python had adts
+# I wish Python had abstract data types :(
 class BFSState(object):
 
     def __init__(self, node_, items_=set()):
         self.node = node_
         self.items = items_
     
+    def copy(self):
+        return BFSState(self.node, self.items.copy())
+
     def __eq__(self, other):
         return self.node == other.node and self.items == other.items
 
     def __le__(self, other):
         return self.node == other.node and self.items <= other.items
-
-    def copy(self):
-        return BFSState(self.node, self.items.copy())
 
     def __ne__(self, other):
         return not self == other
@@ -56,402 +56,413 @@ class BFSState(object):
 
 class BFSItemsState(object):
 
-    def __init__(self, node_, items_=set(), wildcards_=set(), assignments_={}):
+    def __init__(self, node_, wildcards_=set(), items_=set(), assignments_={}):
         self.node = node_
         self.items = items_
         self.wildcards = wildcards_
         self.assignments = assignments_
 
+    def copy(self):
+        return BFSItemsState(self.node, self.wildcards.copy(), self.items.copy(), self.assignments.copy())
+
     # we still only care about where! (I think)
     def __eq__(self, other):
         return self.node == other.node and self.items == other.items
 
+    def __le__(self, other):
+        return self.node == other.node and self.items <= other.items
+
+    def __ne__(self, other):
+        return not self == other
+
 
 class ConstraintGraph(object):
 
-	def __init__(self):
-		self.name_node = {}
-		self.node_edges = {}
-		self.nnodes = 0
+    def __init__(self):
+        self.name_node = {}
+        self.node_edges = {}
+        self.nnodes = 0
 
-	def add_node(self, name=None, node_data=None):
-		# name is the ID value - need something to hash the node by.
-		if name is None:
-			name = str(self.nnodes)
-		node = ConstraintNode(name, node_data)
-		# make sure the name is unique
-		assert name not in self.name_node, "A node with this name already exists: " + name
-		self.name_node[name] = node
-		self.node_edges[name] = []
-		self.nnodes += 1
-		return name
+    def add_node(self, name=None, node_data=None):
+        # name is the ID value - need something to hash the node by.
+        if name is None:
+            name = str(self.nnodes)
+        node = ConstraintNode(name, node_data)
+        # make sure the name is unique
+        assert name not in self.name_node, "A node with this name already exists: " + name
+        self.name_node[name] = node
+        self.node_edges[name] = []
+        self.nnodes += 1
+        return name
 
-	def add_edge(self, start, end, items=MinSetSet()):
-		assert start in self.name_node, "Node does not exist: " + start
-		assert end in self.name_node, "Node does not exist: " + end
-		# check if an edge already exists: if it does, and their sets
-		for edge in self.node_edges[start]:
-			if edge.terminal == end:
-				edge.items *= items
-				return
-		edge = ConstraintEdge(end, items)
-		self.node_edges[start].append(edge)
+    def add_edge(self, start, end, items=MinSetSet()):
+        assert start in self.name_node, "Node does not exist: " + start
+        assert end in self.name_node, "Node does not exist: " + end
+        # check if an edge already exists: if it does, and their sets
+        for edge in self.node_edges[start]:
+            if edge.terminal == end:
+                edge.items *= items
+                return
+        edge = ConstraintEdge(end, items)
+        self.node_edges[start].append(edge)
 
-	def add_undirected_edge(self, node1, node2, items=MinSetSet()):
-		self.add_edge(node1, node2, items)
-		self.add_edge(node2, node1, items)
+    def add_undirected_edge(self, node1, node2, items=MinSetSet()):
+        self.add_edge(node1, node2, items)
+        self.add_edge(node2, node1, items)
 
-	def remove_edge(self, node1, node2):
-		assert node1 in self.name_node, "Node does not exist: " + node1
-		assert node2 in self.name_node, "Node does not exist: " + node2
-		for index, edge in enumerate(self.node_edges[node1]):
-			if edge.terminal == node2:
-				del self.node_edges[node1][index]
-				return
-		assert False, "No such edge: " + node1 + " -> " + node2
+    def remove_edge(self, node1, node2):
+        assert node1 in self.name_node, "Node does not exist: " + node1
+        assert node2 in self.name_node, "Node does not exist: " + node2
+        for index, edge in enumerate(self.node_edges[node1]):
+            if edge.terminal == node2:
+                del self.node_edges[node1][index]
+                return
+        assert False, "No such edge: " + node1 + " -> " + node2
 
-        def is_edge(node1, node2):
-            """is there an edge from node1 to node2?"""
-            assert node1 in self.name_node, "Node does not exist: " + node1
-            assert node2 in self.name_node, "Node does not exist: " + node2
-            for edge in self.node_edges[node1]:
-                if edge.terminal == node2:
+    def is_edge(node1, node2):
+        """is there an edge from node1 to node2?"""
+        assert node1 in self.name_node, "Node does not exist: " + node1
+        assert node2 in self.name_node, "Node does not exist: " + node2
+        for edge in self.node_edges[node1]:
+            if edge.terminal == node2:
+                return True
+        return False
+
+    def remove_node(self, node):
+        assert node in self.name_node, "Node does not exist: " + node
+        del self.name_node[node]
+        del self.node_edges[node]
+        indices_to_remove = {}
+        # find all edges to node
+        for inode, edges in self.node_edges.items():
+            for index, edge in enumerate(edges):
+                if edge.terminal == node:
+                    indices_to_remove[inode] = index
+        # remove them
+        for inode, index in indices_to_remove.items():
+            del self.node_edges[inode][index]
+
+    def BFS_optimized(self, start_state, end_state=None):
+        """I don't care about every possible way to get everywhere -
+        just BFS until you find end, noting that picking up items is
+        always beneficial."""
+
+        def already_finished(item_set, sets_finished):
+            """have we already looked at this node with a superset of those items?"""
+            for set_finished in sets_finished:
+                if item_set <= set_finished:
                     return True
             return False
 
-	def remove_node(self, node):
-		assert node in self.name_node, "Node does not exist: " + node
-		del self.name_node[node]
-		del self.node_edges[node]
-		indices_to_remove = {}
-		# find all edges to node
-		for inode, edges in self.node_edges.items():
-			for index, edge in enumerate(edges):
-				if edge.terminal == node:
-					indices_to_remove[inode] = index
-		# remove them
-		for inode, index in indices_to_remove.items():
-			del self.node_edges[inode][index]
+        # key - node name
+        # value - list of item sets paired with their (node, item set) predecessor
+        offers = collections.defaultdict(list)
 
-	def BFS_optimized(self, start_state, end_state=None):
-		"""I don't care about every possible way to get everywhere -
-		just BFS until you find end, noting that picking up items is
-		always beneficial."""
+        # key - node name
+        # value - list of item sets already visited for that node
+        finished = collections.defaultdict(list)
 
-		def already_finished(item_set, sets_finished):
-			"""have we already looked at this node with a superset of those items?"""
-			for set_finished in sets_finished:
-				if item_set <= set_finished:
-					return True
-			return False
+        final_state = None
 
-		# key - node name
-		# value - list of item sets paired with their (node, item set) predecessor
-		offers = collections.defaultdict(list)
+        # queue to hold node, item pairs
+        queue = Queue()
 
-		# key - node name
-		# value - list of item sets already visited for that node
-		finished = collections.defaultdict(list)
+        queue.put(start_state)
+        while queue.qsize() > 0:
+            state = queue.get().copy()
+            node = state.node
+            items = state.items
+            # we've reached the goal with at least the right items
+            if end_state is not None and state >= end_state:
+                final_state = state
+                break
+            # make an offer to pick up an item or defeat a boss
+            node_data = self.name_node[node].data
+            if isinstance(node_data, Item) or isinstance(node_data, Boss):
+                new_items = items | set([node_data.type])
+                # if we haven't already visited this node with the new item set...
+                if not already_finished(new_items, finished[node]):
+                    offers[node].append((new_items, state))
+                    finished[node].append(new_items)
+                    # don't have to make a new queue item - pick up the item/boss is the only option
+                    # the following for-loop handles creating the new queue items...
+                    items = new_items
+            # make an offer to every adjacent node reachable with this item set
+            for edge in self.node_edges[node]:
+                if edge.items.matches(items):
+                    # if we haven't already visited terminal with those items...
+                    if not already_finished(items, finished[edge.terminal]):
+                        offers[edge.terminal].append((items, state))
+                        finished[edge.terminal].append(items)
+                        queue.put(BFSState(edge.terminal, items))       
+        return offers, finished, final_state is not None, final_state
 
-		final_state = None
+    def BFS_target(self, start_state, end_state=None):
+        #TODO: is there a way to not do some of these linear-time searches?
+        #TODO: review this - does it really process every combo only once?
+        # key - node name
+        # value - list of item sets paired with their (node, item set) predecessor
+        offers = collections.defaultdict(list)
 
-		# queue to hold node, item pairs
-		queue = Queue()
+        # key - node name
+        # value - list of item sets already visited for that node
+        finished = collections.defaultdict(list)
 
-		queue.put(start_state)
-		while queue.qsize() > 0:
-			state = queue.get().copy()
-			node = state.node
-                        items = state.items
-			# we've reached the goal with at least the right items
-			if end_state is not None and state >= end_state:
-				final_state = state
-				break
-			# make an offer to pick up an item or defeat a boss
-			node_data = self.name_node[node].data
-			if isinstance(node_data, Item) or isinstance(node_data, Boss):
-				new_items = items | set([node_data.type])
-				# if we haven't already visited this node with the new item set...
-				if not already_finished(new_items, finished[node]):
-					offers[node].append((new_items, state))
-					finished[node].append(new_items)
-					# don't have to make a new queue item - pick up the item/boss is the only option
-					# the following for-loop handles creating the new queue items...
-					items = new_items
-			# make an offer to every adjacent node reachable with this item set
-			for edge in self.node_edges[node]:
-				if edge.items.matches(items):
-					# if we haven't already visited terminal with those items...
-					if not already_finished(items, finished[edge.terminal]):
-						offers[edge.terminal].append((items, state))
-						finished[edge.terminal].append(items)
-						queue.put(BFSState(edge.terminal, items))	
-		return offers, finished, final_state is not None, final_state
+        final_state = None
 
-	def BFS_target(self, start_state, end_state=None):
-		#TODO: is there a way to not do some of these linear-time searches?
-		#TODO: review this - does it really process every combo only once?
-		# key - node name
-		# value - list of item sets paired with their (node, item set) predecessor
-		offers = collections.defaultdict(list)
+        # queue to hold node, item pairs
+        queue = Queue()
 
-		# key - node name
-		# value - list of item sets already visited for that node
-		finished = collections.defaultdict(list)
+        queue.put(start_state)
+        while queue.qsize() > 0:
+            state = queue.get().copy()
+            # we've reached the goal with at least the right items
+            if end_state is not None and start_state >= end_state:
+                final_state = state
+                break
+            node = state.node
+            items = state.items
+            # make an offer to every adjacent node reachable with this item set
+            for edge in self.node_edges[node]:
+                if edge.items.matches(items):
+                    # if we haven't already visited terminal with those items...
+                    if items not in finished[edge.terminal]:
+                        offers[edge.terminal].append((items, state))
+                        finished[edge.terminal].append(items)
+                        queue.put(BFSState(edge.terminal, items))
+            # make an offer to pick up an item or defeat a boss
+            node_data = self.name_node[node].data
+            if isinstance(node_data, Item) or isinstance(node_data, Boss):
+                new_items = items | set([node_data.type])
+                # if we haven't already visited this node with the new item set...
+                if new_items not in finished[node]:
+                    offers[node].append((new_items, state))
+                    finished[node].append(new_items)
+                    queue.put(BFSState(node, new_items))
+        return offers, finished, final_state is not None, final_state
 
-		final_state = None
+    def BFS_items(self, start_state, end_state=None, fixed_items=set()):
+        """Finds a satsifying assignment of items to reach end from start. finished[end] will wind up with
+        a list of (unassigned but reached items, item set needed, and possible item assignments). Each assignment
+        is a dictionary, where key = item node name, and value = string value for item assigned there. Currently does
+        not allow items to be fixed, but an already-assigned items dictionary can be passed, and if every item there is in
+        items, then the behavior should be correct."""
 
-		# queue to hold node, item pairs
-		queue = Queue()
+        #TODO: I think there's a way to make finished store less stuff - after all, we are only interested in keeping the
+        # elements with a maximal number of wildcards for each item set.
 
-		queue.put(start_state)
-		while queue.qsize() > 0:
-			state = queue.get().copy()
-			# we've reached the goal with at least the right items
-			if end_state is not None and start_state >= end_state:
-			        final_state = state
-				break
-                        node = state.node
-                        items = state.items
-			# make an offer to every adjacent node reachable with this item set
-			for edge in self.node_edges[node]:
-				if edge.items.matches(items):
-					# if we haven't already visited terminal with those items...
-					if items not in finished[edge.terminal]:
-						offers[edge.terminal].append((items, state))
-						finished[edge.terminal].append(items)
-						queue.put(BFSState(edge.terminal, items))
-			# make an offer to pick up an item or defeat a boss
-			node_data = self.name_node[node].data
-			if isinstance(node_data, Item) or isinstance(node_data, Boss):
-				new_items = items | set([node_data.type])
-				# if we haven't already visited this node with the new item set...
-				if new_items not in finished[node]:
-					offers[node].append((new_items, state))
-					finished[node].append(new_items)
-					queue.put(BFSState(node, new_items))
-		return offers, finished, final_state is not None, final_state
+        #TODO: do we need offers? - just interested in finding a completable assignment
+        # key - node name
+        # value - list of 
+        #offers = collections.defaultdict(list)
 
-	def BFS_items(self, start, end=None, wildcards=set(), items=set(), assignments={}, fixed_items=set()):
-		"""Finds a satsifying assignment of items to reach end from start. finished[end] will wind up with
-		a list of (unassigned but reached items, item set needed, and possible item assignments). Each assignment
-		is a dictionary, where key = item node name, and value = string value for item assigned there. Currently does
-		not allow items to be fixed, but an already-assigned items dictionary can be passed, and if every item there is in
-		items, then the behavior should be correct."""
+        # key - node name
+        # value - tuples of (wildcards), (item set), (assignment)
+        finished = collections.defaultdict(list)
 
-		#TODO: I think there's a way to make finished store less stuff - after all, we are only interested in keeping the
-		# elements with a maximal number of wildcards for each item set.
+        # what items we actually needed to reach the end...
+        final_state = None
 
-		#TODO: do we need offers? - just interested in finding a completable assignment
-		# key - node name
-		# value - list of 
-		#offers = collections.defaultdict(list)
+        queue = Queue()
 
-		# key - node name
-		# value - tuples of (wildcards), (item set), (assignment)
-		finished = collections.defaultdict(list)
-
-		# what items we actually needed to reach the end...
-		completing_set = None
-
-		queue = Queue()
-
-		# queue search terms are:
-		#	- node name
-		#	- wildcard set
-		#	- item set
-		#	- assignment dictionary - key: item node, value: type assigned there
-		# however two search terms are equal if the number of wildcards and the
-		# obtained items are the same - that's why finished just includes the number
-		# - add start node to the finished list
-		finished[start].append((wildcards.copy(), items.copy(), assignments.copy()))
-		queue.put((start, wildcards, items, assignments))
-		while queue.qsize() > 0:
-			node, wildcards, items, assignments = queue.get()
-			#print node, len(wildcards), len(items)
-			node_data = self.name_node[node].data
-			if end is not None and node == end:
-				completing_set = items
-				break
-			if isinstance(node_data, Item):
-				# if we don't already have this item, pick it up
-				if node not in wildcards and node not in assignments:
-					wildcards.add(node)
-					# if there's not already an entry for this item set with at least as many wildcards, then add it
-					if len([x for x in finished[node] if len(x[0]) >= len(wildcards) and x[1] >= items]) == 0:
-						finished[node].append((wildcards.copy(), items.copy(), assignments.copy()))
-						queue.put((node, wildcards.copy(), items.copy(), assignments.copy()))
-					# there's no need to process edges - picking up that item will allow you to cross strictly more edges
-					continue
-			elif isinstance(node_data, Boss):
-				# if we haven't defeated this boss yet, do so.
-				if node_data.type not in items:
-					items |= set([node_data.type])
-					finished[node].append((wildcards.copy(), items.copy(), assignments.copy()))
-					queue.put((node, wildcards.copy(), items.copy(), assignments.copy()))
-					# there's no need to process edges - defeating that boss will allow you to cross strictly more edges
-					continue
-			# now cross edges
-			for edge in self.node_edges[node]:
-
-				# for each set, use some wildcards to cross it, then add that node with those assignments to the queue
-				for item_set in edge.items.sets:
-					# items in item set that we don't already have
-					need_items = item_set - items
-					# if we have enough wildcards to satisfy need_items and there are no fixed items that we do not already have
-					if len(need_items) <= len(wildcards) and len(need_items & fixed_items) == 0:
-						wildcards_copy = wildcards.copy()
-						items_copy = items.copy()
-						assignments_copy = assignments.copy()
-						# make an assignment that allows crossing that edge
-						for item in need_items:
-							wildcard = wildcards_copy.pop()
-							assignments_copy[wildcard] = item
-							items_copy.add(item)
-						# if there's not already an entry for this item set with at least as many wildcards, then add it
-						if len([x for x in finished[edge.terminal] if len(x[0]) >= len(wildcards) and x[1] >= items]) == 0:
-							# make sure finished has different pointers than queue!
-							finished[edge.terminal].append((wildcards_copy.copy(), items_copy.copy(), assignments_copy.copy()))
-							queue.put((edge.terminal, wildcards_copy, items_copy, assignments_copy))
-
-		return finished, completing_set is not None, completing_set
+        # queue search terms are:
+        #       - node name
+        #       - wildcard set
+        #       - item set
+        #       - assignment dictionary - key: item node, value: type assigned there
+        # however two search terms are equal if the number of wildcards and the
+        # obtained items are the same - that's why finished just includes the number
+        # - add start node to the finished list
+        finished[start_state.node].append((start_state.wildcards.copy(), start_state.items.copy(), start_state.assignments.copy()))
+        queue.put(start_state)
+        while queue.qsize() > 0:
+            state = queue.get()
+            node = state.node
+            wildcards = state.wildcards
+            items = state.items
+            assignments = state.assignments
+            if end_state is not None and state >= end_state:
+                final_state = state
+                break
+            node_data = self.name_node[node].data
+            if isinstance(node_data, Item):
+                # if we don't already have this item, pick it up
+                if node not in wildcards and node not in assignments:
+                    wildcards.add(node)
+                    # if there's not already an entry for this item set with at least as many wildcards, then add it
+                    if len([x for x in finished[node] if len(x[0]) >= len(wildcards) and x[1] >= items]) == 0:
+                        finished[node].append((wildcards.copy(), items.copy(), assignments.copy()))
+                        queue.put(state.copy())
+                    # there's no need to process edges - picking up that item will allow you to cross strictly more edges
+                    continue
+            elif isinstance(node_data, Boss):
+                # if we haven't defeated this boss yet, do so.
+                if node_data.type not in items:
+                    items |= set([node_data.type])
+                    finished[node].append((wildcards.copy(), items.copy(), assignments.copy()))
+                    queue.put(state.copy())
+                    # there's no need to process edges - defeating that boss will allow you to cross strictly more edges
+                    continue
+            # now cross edges
+            for edge in self.node_edges[node]:
+                # for each set, use some wildcards to cross it, then add that node with those assignments to the queue
+                for item_set in edge.items.sets:
+                    # items in item set that we don't already have
+                    need_items = item_set - items
+                    # if we have enough wildcards to satisfy need_items and there are no fixed items that we do not already have
+                    if len(need_items) <= len(wildcards) and len(need_items & fixed_items) == 0:
+                        wildcards_copy = wildcards.copy()
+                        items_copy = items.copy()
+                        assignments_copy = assignments.copy()
+                        # make an assignment that allows crossing that edge
+                        for item in need_items:
+                            wildcard = wildcards_copy.pop()
+                            assignments_copy[wildcard] = item
+                            items_copy.add(item)
+                        # if there's not already an entry for this item set with at least as many wildcards, then add it
+                        if len([x for x in finished[edge.terminal] if len(x[0]) >= len(wildcards) and x[1] >= items]) == 0:
+                            # make sure finished has different pointers than queue!
+                            finished[edge.terminal].append((wildcards_copy.copy(), items_copy.copy(), assignments_copy.copy()))
+                            queue.put(BFSItemsState(edge.terminal, wildcards_copy, items_copy, assignments_copy))
+        return finished, final_state is not None, final_state
 
 
-        #TODO: is this really useful?
-        def check_completability(self, start_state, end_state):
-            """given a room graph, determine if it is possible to reach (end_node, end_items) from (start_node, start_items)
-              if it is, return the paths"""
-            bfs_offers, bfs_finished, bfs_found, bfs_set = self.BFS_optimized(start_state, end_state)
-            if not bfs_found:
-                return None
-            else:
-                return bfs_backtrack(start_state, end_state, bfs_offers)
 
-	def add_room(self, door1, door2, room_graph):
-		"""adds a room to self, connecting door1 in self to door2 in room_graph"""
-		assert door1 in self.name_node, door1
-		assert door2 in room_graph.name_node, door2
+    #TODO: is this really useful?
+    def check_completability(self, start_state, end_state):
+        """given a room graph, determine if it is possible to reach (end_node, end_items) from (start_node, start_items)
+          if it is, return the paths"""
+        bfs_offers, bfs_finished, bfs_found, bfs_set = self.BFS_optimized(start_state, end_state)
+        if not bfs_found:
+            return None
+        else:
+            return bfs_backtrack(start_state, end_state, bfs_offers)
 
-		for node_name, node in room_graph.name_node.items():
-			self.add_node(node_name, node.data)
-		for node_name, node_edges in room_graph.node_edges.items():
-			for edge in node_edges:
-				self.add_edge(node_name, edge.terminal, edge.items)
+    def add_room(self, door1, door2, room_graph):
+        """adds a room to self, connecting door1 in self to door2 in room_graph"""
+        assert door1 in self.name_node, door1
+        assert door2 in room_graph.name_node, door2
 
-		# connect up the two doors!
-		door1_data = self.name_node[door1].data
-		door2_data = self.name_node[door2].data
-		# none means an impassable door
-		if door1_data.items is not None:
-			self.add_edge(door1, door2, door1_data.items)
-		if door2_data.items is not None:
-			self.add_edge(door2, door1, door2_data.items)
+        for node_name, node in room_graph.name_node.items():
+            self.add_node(node_name, node.data)
+        for node_name, node_edges in room_graph.node_edges.items():
+            for edge in node_edges:
+                self.add_edge(node_name, edge.terminal, edge.items)
 
-	def copy(self):
-		"""returns a copy of self - pointers to data might still be entangled"""
-		new_graph = ConstraintGraph()
-		for node_name, node in self.name_node.items():
-			new_graph.add_node(node_name, node.data)
-		for node_name, node_edges in self.node_edges.items():
-			for edge in node_edges:
-				new_graph.add_edge(node_name, edge.terminal, edge.items)
-		return new_graph
+        # connect up the two doors!
+        door1_data = self.name_node[door1].data
+        door2_data = self.name_node[door2].data
+        # none means an impassable door
+        if door1_data.items is not None:
+            self.add_edge(door1, door2, door1_data.items)
+        if door2_data.items is not None:
+            self.add_edge(door2, door1, door2_data.items)
 
-	def __repr__(self):
-		self_str = ""
-		for node_name, edges in self.node_edges.iteritems():
-			self_str += node_name + "\n"
-			for edge in edges:
-				self_str += "\t" + str(edge.terminal) + "\t" + str(edge.items) + "\n"
-		# remove trailing \n
-		return self_str[:-1]
+    def copy(self):
+        """returns a copy of self - pointers to data might still be entangled"""
+        new_graph = ConstraintGraph()
+        for node_name, node in self.name_node.items():
+            new_graph.add_node(node_name, node.data)
+        for node_name, node_edges in self.node_edges.items():
+            for edge in node_edges:
+                new_graph.add_edge(node_name, edge.terminal, edge.items)
+        return new_graph
+
+    def __repr__(self):
+        self_str = ""
+        for node_name, edges in self.node_edges.iteritems():
+            self_str += node_name + "\n"
+            for edge in edges:
+                self_str += "\t" + str(edge.terminal) + "\t" + str(edge.items) + "\n"
+        # remove trailing \n
+        return self_str[:-1]
 
 class ConstraintEdge(object):
 
-	def __init__(self, terminal, items=MinSetSet()):
-		# terminal is a node name
-		self.terminal = terminal
-		self.items = items
+    def __init__(self, terminal, items=MinSetSet()):
+        # terminal is a node name
+        self.terminal = terminal
+        self.items = items
 
 class ConstraintNode(object):
 
-	def __init__(self, name, data):
-		self.name = name
-		self.data = data
+    def __init__(self, name, data):
+        self.name = name
+        self.data = data
 
 #TODO - Door, Item, and Boss should inherit from NodeData or some such type
 
 class Door(object):
 
-	def __init__(self, address, items=MinSetSet(), accessible=True, facing="L"):
-		self.mem_address = address
-		self.items = items
-		self.accessible = accessible
-		self.facing = facing
+    def __init__(self, address, items=MinSetSet(), accessible=True, facing="L"):
+        self.mem_address = address
+        self.items = items
+        self.accessible = accessible
+        self.facing = facing
 
 class Item(object):
 
-	def __init__(self, address, item_type=""):
-		self.mem_address = address
-		self.type = item_type
+    def __init__(self, address, item_type=""):
+        self.mem_address = address
+        self.type = item_type
 
 class Boss(object):
 
-	def __init__(self, boss_type=""):
-		self.type = boss_type
+    def __init__(self, boss_type=""):
+        self.type = boss_type
 
 class Room(object):
 
-	def __init__(self, name, address, graph):
-		self.name = name
-		self.mem_address = address
-		self.graph = graph
+    def __init__(self, name, address, graph):
+        self.name = name
+        self.mem_address = address
+        self.graph = graph
 
 class BasicGraph(object):
 
-	def __init__():
-		self.node_edges = {}
-		self.nnodes = 0
+    def __init__():
+        self.node_edges = {}
+        self.nnodes = 0
 
-	def add_node(self, name):
-		if name is None:
-			name = str(self.nodes)
-		assert name not in self.node_edges, "A node with this name already exists: " + name
-		self.nnodes += 1
-		self.node_edges[name] = []
-		pass
+    def add_node(self, name):
+        if name is None:
+                name = str(self.nodes)
+        assert name not in self.node_edges, "A node with this name already exists: " + name
+        self.nnodes += 1
+        self.node_edges[name] = []
+        pass
 
-	def add_edge(self, node1, node2):
-		assert node1 in self.node_edges, "Node does not exist: " + node1
-		assert node2 in self.node_edges, "Node does not exist: " + node2
-		self.node_edges[node1].append(node2)
+    def add_edge(self, node1, node2):
+        assert node1 in self.node_edges, "Node does not exist: " + node1
+        assert node2 in self.node_edges, "Node does not exist: " + node2
+        self.node_edges[node1].append(node2)
 
-	def BFS(self, start, end=None):
-		# key - node
-		# value - the previous node in the BFS
-                #TODO: derp use a queue!
-		offers = {}
-		finished = set()
-		stack = [start]
-		node = ""
-		while len(stack > 0):
-			node = stack.pop()
-			if end is not None and node == end:
-				break
-			finished |= set(node)
-			for neighbor in self.node_edges[node]:
-				if neighbor not in finished:
-					stack.append(neighbor)
-					offer[neighbor] = node
+    def BFS(self, start, end=None):
+        # key - node
+        # value - the previous node in the BFS
+        #TODO: derp use a queue!
+        offers = {}
+        finished = set()
+        stack = [start]
+        node = ""
+        while len(stack > 0):
+            node = stack.pop()
+            if end is not None and node == end:
+                break
+            finished |= set(node)
+            for neighbor in self.node_edges[node]:
+                if neighbor not in finished:
+                    stack.append(neighbor)
+                    offer[neighbor] = node
 
-		if end is None:
-			return finished
-		else:
-			path = []
-			while node != start:
-				path.append(node)
-				node = offer[node]
-			return path
+        if end is None:
+            return finished
+        else:
+            path = []
+            while node != start:
+                path.append(node)
+                node = offer[node]
+            return path
 
 def bfs_backtrack(start_state, end_state, bfs_offers):
     """Backtracks BFS offers to find the target node. Errors if the target node wasn't in the search.
@@ -460,17 +471,99 @@ def bfs_backtrack(start_state, end_state, bfs_offers):
     # since BFS only guarantees that end_state items will be a superset of items, pick an offer for end_node that matches
     ending_states = [offer[1] for offer in bfs_offers[end_state.node] if offer[0] >= end_state.items]
     assert len(ending_states) > 0, "Backtrack: no path to reach " + end_state.node
-    #print bfs_offers["Kraid_Kraid"]
     state = ending_states[0]
     # loop from the end state until we reach the start state
     while state != start_state:
         path.insert(0, state.node)
         # get all the offers for the current state
         next_states = [offer[1] for offer in bfs_offers[state.node] if offer[0] == state.items]
-        #print(next_states)
         assert len(next_states) > 0, "Backtrack: no path to reach " + end_state.node
         state = next_states[0]
     # put the current node (which is the start node) now that we've reached it
     path.insert(0, state.node)
     return path
+
+"""
+    def BFS_items(self, start, end=None, wildcards=set(), items=set(), assignments={}, fixed_items=set()):
+        Finds a satsifying assignment of items to reach end from start. finished[end] will wind up with
+        a list of (unassigned but reached items, item set needed, and possible item assignments). Each assignment
+        is a dictionary, where key = item node name, and value = string value for item assigned there. Currently does
+        not allow items to be fixed, but an already-assigned items dictionary can be passed, and if every item there is in
+        items, then the behavior should be correct.
+
+        #TODO: I think there's a way to make finished store less stuff - after all, we are only interested in keeping the
+        # elements with a maximal number of wildcards for each item set.
+
+        #TODO: do we need offers? - just interested in finding a completable assignment
+        # key - node name
+        # value - list of 
+        #offers = collections.defaultdict(list)
+
+        # key - node name
+        # value - tuples of (wildcards), (item set), (assignment)
+        finished = collections.defaultdict(list)
+
+        # what items we actually needed to reach the end...
+        completing_set = None
+
+        queue = Queue()
+
+        # queue search terms are:
+        #       - node name
+        #       - wildcard set
+        #       - item set
+        #       - assignment dictionary - key: item node, value: type assigned there
+        # however two search terms are equal if the number of wildcards and the
+        # obtained items are the same - that's why finished just includes the number
+        # - add start node to the finished list
+        finished[start].append((wildcards.copy(), items.copy(), assignments.copy()))
+        queue.put((start, wildcards, items, assignments))
+        while queue.qsize() > 0:
+            node, wildcards, items, assignments = queue.get()
+            node_data = self.name_node[node].data
+            if end is not None and node == end:
+                completing_set = items
+                break
+            if isinstance(node_data, Item):
+                # if we don't already have this item, pick it up
+                if node not in wildcards and node not in assignments:
+                    wildcards.add(node)
+                    # if there's not already an entry for a better item set with at least as many wildcards, then add it
+                    if len([x for x in finished[node] if len(x[0]) >= len(wildcards) and x[1] >= items]) == 0:
+                        finished[node].append((wildcards.copy(), items.copy(), assignments.copy()))
+                        queue.put(state.copy())
+                    # there's no need to process edges yet - picking up that item will allow you to cross strictly more edges
+                    continue
+            elif isinstance(node_data, Boss):
+                # if we haven't defeated this boss yet, do so.
+                if node_data.type not in items:
+                    items |= set([node_data.type])
+                    finished[node].append((wildcards.copy(), items.copy(), assignments.copy()))
+                    queue.put((node, wildcards.copy(), items.copy(), assignments.copy()))
+                    # there's no need to process edges - defeating that boss will allow you to cross strictly more edges
+                    continue
+            # now cross edges
+            for edge in self.node_edges[node]:
+                # for each set, use some wildcards to cross it, then add that node with those assignments to the queue
+                for item_set in edge.items.sets:
+                    # items in item set that we don't already have
+                    need_items = item_set - items
+                    # if we have enough wildcards to satisfy need_items and there are no fixed items that we do not already have
+                    if len(need_items) <= len(wildcards) and len(need_items & fixed_items) == 0:
+                        wildcards_copy = wildcards.copy()
+                        items_copy = items.copy()
+                        assignments_copy = assignments.copy()
+                        # make an assignment that allows crossing that edge
+                        for item in need_items:
+                            wildcard = wildcards_copy.pop()
+                            assignments_copy[wildcard] = item
+                            items_copy.add(item)
+                        # if there's not already an entry for this item set with at least as many wildcards, then add it
+                        if len([x for x in finished[edge.terminal] if len(x[0]) >= len(wildcards) and x[1] >= items]) == 0:
+                            # make sure finished has different pointers than queue!
+                            finished[edge.terminal].append((wildcards_copy.copy(), items_copy.copy(), assignments_copy.copy()))
+                            queue.put((edge.terminal, wildcards_copy, items_copy, assignments_copy))
+
+        return finished, completing_set is not None, completing_set
+"""
 
