@@ -4,34 +4,33 @@
 # since it's just a few small examples, it's more of a sanity check than a real test
 
 import constraints
+from item_set import *
 
 if __name__ == "__main__":
 
-	#print constraints.find_expressions("| (& A B) C")
-	
 	print "test 1 - start"
-	minset = constraints.parse_constraint("| (& A B) C")
+	minset = constraints.parse_constraint("| (& G GS) CB")
 	print minset
-	assert not minset.matches(set(["A"]))
-	assert not minset.matches(set(["B"]))
-	assert minset.matches(set(["A", "B"]))
-	assert minset.matches(set(["C"]))
+	assert not minset.matches(ItemSet(["G"]))
+	assert not minset.matches(ItemSet(["GS"]))
+	assert minset.matches(ItemSet(["G", "GS"]))
+	assert minset.matches(ItemSet(["CB"]))
 	print "test 1 - success\n"
 
 	print "test 2 - start"
-	minset = constraints.parse_constraint("& A B")
+	minset = constraints.parse_constraint("& IB SB")
 	print minset
-	assert not minset.matches(set(["C"]))
-	assert minset.matches(set(["A", "B"]))
+	assert not minset.matches(ItemSet(["G"]))
+	assert minset.matches(ItemSet(["IB", "SB"]))
 	print "test 2 - success\n"
 
 	print "test 3 - start"
-	minset = constraints.parse_constraint("& (| (| A B) (& C D)) (& (| E F) G)")
+	minset = constraints.parse_constraint("& (| (| Kraid Phantoon) (& Draygon Ridley)) (& (| Botwoon Spore_Spawn) Golden_Torizo)")
 	print minset
-	assert not minset.matches(set(["A", "B", "C", "D", "E", "F"]))
-	assert minset.matches(set(["A", "E", "G"]))
-	assert minset.matches(set(["B", "F", "G"]))
-	assert minset.matches(set(["C", "D", "F", "G"]))
+	assert not minset.matches(ItemSet(["Kraid", "Phantoon", "Draygon", "Ridley", "Botwoon", "Spore_Spawn"]))
+	assert minset.matches(ItemSet(["Kraid", "Botwoon", "Golden_Torizo"]))
+	assert minset.matches(ItemSet(["Phantoon", "Spore_Spawn", "Golden_Torizo"]))
+	assert minset.matches(ItemSet(["Draygon", "Ridley", "Spore_Spawn", "Golden_Torizo"]))
 	print "test 3 - success\n"
 	
 	print "all tests - success"

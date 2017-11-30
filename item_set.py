@@ -56,11 +56,11 @@ class ItemSet(object):
 
     # set union
     def __or__(self, other):
-       return ItemSet(self.num | other.num)
+       return ItemSet([], self.num | other.num)
 
     # set intersection
     def __and__(self, other):
-        return ItemSet(self.num & other.num)
+        return ItemSet([], self.num & other.num)
 
     # comparison
     def __eq__(self, other):

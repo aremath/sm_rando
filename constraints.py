@@ -20,12 +20,12 @@ def parse_constraint(constraint):
 	if constraint[0] != "|" and constraint[0] != "&":
 		# special case - bombs, power bombs, and springball all require morph ball
 		if constraint == "B" or constraint == "PB" or constraint == "SPB":
-			return MinSetSet([set(["MB", constraint])])
+			return MinSetSet(set([ItemSet(["MB", constraint])]))
 		# special case - super missiles are sufficient for all missile requirements
 		if constraint == "M":
 		#TODO - does gravity suit stop environmental damage or not?
-			return MinSetSet([set([constraint]), set(["S"])])
-		return MinSetSet([set([constraint])])
+			return MinSetSet(set([ItemSet([constraint]), ItemSet(["S"])]))
+		return MinSetSet(set([ItemSet([constraint])]))
 	# RECURSIVE CASE
 	else:
 		symbol = constraint[0]
