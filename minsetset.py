@@ -11,7 +11,7 @@ class MinSetSet:
 
 	def __init__(self, set_=None):
 		if set_ is None:
-			self.sets = set(ItemSet())
+			self.sets = set([ItemSet()])
 		else:
 			self.sets = set_
 

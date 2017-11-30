@@ -29,13 +29,14 @@
 # * except the Main Street missiles if you can't do that shortcharge. My encoding makes no edges to that item, for this reason.
 
 from minsetset import *
+from item_set import *
 import collections
 from Queue import *
 
 # I wish Python had abstract data types :(
 class BFSState(object):
 
-    def __init__(self, node_, items_=set()):
+    def __init__(self, node_, items_=ItemSet()):
         self.node = node_
         self.items = items_
     
@@ -56,7 +57,7 @@ class BFSState(object):
 
 class BFSItemsState(object):
 
-    def __init__(self, node_, wildcards_=set(), items_=set(), assignments_={}):
+    def __init__(self, node_, wildcards_=set(), items_=ItemSet(), assignments_={}):
         self.node = node_
         self.items = items_
         self.wildcards = wildcards_

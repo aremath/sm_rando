@@ -1009,7 +1009,7 @@ T
 PB
 L								- S
 ALL <-> L						- PB
-ALL -> PB						- | B PB (SA MB)
+ALL -> PB						- | B PB (& SA MB)
 ALL <-> T						- | B PB
 ALL <-> ALL						- V
 
@@ -1540,7 +1540,7 @@ ALL <-> ALL					- & IB (| B PB) (| M S)
 Blue_Hoppers - 7DC19
 T
 L
-ALL <-> ALL					- S E
+ALL <-> ALL					- & S E
 
 RIP_Torizo - 7DC65
 L
