@@ -77,6 +77,10 @@ class ItemSet(object):
     def __ne__ (self, other):
         return not self == other
 
+    # in operator
+    def __contains__(self, item):
+        return (self.num & item_mapping[item]) != 0
+
     # BE CAREFUL! ItemSet is mutable but also hashable!
     def __hash__(self):
         return hash(self.num)
@@ -87,6 +91,9 @@ class ItemSet(object):
             if self.num & mask != 0:
                 slist.append(item)
         return slist
+
+    def copy(self):
+        return ItemSet([], self.num)
 
     def __repr__(self):
         return "ISet(" + str(self.to_list()) + ")"
