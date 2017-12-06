@@ -80,7 +80,8 @@ def remove_dummy_exits(graph, exits):
             if node + "dummy" in graph.name_node:
                 graph.remove_node(node + "dummy")
 
-def check_finished(finished_node, finished_entry, current_node, current_wildcards, current_items, room_exits):
+#TODO: we don't need this anymore?
+def check_finished(finished_node, finished_items, finished_entry, state, room_exits):
     """Checks an entry of finished for whether it's an interesting 'path-through'
     That is, a path to a passable exit that either is different from current_node, or 
     goes to current_node's exit but picked up some items or something."""
@@ -91,20 +92,32 @@ def check_finished(finished_node, finished_entry, current_node, current_wildcard
         if finished_node != current_dummy:
             return True
         # or we went back through the same door, but picked up an item or wildcard - just converting a wildcard to an item isn't sufficient
-        if len(finished_entry[0]) + len(finished_entry[1]) > len(current_wildcards) + len(current_items):
+        if finished_items > state.items or len(finished_entry[0]) > len(state.wildcards):
             return True
     return False
 
-def filter_paths(paths_through, current_node, current_wildcards, current_items, room_exits):
-    for node, pt in paths_through.items():
-        if len(pt) == 0:
-            del paths_through[node]
-        else:
-            paths_through[node] = filter(lambda x: check_finished(node, x, current_node, current_wildcards, current_items, room_exits), pt)
-    # now remove keys that don't have an interesting path-through
-    for node, pt in paths_through.items():
-        if len(pt) == 0:
-            del paths_through[node]
+# paths-through is a finished BFS_items result, which means it has
+# key - node
+# key - item set
+# value - (wildcards, assignments) list
+def filter_paths(paths_through, state, room_exits):
+    """Updates a paths-through to only those paths which reach exits and make some kind of progress"""
+    # will be a filtered copy of paths
+    new_paths = collections.defaultdict(lambda: collections.defaultdict(list))
+    for node, idc in paths_through.items():
+        # we don't care about nodes that aren't exits
+        if node not in room_exits:
+            break
+        # otherwise, it's a dict with key - item, value - wildcards list
+        for items, wilds in idc.items():
+            # we don't care about items with an empty reachable set #TODO: this can't/shouldn't happen?
+            if len(wilds) == 0:
+                break
+            for wild in wilds:
+                # if the state made up by the finished entry is valid, add it to the new paths
+                if state.is_progress(BFSItemsState(node, wild[0], items, wild[1])):
+                    new_paths[node][items] = wild
+    paths_through = new_paths
 
 
 def clean_rooms(rooms):
@@ -173,8 +186,12 @@ def map_items():
     return items_to_place
 
 def get_fixed_items():
-    """get the set of items whose locations cannot be changed"""
-    return set(boss_types) | set(special_types)
+    """get the set of items whose locations cannot be wildcarded"""
+    return ItemSet(boss_types) | ItemSet(special_types)
+
+def get_starting_assignments():
+    """get the assignments to items whose locations which do not accept wildcards"""
+    return {"Water_Closet_Drain" : "Drain", "Shaktool_Shaktool": "Shaktool"}
 
 def door_direction(door_name):
     """get the direction letter for a door node"""

@@ -50,6 +50,9 @@ class BFSState(object):
     def __le__(self, other):
         return self.node == other.node and self.items <= other.items
 
+    def __lt__(self, other):
+        return self.node == other.node and self.items < other.items
+
     def __ne__(self, other):
         return not self == other
 
@@ -58,6 +61,7 @@ class BFSState(object):
 
 class BFSItemsState(object):
 
+    #TODO: argument order??
     def __init__(self, node_, wildcards_=set(), items_=ItemSet(), assignments_={}):
         self.node = node_
         self.items = items_
@@ -67,17 +71,29 @@ class BFSItemsState(object):
     def copy(self):
         return BFSItemsState(self.node, self.wildcards.copy(), self.items.copy(), self.assignments.copy())
 
-    # we still only care about where! (I think)
+    # two states are equal if they can cross the same set of edges
     def __eq__(self, other):
-        return self.node == other.node and self.items == other.items
+        return self.node == other.node and self.items == other.items and len(self.wildcards) == len(other.wildcards)
 
+    # an item set is leq another if it has at most the same items and at most the same number of wildcards
     def __le__(self, other):
-        return self.node == other.node and self.items <= other.items
+        return self.node == other.node and self.items <= other.items and len(self.wildcards) <= len(other.wildcards)
+
+    # strictly less than means also either strictly fewer items or strictly fewer wildcards (or both)
+    def __lt__(self, other):
+        return self <= other and (self.items < other.items or len(self.wildcards) < len(other.wildcards))
 
     def __ne__(self, other):
         return not self == other
 
+    # does other make progress relative to self?
+    # if it's at another node with maybe better items
+    # or if it's at the same node with strictly better items
+    def is_progress(self, other):
+        return self < other or (self.node != other.node and self.items <= other.items and len(self.wildcards) <= len(other.wildcards))
 
+#TODO: have graph implement __getitem__ instead of the clunky name_nodes
+# + maybe merge so that the node's edges are part of the node class?
 class ConstraintGraph(object):
 
     def __init__(self):
@@ -152,7 +168,7 @@ class ConstraintGraph(object):
         # key - node name
         # key - item set
         # value - state predecessor
-        offers = collections.defaultdict(list)
+        offers = collections.defaultdict(lambda: collections.defaultdict(list))
 
         # key - node name
         # key - item set
@@ -198,11 +214,11 @@ class ConstraintGraph(object):
         # key - node name
         # key - item set
         # value - state predecessor
-        offers = collections.defaultdict(list)
+        offers = collections.defaultdict(lambda: collections.defaultdict(list))
 
         # key - node name
         # key - item set
-        finished = collections.defaultdict(list)
+        finished = collections.defaultdict(lambda: collections.defaultdict(list))
 
         final_state = None
 
@@ -252,7 +268,7 @@ class ConstraintGraph(object):
         # key - node name
         # key - item set
         # value - tuples of (wildcards), (assignment)
-        finished = collections.defaultdict(list)
+        finished = collections.defaultdict(lambda: collections.defaultdict(list))
 
         # what items we actually needed to reach the end...
         final_state = None
@@ -279,7 +295,6 @@ class ConstraintGraph(object):
                 final_state = state
                 break
             node_data = self.name_node[node].data
-            #TODO: THIS IS A BUG: YOU CAN GET AN ITEM FROM A Special NODE
             # in addition to fixed items, pass an assigments list and check it
             if isinstance(node_data, Item):
                 # if we don't already have this item, pick it up
@@ -291,6 +306,12 @@ class ConstraintGraph(object):
                         queue.put(state.copy())
                     # there's no need to process edges - picking up that item will allow you to cross strictly more edges
                     continue
+                elif node in assignments:
+                    if assignments[node] not in items:
+                        items |= ItemSet(assignments[node])
+                        finished[node][items].append((wildcards.copy(), assignments.copy()))
+                        queue.put(state.copy())
+                        continue
             elif isinstance(node_data, Boss):
                 # if we haven't defeated this boss yet, do so.
                 if node_data.type not in items:
@@ -316,7 +337,7 @@ class ConstraintGraph(object):
                             assignments_copy[wildcard] = item
                             items_copy.add(item)
                         # if there's not already an entry for this item set with at least as many wildcards, then add it
-                        if len([x for x in finished[edge.terminal] if len(x[0]) >= len(wildcards) and x[1] >= items]) == 0:
+                        if len([x for x in finished[edge.terminal][items] if len(x[0]) >= len(wildcards)]) == 0:
                             # make sure finished has different pointers than queue!
                             finished[edge.terminal][items_copy].append((wildcards_copy.copy(), assignments_copy.copy()))
                             queue.put(BFSItemsState(edge.terminal, wildcards_copy, items_copy, assignments_copy))

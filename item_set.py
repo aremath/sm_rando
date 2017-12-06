@@ -51,7 +51,7 @@ class ItemSet(object):
 
     def remove(self, item):
         item_mask = item_mapping[item]
-        assert self.num & item_mask != 0, "Remove: not in set"
+        assert self.num & item_mask != 0, "Item Set: cannot remove an element not in set"
         self.num &= (~item_mask)
 
     # set union
@@ -61,6 +61,12 @@ class ItemSet(object):
     # set intersection
     def __and__(self, other):
         return ItemSet([], self.num & other.num)
+
+    # set minus
+    def __sub__(self, other):
+        diff = self.num ^ other.num
+        diff = diff & self.num
+        return ItemSet([], diff)
 
     # comparison
     def __eq__(self, other):
@@ -84,6 +90,15 @@ class ItemSet(object):
     # BE CAREFUL! ItemSet is mutable but also hashable!
     def __hash__(self):
         return hash(self.num)
+
+    # cardinality
+    # sketch af
+    def __len__(self):
+        return bin(self.num).count("1")
+
+    # iterating over the items means you want the item values (strings)
+    def __iter__(self):
+        return iter(self.to_list())
 
     def to_list(self):
         slist = []

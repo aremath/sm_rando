@@ -21,6 +21,7 @@ def item_quota_rando(rooms, nitems=6):
 
     # keeps track of the current BFS state
     current_state = BFSItemsState("Landing_Site_R2")
+    current_state.assignments = get_starting_assignments()
 
     # keeps track of exits reachable from current node
     reachable_exits = []
@@ -56,6 +57,7 @@ def item_quota_rando(rooms, nitems=6):
         # dict comprehensions! - filter bfs_finished for the entries that are dummy exits, and actually have a path to them.
         reachable_exits = {exit: bfs_finished[exit] for exit in dummy_exits if len(bfs_finished[exit]) != 0}
 
+        #TODO: might need to decide on a reachable exit first?
         #TODO: I think this works now... Consider multiple backtracks?
         # if there are more reachable exits by backtracking, do so!
         # choose a random (already-placed) door that this door can hook up with
@@ -119,9 +121,12 @@ def item_quota_rando(rooms, nitems=6):
             #assert False, "No reachable exits: \n" + str(door_changes) + "\n" + str(current_assignments)
         
         chosen_exit = random.choice(reachable_exits.keys())
-        chosen_path = random.choice(reachable_exits[chosen_exit])
+        chosen_items = random.choice(reachable_exits[chosen_exit].keys())
+        #TODO: is this a glaring error?
+        #current_state.node = chosen_exit
+        current_state.items = chosen_items
+        current_state.wildcards, current_state.assignments = random.choice(reachable_exits[chosen_exit][chosen_items])
         # update with the choices we made to use that path
-        current_state.wildcards, current_state.items, current_state.assignments = chosen_path
         chosen_direction = door_direction(chosen_exit[:-5])
 
         # find a room with a path-through
@@ -137,8 +142,7 @@ def item_quota_rando(rooms, nitems=6):
             chosen_entrance = random.choice(room[1][room_direction])
             entrance_state = BFSItemsState(chosen_entrance, current_state.wildcards, current_state.items, current_state.assignments)
             paths_through, _, _ = room_graph.BFS_items(entrance_state, None, fixed_items)
-            #TODO: have filter_paths take a state
-            filter_paths(paths_through, chosen_entrance, current_state.wildcards, current_state.items, room_dummy_exits)
+            filter_paths(paths_through, entrance_state, room_dummy_exits)
             #print paths_through
             # if there is at least one path-through - take one
             if len(paths_through) > 0:
@@ -151,6 +155,9 @@ def item_quota_rando(rooms, nitems=6):
                 current_state.node = chosen_room_path[:-5]
                 #print paths_through
                 #print paths_through[chosen_room_path]
+                #TODO: since paths_through is now a dict with
+                # key - node | key - item set | value : (assignments, wildcards) list, deal with it differently
+                #TODO: using a choose_random_state function? seems useful
                 current_state.wildcards, current_state.items, current_state.assignments = paths_through[chosen_room_path][0] #is 0 the right one?
 
                 # connect the two rooms at chosen_exit , chosen_entrance
