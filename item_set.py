@@ -1,5 +1,6 @@
 # 36 items -> 64 bit set?
 # does python guarantee storage in 64 bit integers rather than some weird thing?
+# TODO: doing a hashtable lookup every time is slow
 item_mapping = {
     "B" : 1,
     "PB" : 1 << 1,

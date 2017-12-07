@@ -61,6 +61,7 @@ def item_quota_rando(rooms, nitems=6):
         #TODO: I think this works now... Consider multiple backtracks?
         # if there are more reachable exits by backtracking, do so!
         # choose a random (already-placed) door that this door can hook up with
+        #TODO: no need for current_node...
         current_node = current_state.node
         current_direction = door_direction(current_node)
         # if we haven't already connected the current exit and if there is a valid backtracking exit
@@ -120,12 +121,9 @@ def item_quota_rando(rooms, nitems=6):
             break
             #assert False, "No reachable exits: \n" + str(door_changes) + "\n" + str(current_assignments)
         
-        chosen_exit = random.choice(reachable_exits.keys())
-        chosen_items = random.choice(reachable_exits[chosen_exit].keys())
-        #TODO: is this a glaring error?
-        #current_state.node = chosen_exit
-        current_state.items = chosen_items
-        current_state.wildcards, current_state.assignments = random.choice(reachable_exits[chosen_exit][chosen_items])
+        current_state = choose_random_state(reachable_exits)
+        chosen_exit = current_state.node
+        chosen_items = current_state.items
         # update with the choices we made to use that path
         chosen_direction = door_direction(chosen_exit[:-5])
 
@@ -142,23 +140,17 @@ def item_quota_rando(rooms, nitems=6):
             chosen_entrance = random.choice(room[1][room_direction])
             entrance_state = BFSItemsState(chosen_entrance, current_state.wildcards, current_state.items, current_state.assignments)
             paths_through, _, _ = room_graph.BFS_items(entrance_state, None, fixed_items)
-            filter_paths(paths_through, entrance_state, room_dummy_exits)
+            paths_through = filter_paths(paths_through, entrance_state, room_dummy_exits)
             #print paths_through
             # if there is at least one path-through - take one
             if len(paths_through) > 0:
                 #print current_assignments
                 #print current_wildcards
                 print "Placing " + chosen_entrance + " at " + chosen_exit[:-5]
-                # if we follow a path-through, update current_node, etc.
-                chosen_room_path = random.choice(paths_through.keys())
+                # pick a path-through to follow and update the current state.
+                current_state = choose_random_state(paths_through)
                 # remove "dummy"
-                current_state.node = chosen_room_path[:-5]
-                #print paths_through
-                #print paths_through[chosen_room_path]
-                #TODO: since paths_through is now a dict with
-                # key - node | key - item set | value : (assignments, wildcards) list, deal with it differently
-                #TODO: using a choose_random_state function? seems useful
-                current_state.wildcards, current_state.items, current_state.assignments = paths_through[chosen_room_path][0] #is 0 the right one?
+                current_state.node = current_state.node[:-5]
 
                 # connect the two rooms at chosen_exit , chosen_entrance
                 room_unassigned_items = [x for x in room[2] if x not in current_state.assignments]
@@ -194,8 +186,10 @@ def item_quota_rando(rooms, nitems=6):
         print "Loop end"
     item_changes.extend(current_state.assignments.items())
     # make the current assignment a reality (in the graph)
+    # TODO: with already-assigned nodes that haven't been placed yet?
     for node, item in current_state.assignments.items():
-        current_graph.name_node[node].data.type = item
+        if node in current_graph.name_node:
+            current_graph.name_node[node].data.type = item
     #print door_changes
     #print current_items
     #print current_wildcards
@@ -204,7 +198,8 @@ def item_quota_rando(rooms, nitems=6):
     #TODO: maybe do something more sophisticated to place progression items at reachable locations?
     # first, calculate the items that haven't been placed!
     for item in current_state.assignments.values():
-        items_to_place.remove(item)
+        if item in items_to_place:
+            items_to_place.remove(item)
     for item_node in unassigned_item_nodes:
         item = items_to_place.pop()
         current_graph.name_node[item_node].data.type = item
@@ -406,5 +401,17 @@ def basic_rando(rooms):
     # return the list of door and item changes
     return door_changes, item_changes, current_graph
 
+#TODO: in alg_support?
+def choose_random_state(finished):
+    """chooses a random state from finished"""
+    
+    #TODO: quick and dirty fix
+    # filter out empty entries of finished
+    finished = to_states(finished)
+    finished = from_states(finished)
 
+    node = random.choice(finished.keys())
+    items = random.choice(finished[node].keys())
+    wildcards, assignments = random.choice(finished[node][items])
+    return BFSItemsState(node, wildcards, items, assignments)
 

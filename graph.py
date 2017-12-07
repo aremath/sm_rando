@@ -168,11 +168,11 @@ class ConstraintGraph(object):
         # key - node name
         # key - item set
         # value - state predecessor
-        offers = collections.defaultdict(lambda: collections.defaultdict(list))
+        offers = collections.defaultdict(lambda: {})
 
-        # key - node name
-        # key - item set
-        finished = {}
+        # key - node_name
+        # value - set of item sets
+        finished = collections.defaultdict(set)
 
         final_state = None
 
@@ -194,8 +194,8 @@ class ConstraintGraph(object):
                 new_items = items | ItemSet([node_data.type])
                 # if we haven't already visited this node with the new item set...
                 if new_items not in finished[node]:
-                    offers[node][new_items] = state
-                    finished[node][new_items] = None
+                    offers[node][new_items] = state.copy()
+                    finished[node].add(new_items)
                     # don't have to make a new queue item - pick up the item/boss is the only option
                     # the following for-loop handles creating the new queue items...
                     items = new_items
@@ -204,8 +204,8 @@ class ConstraintGraph(object):
                 if edge.items.matches(items):
                     # if we haven't already visited terminal with those items...
                     if items not in finished[edge.terminal]:
-                        offers[edge.terminal][items] = state
-                        finished[edge.terminal][items] = None
+                        offers[edge.terminal][items] = state.copy()
+                        finished[edge.terminal].add(items)
                         queue.put(BFSState(edge.terminal, items))       
         return offers, finished, final_state is not None, final_state
 
@@ -214,11 +214,11 @@ class ConstraintGraph(object):
         # key - node name
         # key - item set
         # value - state predecessor
-        offers = collections.defaultdict(lambda: collections.defaultdict(list))
+        offers = collections.defaultdict(lambda: {})
 
         # key - node name
-        # key - item set
-        finished = collections.defaultdict(lambda: collections.defaultdict(list))
+        # value - item set
+        finished = collections.defaultdict(Set)
 
         final_state = None
 
@@ -240,7 +240,7 @@ class ConstraintGraph(object):
                     # if we haven't already visited terminal with those items...
                     if items not in finished[edge.terminal]:
                         offers[edge.terminal][items] = state
-                        finished[edge.terminal][items] = None
+                        finished[edge.terminal].add(items)
                         queue.put(BFSState(edge.terminal, items))
             # make an offer to pick up an item or defeat a boss
             node_data = self.name_node[node].data
@@ -249,7 +249,7 @@ class ConstraintGraph(object):
                 # if we haven't already visited this node with the new item set...
                 if new_items not in finished[node]:
                     offers[node][new_items] = state
-                    finished[node][new_items] = None
+                    finished[node].add(new_items)
                     queue.put(BFSState(node, new_items))
         return offers, finished, final_state is not None, final_state
 
@@ -262,7 +262,6 @@ class ConstraintGraph(object):
 
         #TODO: I think there's a way to make finished store less stuff - after all, we are only interested in keeping the
         # elements with a maximal number of wildcards for each item set.
-
         #TODO: do we need offers? - just interested in finding a completable assignment
 
         # key - node name
@@ -435,21 +434,24 @@ class Room(object):
         self.mem_address = address
         self.graph = graph
 
+#TODO: fix this for normal offers
+# offers:
+# key - node
+# key - item set
+# value - state predecessor
 def bfs_backtrack(start_state, end_state, bfs_offers):
     """Backtracks BFS offers to find the target node. Errors if the target node wasn't in the search.
        Intended for use with BFS_opt and BFS_target."""
     path = []
     # since BFS only guarantees that end_state items will be a superset of items, pick an offer for end_node that matches
-    ending_states = [offer[1] for offer in bfs_offers[end_state.node] if offer[0] >= end_state.items]
+    ending_states = [bfs_offers[end_state.node][items] for items in bfs_offers[end_state.node].keys() if items >= end_state.items]
     assert len(ending_states) > 0, "Backtrack: no path to reach " + end_state.node
     state = ending_states[0]
     # loop from the end state until we reach the start state
     while state != start_state:
         path.insert(0, state.node)
         # get all the offers for the current state
-        next_states = [offer[1] for offer in bfs_offers[state.node] if offer[0] == state.items]
-        assert len(next_states) > 0, "Backtrack: no path to reach " + end_state.node
-        state = next_states[0]
+        state =  bfs_offers[state.node][state.items]
     # put the current node (which is the start node) now that we've reached it
     path.insert(0, state.node)
     return path

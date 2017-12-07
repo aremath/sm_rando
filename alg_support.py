@@ -100,8 +100,9 @@ def check_finished(finished_node, finished_items, finished_entry, state, room_ex
 # key - node
 # key - item set
 # value - (wildcards, assignments) list
+"""
 def filter_paths(paths_through, state, room_exits):
-    """Updates a paths-through to only those paths which reach exits and make some kind of progress"""
+    ""Updates a paths-through to only those paths which reach exits and make some kind of progress""
     # will be a filtered copy of paths
     new_paths = collections.defaultdict(lambda: collections.defaultdict(list))
     for node, idc in paths_through.items():
@@ -118,7 +119,42 @@ def filter_paths(paths_through, state, room_exits):
                 if state.is_progress(BFSItemsState(node, wild[0], items, wild[1])):
                     new_paths[node][items] = wild
     paths_through = new_paths
+"""
 
+# slightly less efficient than ^, but also much easier to read
+def filter_paths(paths_through, state, room_exits):
+    
+    def is_path(other_state):
+        if other_state.node not in room_exits:
+            return False
+        elif state.is_progress(other_state):
+            return True
+        else:
+            return False
+
+    return filter_finished(is_path, paths_through)
+
+def to_states(items_finished):
+    """takes a BFS_items result and converts it into a list of states"""
+    states = []
+    for node, idc in items_finished.items():
+        for items, wilds in idc.items():
+            for wild in wilds:
+                states.append(BFSItemsState(node, wild[0], items, wild[1]))
+    return states
+
+def from_states(bfs_states):
+    """takes a list of BFSItemsStates and converts it to a BFS_items result"""
+    finished = collections.defaultdict(lambda: collections.defaultdict(list))
+    for state in bfs_states:
+        finished[state.node][state.items].append((state.wildcards, state.assignments))
+    return finished
+
+def filter_finished(pred, finished):
+    """filters the bfs_items result to all states matching pred"""
+    states = to_states(finished)
+    states = filter(pred, states)
+    return from_states(states)
 
 def clean_rooms(rooms):
     """remove some rooms we don't want to change from the dictionary of rooms"""

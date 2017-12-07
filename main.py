@@ -8,7 +8,6 @@ import argparse
 import shutil
 import sys
 
-
 #TODO: a better file structure would keep all the rando algorithms that produce door changes and item changes somewhere else
 # this file should just be the executable
 #TODO: figure out what's going on with Zip Tube
@@ -72,9 +71,11 @@ if __name__ == "__main__":
 
     # setup
     rooms = parse_rooms("encoding/rooms.txt")
-    all_items = set(item_types)
+    # copy it to remove Bombs
+    # TODO: GET RID OF Bombs
+    all_items = item_types[:]
     all_items.remove("Bombs")
-    all_items.add("B")
+    all_items = ItemSet(all_items)
     escape_timer = 0
 
     if args.completable:
@@ -101,7 +102,7 @@ if __name__ == "__main__":
                 # - to do this: if there's a "problematic" node in the shortest escape path,
                 # remove it from the graph and do another BFS. If there's no path, then award them time to beat that node
                 # If there is another path, then just award them time to complete that path
-                items = all_items | set(["Kraid", "Phantoon", "Draygon", "Ridley"])
+                items = all_items | ItemSet(["Kraid", "Phantoon", "Draygon", "Ridley"])
                 escape_start = BFSState("Escape_4_R", items)
                 escape_end = BFSState("Landing_Site_L2", items)
                 escape_path = graph.check_completability(escape_start, escape_end)
@@ -126,7 +127,7 @@ if __name__ == "__main__":
 
         # check completability - get to golden statues
         start_state = BFSState("Landing_Site_L2", all_items)
-        end_state = BFSState("Statues_ET", set())
+        end_state = BFSState("Statues_ET", ItemSet())
         path_to_statues = graph.check_completability(start_state, end_state)
         completable = path_to_statues is not None
         print "Completable: " + str(completable)
