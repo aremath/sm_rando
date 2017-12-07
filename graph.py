@@ -34,6 +34,8 @@ import collections
 from Queue import *
 
 #TODO: now that node, item set are both hashable... hash this?
+#TODO: alter graph so that the edge list is part of the node data structure?
+#TODO: alter graph so that node ID is an index into the graph? (faster hashing?)
 # I wish Python had abstract data types :(
 class BFSState(object):
 
@@ -86,11 +88,18 @@ class BFSItemsState(object):
     def __ne__(self, other):
         return not self == other
 
+    def __repr__(self):
+        return self.node + "\n\t" + str(self.items) + "\n\t" + str(self.wildcards) + "\n"
+
     # does other make progress relative to self?
     # if it's at another node with maybe better items
     # or if it's at the same node with strictly better items
+    #TODO: this isn't right
     def is_progress(self, other):
-        return self < other or (self.node != other.node and self.items <= other.items and len(self.wildcards) <= len(other.wildcards))
+        return self < other or (self.node != other.node and self.items <= other.items and len(self.wildcards) + len(self.items) <= len(other.wildcards) + len(other.items))
+    # a node is progress if it's the same node with either more items or more wildcards
+    # or it's a different node with at least the same items
+    # and the total number of items and wilcards is at least as large.
 
 #TODO: have graph implement __getitem__ instead of the clunky name_nodes
 # + maybe merge so that the node's edges are part of the node class?
@@ -325,6 +334,7 @@ class ConstraintGraph(object):
                 for item_set in edge.items.sets:
                     # items in item set that we don't already have
                     need_items = item_set - items
+                    #print need_items
                     # if we have enough wildcards to satisfy need_items and there are no fixed items that we do not already have
                     if len(need_items) <= len(wildcards) and len(need_items & fixed_items) == 0:
                         wildcards_copy = wildcards.copy()

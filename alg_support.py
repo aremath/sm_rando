@@ -154,6 +154,9 @@ def from_states(bfs_states):
         finished[state.node][state.items].append((state.wildcards, state.assignments))
     return finished
 
+#TODO: filter the to_states list so that only pareto-maximal elements are kept ?
+# - want to use states that keep wildcards instead of items
+# - want to use states that pick up wildcards instead of leaving them
 def filter_finished(pred, finished):
     """filters the bfs_items result to all states matching pred"""
     states = to_states(finished)
