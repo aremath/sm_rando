@@ -130,7 +130,7 @@ if __name__ == "__main__":
         end_state = BFSState("Statues_ET", ItemSet())
         path_to_statues = graph.check_completability(start_state, end_state)
         completable = path_to_statues is not None
-        print "Completable: " + str(completable)
+        print "Completable with all items: " + str(completable)
         if completable:
             print path_to_statues
 

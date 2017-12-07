@@ -122,13 +122,17 @@ def filter_paths(paths_through, state, room_exits):
 """
 
 # slightly less efficient than ^, but also much easier to read
+#TODO: Hacky
 def filter_paths(paths_through, state, room_exits):
     
     def is_path(other_state):
         if other_state.node not in room_exits:
             return False
         elif state.is_progress(other_state):
-            return True
+            if other_state.node == state.node + "dummy":
+                return (other_state.items > state.items or len(other_state.wildcards) > len(state.wildcards))
+            else:
+                return True
         else:
             return False
 
@@ -233,6 +237,7 @@ def door_direction(door_name):
     """get the direction letter for a door node"""
     return door_name.split("_")[-1].rstrip("0123456789")
 
+# TODO: update for state and ItemSet
 def check_backtrack(graph, current_node, backtrack_node, dummy_exits, current_wildcards, current_items, current_assignments, fixed_items):
     #print "backtracking to: " + backtrack_exit
     # pretend like they are connected - remove their dummy nodes from the list of dummies...

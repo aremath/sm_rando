@@ -2,6 +2,7 @@
 from alg_support import *
 import random
 
+#TODO: Orientation randomization????
 #TODO: some of the outputs for this don't make sense - for example it placed Space Jump then gave up (instead of putting a Super at space jump.)
 #TODO: This currently places a room at Warehouse_Zeelas_L2 without having Kraid
 # -> something is broken :(
@@ -43,7 +44,8 @@ def item_quota_rando(rooms, nitems=6):
     # keeps track of placed but not assigned item nodes
     unassigned_item_nodes = []
 
-    # make dummy exit nodes for landing_site - these dummy exits serve to let the BFS search not just reachable doors, but enterable doors.
+    # make dummy exit nodes for landing_site
+    # these dummy exits serve to let the BFS search not just reachable doors, but enterable doors.
     current_graph, dummy_exits = dummy_exit_graph(current_graph, exits_to_connect)
 
     #TODO: maybe doing this places too many items too early?
@@ -138,10 +140,10 @@ def item_quota_rando(rooms, nitems=6):
             if len(room[1][room_direction]) == 0:
                 continue
             chosen_entrance = random.choice(room[1][room_direction])
+            #TODO: where to start the BFS?
             entrance_state = BFSItemsState(chosen_entrance, current_state.wildcards, current_state.items, current_state.assignments)
             paths_through, _, _ = room_graph.BFS_items(entrance_state, None, fixed_items)
             paths_through = filter_paths(paths_through, entrance_state, room_dummy_exits)
-            #print paths_through
             # if there is at least one path-through - take one
             if len(paths_through) > 0:
                 #print current_assignments
@@ -191,8 +193,8 @@ def item_quota_rando(rooms, nitems=6):
         if node in current_graph.name_node:
             current_graph.name_node[node].data.type = item
     #print door_changes
-    #print current_items
-    #print current_wildcards
+    print current_state.items
+    print current_state.wildcards
     #print unassigned_item_nodes
     # place unassigned items
     #TODO: maybe do something more sophisticated to place progression items at reachable locations?
