@@ -202,20 +202,19 @@ def clean_rooms(rooms):
     # doesn't matter for the Pants room, but doesn't allow travel through escape, for example...
 
     # don't randomize Statues_ET
-    rooms["Statues"][1]["ET"].remove("Statues_ET")
+    rooms["Statues"].doors["ET"].remove("Statues_ET")
     # don't randomize Escape_4_L
-    rooms["Escape_4"][1]["L"].remove("Escape_4_L")
+    rooms["Escape_4"].doors["L"].remove("Escape_4_L")
     # don't randomize Pants_R2 or Pants_L2
-    rooms["Pants"][1]["R"].remove("Pants_R2")
-    rooms["Pants"][1]["L"].remove("Pants_L2")
+    rooms["Pants"].doors["R"].remove("Pants_R2")
+    rooms["Pants"].doors["L"].remove("Pants_L2")
 
 def check_door_totals(rooms):
     """checks door totals - make sure the number of left doors is equal to the number of right doors etc."""
     door_totals = collections.Counter()
     # check the total number of doors:
     for room in rooms.values():
-        room_doors = room[1]
-        for direction, dir_doors in room_doors.items():
+        for direction, dir_doors in room.doors.items():
             door_totals[direction] += len(dir_doors)
     for door, partner in door_hookups.items():
         assert door_totals[door] == door_totals[partner], door + ": " + str(door_totals[door]) + ", " + partner + ": " + str(door_totals[partner])

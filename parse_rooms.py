@@ -95,8 +95,8 @@ def make_room(room_defn):
 	for node1, node2 in scheduled_for_destruction:
 		graph.remove_edge(room_name + "_" + node1, room_name + "_" + node2)
 
-	room = Room(room_name, 0, graph)
-	return room, door_dict, item_nodes
+	room = Room(room_name, 0, graph, door_dict, item_nodes)
+	return room
 
 def parse_line(line, all_nodes=[]):
 	"""Categorizes and parses an item definition or edge definition line. The syntax is above"""
@@ -228,7 +228,7 @@ def parse_rooms(room_file):
 	for room_def in room_defs:
 		# if we got a room without any data somehow, chuck it
 		if len(room_def) >= 1:
-			room, door_dict, room_items = make_room(room_def)
-			rooms[room.name] = (room, door_dict, room_items)
+			room = make_room(room_def)
+			rooms[room.name] = room
 
 	return rooms

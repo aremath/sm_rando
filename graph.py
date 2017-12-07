@@ -439,10 +439,12 @@ class Boss(object):
 
 class Room(object):
 
-    def __init__(self, name, address, graph):
+    def __init__(self, name, address, graph, doors, item_nodes):
         self.name = name
         self.mem_address = address
         self.graph = graph
+        self.doors = doors
+        self.item_nodes = item_nodes
 
 #TODO: fix this for normal offers
 # offers:

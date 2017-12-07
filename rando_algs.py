@@ -17,8 +17,9 @@ def item_quota_rando(rooms, nitems=6):
     check_door_totals(rooms)
 
     landing_site = rooms.pop("Landing_Site")
-    current_graph = landing_site[0].graph
-    exits_to_connect = landing_site[1]
+    current_graph = landing_site.graph
+    #TODO: copy?
+    exits_to_connect = landing_site.doors
 
     # keeps track of the current BFS state
     current_state = BFSItemsState("Landing_Site_R2")
@@ -134,12 +135,12 @@ def item_quota_rando(rooms, nitems=6):
         for room_name in rooms_to_place:
             room = rooms[room_name]
             # add dummy exit nodes
-            room_graph, room_dummy_exits = dummy_exit_graph(room[0].graph, room[1])
+            room_graph, room_dummy_exits = dummy_exit_graph(room.graph, room.doors)
             room_direction = door_hookups[chosen_direction]
             # find an entrance that matches - TODO - for loop - all entrances that match
-            if len(room[1][room_direction]) == 0:
+            if len(room.doors[room_direction]) == 0:
                 continue
-            chosen_entrance = random.choice(room[1][room_direction])
+            chosen_entrance = random.choice(room.doors[room_direction])
             #TODO: where to start the BFS?
             entrance_state = BFSItemsState(chosen_entrance, current_state.wildcards, current_state.items, current_state.assignments)
             paths_through, _, _ = room_graph.BFS_items(entrance_state, None, fixed_items)
@@ -155,7 +156,7 @@ def item_quota_rando(rooms, nitems=6):
                 current_state.node = current_state.node[:-5]
 
                 # connect the two rooms at chosen_exit , chosen_entrance
-                room_unassigned_items = [x for x in room[2] if x not in current_state.assignments]
+                room_unassigned_items = [x for x in room.item_nodes if x not in current_state.assignments]
 
                 # update dummy exits!
                 if chosen_entrance + "dummy" in room_dummy_exits:
@@ -169,7 +170,7 @@ def item_quota_rando(rooms, nitems=6):
 
                 #update exits_to_connect
                 # add all the exits of the new room
-                for direction, doors in room[1].items():
+                for direction, doors in room.doors.items():
                     exits_to_connect[direction].extend(doors)
                 # now get rid of the two doors we just hooked up
                 exits_to_connect[chosen_direction].remove(chosen_exit)
@@ -243,7 +244,7 @@ def item_quota_rando(rooms, nitems=6):
             # pick a room to place - try rooms until we can place one
             found = -1
             for index in range(len(rooms_to_place)):
-                room_doors = rooms[rooms_to_place[index]][1]
+                room_doors = rooms[rooms_to_place[index]].doors
                 room_directions = room_doors.keys()
                 random.shuffle(room_directions)
                 for room_direction in room_directions:
@@ -258,7 +259,7 @@ def item_quota_rando(rooms, nitems=6):
                         new_room = rooms[rooms_to_place[index]]
                         # link the two exits
                         # add every exit in the new room to the list of exits we must connect
-                        for direction, doors in new_room[1].items():
+                        for direction, doors in new_room.doors.items():
                             exits_to_connect[direction].extend(doors)
                         # remove the two doors we just placed
                         exits_to_connect[room_direction].remove(direction_door)
@@ -267,10 +268,10 @@ def item_quota_rando(rooms, nitems=6):
                         door_changes.append((direction_door, exit))
 
                         # update the graph
-                        current_graph.add_room(exit, direction_door, new_room[0].graph)
+                        current_graph.add_room(exit, direction_door, new_room.graph)
 
                         # add items, if necessary
-                        for item_node in new_room[2]:
+                        for item_node in new_room.item_nodes:
                             item = items_to_place.pop()
                             current_graph.name_node[item_node].data.type = item
                             item_changes.append((item_node, item))
