@@ -165,7 +165,7 @@ class ConstraintGraph(object):
             for index, edge in enumerate(edges):
                 if edge.terminal == node:
                     indices_to_remove[inode] = index
-        # remove them
+        # remove them (can't mutate during iteration)
         for inode, index in indices_to_remove.items():
             del self.node_edges[inode][index]
 
@@ -275,7 +275,7 @@ class ConstraintGraph(object):
 
         # key - node name
         # key - item set
-        # value - tuples of (wildcards), (assignment)
+        # value - tuples of (wildcards (set), assignments (key - node, value - item assignment))
         finished = collections.defaultdict(lambda: collections.defaultdict(list))
 
         # what items we actually needed to reach the end...
@@ -351,8 +351,6 @@ class ConstraintGraph(object):
                             finished[edge.terminal][items_copy].append((wildcards_copy.copy(), assignments_copy.copy()))
                             queue.put(BFSItemsState(edge.terminal, wildcards_copy, items_copy, assignments_copy))
         return finished, final_state is not None, final_state
-
-
 
     #TODO: is this really useful?
     def check_completability(self, start_state, end_state):

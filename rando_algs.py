@@ -11,6 +11,10 @@ import random
 # if L -> E -> L isn't taken, we don't wind up with the item like usual.
 # also with Alpha_Power_Bombs
 
+#TODO: implement grey doors as an "impossible" item rather than as no edges?
+# potentially slightly slower, but also many fewer "check if there's an edge" cases
+# and no "check if there's a dummy exit" cases
+
 # new idea - give the player some items, then just randomly place the rest of the map
 def item_quota_rando(rooms, nitems=6):
     clean_rooms(rooms)
@@ -53,10 +57,10 @@ def item_quota_rando(rooms, nitems=6):
     while len(rooms_to_place) > 0:
     #while len(current_items) < nitems:
         # wildcard BFS to find reachable exits
-        #print "loop"
-        #print current_state.node
+        #print "At: " + str(current_state)
         #print current_state.wildcards
         bfs_finished, _, _ = current_graph.BFS_items(current_state, None, fixed_items)
+        #print_finished(bfs_finished)
         # dict comprehensions! - filter bfs_finished for the entries that are dummy exits, and actually have a path to them.
         reachable_exits = {exit: bfs_finished[exit] for exit in dummy_exits if len(bfs_finished[exit]) != 0}
 
@@ -70,7 +74,7 @@ def item_quota_rando(rooms, nitems=6):
         # if we haven't already connected the current exit and if there is a valid backtracking exit
         if current_node in exits_to_connect[current_direction] and len(exits_to_connect[door_hookups[current_direction]]) > 0:
             backtrack_exit = random.choice(exits_to_connect[door_hookups[current_direction]])
-                        #print "backtracking to: " + backtrack_exit
+            #print "backtracking to: " + backtrack_exit
             # pretend like they are connected - remove their dummy nodes from the list of dummies...
             # make a shallow copy first - if it turns out that backtracking was a bad decision, we need the original
             dummy_copy = dummy_exits[:]
@@ -78,19 +82,22 @@ def item_quota_rando(rooms, nitems=6):
                 dummy_copy.remove(current_node + "dummy")
             if backtrack_exit + "dummy" in dummy_copy:
                 dummy_copy.remove(backtrack_exit + "dummy")
-            # and put edges between them
+            # and put edges between them via an intermediate
+            #TODO: this is slow (removing a node), but safe
+            intermediate = current_node + "_int_" + backtrack_exit
+            current_graph.add_node(intermediate)
             current_exit_constraints = current_graph.name_node[current_node].data.items
             backtrack_exit_constraints = current_graph.name_node[backtrack_exit].data.items
             if current_exit_constraints is not None:
-                current_graph.add_edge(current_node, backtrack_exit, current_exit_constraints)
+                current_graph.add_edge(current_node, intermediate, current_exit_constraints)
+                current_graph.add_edge(intermediate, backtrack_exit, MinSetSet())
             if backtrack_exit_constraints is not None:
-                current_graph.add_edge(backtrack_exit, current_node, backtrack_exit_constraints)
+                current_graph.add_edge(backtrack_exit, intermediate, backtrack_exit_constraints)
+                current_graph.add_edge(intermediate, current_node, MinSetSet())
 
             # find the reachable exits under the new scheme (start from current node, to ensure you can get to backtrack exit)
             backtrack_finished, _, _ = current_graph.BFS_items(current_state, None, fixed_items)
             backtrack_exits = {exit: backtrack_finished[exit] for exit in dummy_copy if len(bfs_finished[exit]) != 0}
-            #print len(backtrack_exits)
-            #print len(reachable_exits)
 
             #TODO: greater than or equal to?
             # if there are more reachable exits by backtracking, do so!
@@ -113,11 +120,7 @@ def item_quota_rando(rooms, nitems=6):
                 reachable_exits = backtrack_exits
             # otherwise, repair the damage to the graph and keep going
             else:
-                if current_exit_constraints is not None:
-                    current_graph.remove_edge(current_node, backtrack_exit)
-                if backtrack_exit_constraints is not None:
-                    current_graph.remove_edge(backtrack_exit, current_node)
-
+                current_graph.remove_node(intermediate)
 
         if len(reachable_exits.keys()) == 0:
             # if there aren't any reachable exits, place the rest of the rooms at random - hopefully there's a path to statues :)
@@ -131,6 +134,7 @@ def item_quota_rando(rooms, nitems=6):
         chosen_direction = door_direction(chosen_exit[:-5])
 
         # find a room with a path-through
+        #TODO: shuffle them to eliminate the extra work of getting re-testing of bad rooms?
         found = False
         for room_name in rooms_to_place:
             room = rooms[room_name]
@@ -168,13 +172,16 @@ def item_quota_rando(rooms, nitems=6):
                 chosen_exit = chosen_exit[:-5]
                 dummy_exits.extend(room_dummy_exits)
 
-                #update exits_to_connect
+                # update exits_to_connect
                 # add all the exits of the new room
+                # it would be nice to just add these two dicts together using a defined +
                 for direction, doors in room.doors.items():
                     exits_to_connect[direction].extend(doors)
                 # now get rid of the two doors we just hooked up
                 exits_to_connect[chosen_direction].remove(chosen_exit)
                 exits_to_connect[room_direction].remove(chosen_entrance)
+
+                # add the graph of the other room
                 current_graph.add_room(chosen_exit, chosen_entrance, room_graph)
 
                 door_changes.append((chosen_exit, chosen_entrance))

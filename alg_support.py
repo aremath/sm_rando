@@ -163,6 +163,15 @@ def filter_finished(pred, finished):
     states = filter(pred, states)
     return from_states(states)
 
+def print_finished(finished):
+    "prints a BFS_Items finished table"
+    for node in finished:
+        print node
+        for iset in finished[node]:
+            print "\t" + str(iset)
+            for wildcards, assignments in finished[node][iset]:
+                print "\t\t" + str(wildcards) + "\t" + str(assignments)
+
 def clean_rooms(rooms):
     """remove some rooms we don't want to change from the dictionary of rooms"""
     #TODO: this doesn't quite work... poping a room means I don't want to randomize any of its doors

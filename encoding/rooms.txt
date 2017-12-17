@@ -38,7 +38,7 @@ R1			- PB
 R2			- S
 ALL -> L1	- | (& SB E) (& SJ (| B PB SA))
 L1 -> ALL	- | B PB SA
-ALL -> R1	- | SB SJ
+ALL -> R1	- | (& SB E) SJ
 
 Gauntlet_Entrance - 792B3
 L
