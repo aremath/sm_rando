@@ -12,6 +12,10 @@ import random
 # potentially slightly slower, but also many fewer "check if there's an edge" cases
 # and no "check if there's a dummy exit" cases
 
+#TODO: figure out where / why this is getting stuck
+#TODO: keep the state at the end to help with the final BFS
+#TODO: see if the item quota idea actually works??
+
 # new idea - give the player some items, then just randomly place the rest of the map
 def item_quota_rando(rooms, nitems=6):
     clean_rooms(rooms)
@@ -53,9 +57,8 @@ def item_quota_rando(rooms, nitems=6):
     #TODO: maybe doing this places too many items too early?
     while len(rooms_to_place) > 0:
     #while len(current_items) < nitems:
-        # wildcard BFS to find reachable exits
         #print "At: " + str(current_state)
-        #print current_state.wildcards
+        # wildcard BFS to find reachable exits
         bfs_finished, _, _ = current_graph.BFS_items(current_state, None, fixed_items)
         #print_finished(bfs_finished)
         # dict comprehensions! - entries of bfs_finished that are dummy exits and actually have a path to them.
@@ -65,56 +68,36 @@ def item_quota_rando(rooms, nitems=6):
         #TODO: I think this works now... Consider multiple backtracks?
         # if there are more reachable exits by backtracking, do so!
         # choose a random (already-placed) door that this door can hook up with
-        #TODO: no need for current_node...
-        current_node = current_state.node
-        current_direction = door_direction(current_node)
+        current_direction = door_direction(current_state.node)
         # if we haven't already connected the current exit and if there is a valid backtracking exit
-        if current_node in exits_to_connect[current_direction] and len(exits_to_connect[door_hookups[current_direction]]) > 0:
+        if current_state.node in exits_to_connect[current_direction] and len(exits_to_connect[door_hookups[current_direction]]) > 0:
             backtrack_exit = random.choice(exits_to_connect[door_hookups[current_direction]])
-            #print "backtracking to: " + backtrack_exit
-            # pretend like they are connected - remove their dummy nodes from the list of dummies...
-            # make a shallow copy first - if it turns out that backtracking was a bad decision, we need the original
-            dummy_copy = dummy_exits[:]
-            if current_node + "dummy" in dummy_copy:
-                dummy_copy.remove(current_node + "dummy")
-            if backtrack_exit + "dummy" in dummy_copy:
-                dummy_copy.remove(backtrack_exit + "dummy")
-            # and put edges between them via an intermediate
-            #TODO: this is slow (removing a node), but safe
-            intermediate = current_node + "_int_" + backtrack_exit
-            current_graph.add_node(intermediate)
-            current_exit_constraints = current_graph.name_node[current_node].data.items
-            backtrack_exit_constraints = current_graph.name_node[backtrack_exit].data.items
-            if current_exit_constraints is not None:
-                current_graph.add_edge(current_node, intermediate, current_exit_constraints)
-                current_graph.add_edge(intermediate, backtrack_exit, MinSetSet())
-            if backtrack_exit_constraints is not None:
-                current_graph.add_edge(backtrack_exit, intermediate, backtrack_exit_constraints)
-                current_graph.add_edge(intermediate, current_node, MinSetSet())
+            backtrack_finished, dummy_copy, intermediate = check_backtrack(current_graph, current_state, backtrack_exit, dummy_exits, fixed_items)
 
-            # find the reachable exits under the new scheme (start from current node, to ensure you can get to backtrack exit)
-            backtrack_finished, _, _ = current_graph.BFS_items(current_state, None, fixed_items)
-            backtrack_exits = {exit: backtrack_finished[exit] for exit in dummy_copy if len(bfs_finished[exit]) != 0}
+            #print "at: " + current_state.node
+            #print "try backtrack to: " + backtrack_exit
+            #print "reaching: " + str(backtrack_finished.keys())
+            #print "with no backtrack: " + str(reachable_exits.keys())
 
             #TODO: greater than or equal to?
             # if there are more reachable exits by backtracking, do so!
-            if len(backtrack_exits.keys()) > len(reachable_exits.keys()):
-                print "BACKTRACKED!"
+            if len(backtrack_finished.keys()) > len(reachable_exits.keys()):
+                #print "BACKTRACKED!"
                 # those dummy exits aren't there anymore
                 # remove the actual dummy exits from the graph
-                if current_node + "dummy" in dummy_exits:
-                    current_graph.remove_node(current_node + "dummy")
+                if current_state.node + "dummy" in dummy_exits:
+                    current_graph.remove_node(current_state.node + "dummy")
                 if backtrack_exit + "dummy" in dummy_exits:
                     current_graph.remove_node(backtrack_exit + "dummy")
                 # the copied dummy already has those exits removed.
                 dummy_exits = dummy_copy
                 # we no longer have to connect them
-                exits_to_connect[current_direction].remove(current_node)
+                exits_to_connect[current_direction].remove(current_state.node)
                 exits_to_connect[door_hookups[current_direction]].remove(backtrack_exit)
                 # update door changes
-                door_changes.append((current_node, backtrack_exit))
+                door_changes.append((current_state.node, backtrack_exit))
                 # set reachable exits so that the next part works
-                reachable_exits = backtrack_exits
+                reachable_exits = backtrack_finished
             # otherwise, repair the damage to the graph and keep going
             else:
                 current_graph.remove_node(intermediate)

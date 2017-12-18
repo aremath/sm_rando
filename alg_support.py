@@ -256,7 +256,7 @@ def check_backtrack(graph, current_state, backtrack_node, dummy_exits, fixed_ite
     if current_state.node + "dummy" in dummy_copy:
             dummy_copy.remove(current_state.node + "dummy")
     if backtrack_node + "dummy" in dummy_copy:
-            dummy_copy.remove(backtrack_+ "dummy")
+            dummy_copy.remove(backtrack_node + "dummy")
     # and put edges between them via an intermediate
     # TODO: removing a node is slow, but doesn't wreck the graph
     intermediate = current_state.node + "_int_" + backtrack_node
@@ -270,8 +270,8 @@ def check_backtrack(graph, current_state, backtrack_node, dummy_exits, fixed_ite
             graph.add_edge(backtrack_node, intermediate, backtrack_node_constraints)
             graph.add_edge(intermediate, current_state.node)
     # find the reachable exits under the new scheme (start from current node, to ensure you can get to backtrack exit)
-    backtrack_finished, _, _ = current_graph.BFS_items(current_state, fixed_items=fixed_items)
-    backtrack_exits = {exit: backtrack_finished[exit] for exit in dummy_copy if len(bfs_finished[exit]) != 0}
+    backtrack_finished, _, _ = graph.BFS_items(current_state, fixed_items=fixed_items)
+    backtrack_exits = {exit: backtrack_finished[exit] for exit in dummy_copy if len(backtrack_finished[exit]) != 0}
     # return the intermediate so that the alg can remove it if this backtrack wasn't used
     return backtrack_exits, dummy_copy, intermediate
 
