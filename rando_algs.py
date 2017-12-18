@@ -2,10 +2,7 @@
 from alg_support import *
 import random
 
-#TODO: Orientation randomization????
-#TODO: some of the outputs for this don't make sense - for example it placed Space Jump then gave up (instead of putting a Super at space jump.)
-#TODO: This currently places a room at Warehouse_Zeelas_L2 without having Kraid
-# -> something is broken :(
+#TODO: Room Orientation randomization???? (far future)
 #TODO: This doesn't always take the "right" path-through. For example,
 # with Hopper_Energy, there are two paths from L. L, and L -> E -> L.
 # if L -> E -> L isn't taken, we don't wind up with the item like usual.
@@ -61,7 +58,7 @@ def item_quota_rando(rooms, nitems=6):
         #print current_state.wildcards
         bfs_finished, _, _ = current_graph.BFS_items(current_state, None, fixed_items)
         #print_finished(bfs_finished)
-        # dict comprehensions! - filter bfs_finished for the entries that are dummy exits, and actually have a path to them.
+        # dict comprehensions! - entries of bfs_finished that are dummy exits and actually have a path to them.
         reachable_exits = {exit: bfs_finished[exit] for exit in dummy_exits if len(bfs_finished[exit]) != 0}
 
         #TODO: might need to decide on a reachable exit first?

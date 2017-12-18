@@ -248,30 +248,30 @@ def door_direction(door_name):
     """get the direction letter for a door node"""
     return door_name.split("_")[-1].rstrip("0123456789")
 
-# TODO: update for state and ItemSet
-def check_backtrack(graph, current_node, backtrack_node, dummy_exits, current_wildcards, current_items, current_assignments, fixed_items):
-    #print "backtracking to: " + backtrack_exit
+def check_backtrack(graph, current_state, backtrack_node, dummy_exits, fixed_items):
+    #print "backtracking to: " + backtrack_node
     # pretend like they are connected - remove their dummy nodes from the list of dummies...
     # make a shallow copy first - if it turns out that backtracking was a bad decision, we need the original
     dummy_copy = dummy_exits[:]
-    if current_node + "dummy" in dummy_copy:
-            dummy_copy.remove(current_node + "dummy")
+    if current_state.node + "dummy" in dummy_copy:
+            dummy_copy.remove(current_state.node + "dummy")
     if backtrack_node + "dummy" in dummy_copy:
             dummy_copy.remove(backtrack_+ "dummy")
-    # and put edges between them
-    current_node_constraints = current_graph.name_node[current_node].data.items
-    backtrack_node_constraints = current_graph.name_node[backtrack_exit].data.items
+    # and put edges between them via an intermediate
+    # TODO: removing a node is slow, but doesn't wreck the graph
+    intermediate = current_state.node + "_int_" + backtrack_node
+    graph.add_node(intermediate)
+    current_node_constraints = graph.name_node[current_state.node].data.items
+    backtrack_node_constraints = graph.name_node[backtrack_node].data.items
     if current_node_constraints is not None:
-            graph.add_edge(current_node, backtrack_node, current_node_constraints)
+            graph.add_edge(current_state.node, intermediate, current_node_constraints)
+            graph.add_edge(intermediate, backtrack_node)
     if backtrack_node_constraints is not None:
-            graph.add_edge(backtrack_node, current_node, backtrack_node_constraints)
+            graph.add_edge(backtrack_node, intermediate, backtrack_node_constraints)
+            graph.add_edge(intermediate, current_state.node)
     # find the reachable exits under the new scheme (start from current node, to ensure you can get to backtrack exit)
-    backtrack_finished, _, _ = current_graph.BFS_items(current_node, None, current_wildcards, current_items, current_assignments, fixed_items)
+    backtrack_finished, _, _ = current_graph.BFS_items(current_state, fixed_items=fixed_items)
     backtrack_exits = {exit: backtrack_finished[exit] for exit in dummy_copy if len(bfs_finished[exit]) != 0}
-    # remove the edges we added
-    if graph.is_edge(current_node, backtrack_node):
-        graph.remove_edge(current_node, backtrack_node)
-    if graph.is_edge(backtrack_node, current_node):
-        graph.remove_edge(backtrack_node, current_node)
-    return backtrack_exits, dummy_copy
+    # return the intermediate so that the alg can remove it if this backtrack wasn't used
+    return backtrack_exits, dummy_copy, intermediate
 
