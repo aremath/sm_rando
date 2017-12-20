@@ -14,13 +14,11 @@ import sys
 #TODO: graphical glitches after kraid? - can pause to fix, or also just leave kraid's room connected to the kraid eye door room
 #TODO: sand pits don't always connect up - different sizes
 #TODO: change scroll "colors" in kraid, crocomire, sporespawn, shaktool rooms?
-#TODO: G4 and varia cutscene .ipss
 #TODO: door leading to top of bowling turns grey once you beat phantoon?
 #TODO: make the RNG seed work -> random dictionary word?
 #TODO: is it possible to go back through bowling alley?
 #   make the create filename with the seed
 #TODO: figure out what's going on with multiple item copies
-#TODO: make the rom work
 #TODO: get rid of Drain...?
 #TODO: make the --completable option work
 
