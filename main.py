@@ -13,54 +13,70 @@ import sys
 #TODO: figure out what's going on with Zip Tube
 #TODO: graphical glitches after kraid? - can pause to fix, or also just leave kraid's room connected to the kraid eye door room
 #TODO: sand pits don't always connect up - different sizes
-#TODO: make sand easier to jump out of - write 00 to 0x2348c and 00 to 0x234bd ?
-	# Botwoon_Energy_Farm doesn't require any items now
-	# Both sand halls can be done with HJ
-	# Butterfly room doesn't require HJ
-	# colosseum can be done with either only gravity or only grapple beam :D
 #TODO: change scroll "colors" in kraid, crocomire, sporespawn, shaktool rooms?
 #TODO: G4 and varia cutscene .ipss
 #TODO: door leading to top of bowling turns grey once you beat phantoon?
 #TODO: make the RNG seed work -> random dictionary word?
 #TODO: is it possible to go back through bowling alley?
 #   make the create filename with the seed
-#TODO: figure out what's going on with pants room
 #TODO: figure out what's going on with multiple item copies
 #TODO: make the rom work
+#TODO: get rid of Drain...?
+#TODO: make the --completable option work
 
 def rom_setup(rom, time):
-	"""edits rom to skip ceres, etc."""
-	# skip ceres
-	# TODO: this doesn't work when the rooms are randomized...?
-	#write_raw_bytes(rom, "0x0016ebb", "\x05")
+    """edits rom to skip ceres, etc."""
+    # skip ceres
+    # TODO: this doesn't work when the rooms are randomized...?
+    #write_raw_bytes(rom, "0x0016ebb", "\x05")
 
-	#TODO: there's some bug here I think... :(
-	# change escape timer
-	# first, convert to minutes, seconds:
-	minutes = time / 60
-	seconds = time % 60
+    # make sand easier to jump out of without gravity
+    write_raw_bytes(rom, "0x2348c", "\x00")
+    write_raw_bytes(rom, "0x234bd", "\x00")
 
-	# get the number as hex bytes
-	minute_bytes = int_to_hex(minutes)
-	second_bytes = int_to_hex(seconds)
+    # remove gravity suit heat protection
+    write_raw_bytes(rom, "0x6e37d", "\x01")
+    write_raw_bytes(rom, "0x869dd", "\x01")
 
-	# can't write more than one byte!
-	assert len(minute_bytes) == 1, "Minutes too long"
-	assert len(second_bytes) == 1, "Seconds too long"
+    # suit animation skip #TODO
+    write_raw_bytes(rom, "0x20717", "\xea\xea\xea\xea")
 
-	# write seconds
-	write_raw_bytes(rom, "0x0001e21", second_bytes)
-	# write minutes
-	write_raw_bytes(rom, "0x0001e22", minute_bytes)
+    # fix heat damage speed echoes bug #TODO: verify
+    write_raw_bytes(rom, "0x8b629", "\x01")
 
-	#TODO: apply other IPSs
+    # disable GT Code #TODO: verify
+    write_raw_bytes(rom, "0x15491c", "\x80")
+
+    #TODO: there's some bug here I think... :(
+    # change escape timer
+    # first, convert to minutes, seconds:
+    minutes = time / 60
+    seconds = time % 60
+
+    # get the number as hex bytes
+    minute_bytes = int_to_hex(minutes)
+    second_bytes = int_to_hex(seconds)
+
+    # can't write more than one byte!
+    assert len(minute_bytes) == 1, "Minutes too long"
+    assert len(second_bytes) == 1, "Seconds too long"
+
+    # write seconds
+    write_raw_bytes(rom, "0x0001e21", second_bytes)
+    # write minutes
+    write_raw_bytes(rom, "0x0001e22", minute_bytes)
+
+    # apply other IPSs #TODO: make sure this works!
+    apply_ips("patches/g4_skip.ips", rom)
+    apply_ips("patches/max_ammo_display.ips", rom)
+    apply_ips("patches/wake_zebes.ips", rom)
 
 def seed_rng(seed):
-	seed = args.seed
-	if seed is None:
-		seed = random.randrange(sys.maxsize)
-	random.seed(seed)
-	return seed
+    seed = args.seed
+    if seed is None:
+        seed = random.randrange(sys.maxsize)
+    random.seed(seed)
+    return seed
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Welcome to the Super Metroid Door randomizer!")
@@ -137,15 +153,21 @@ if __name__ == "__main__":
         print "Completable without items: " + str(completable)
         if completable:
             print path_to_statues
-
-        # check completability - get to golden statues
-        start_state = BFSState("Landing_Site_L2", all_items)
-        end_state = BFSState("Statues_ET", ItemSet())
-        path_to_statues = graph.check_completability(start_state, end_state)
-        completable = path_to_statues is not None
-        print "Completable with all items: " + str(completable)
-        if completable:
-            print path_to_statues
+            # escape?
+            items = all_items | ItemSet(["Kraid", "Phantoon", "Draygon", "Ridley"])
+            escape_start = BFSState("Escape_4_R", items)
+            escape_end = BFSState("Landing_Site_L2", items)
+            escape_path = graph.check_completability(escape_start, escape_end)
+            if escape_path is None:
+                print "Can't Escape!"
+            else:
+                spoiler_file.write("Path to Escape:\n")
+                spoiler_file.write(str(escape_path))
+                # one minute to get out of tourian, then 30 seconds per room
+                #TODO: is this fair? the player might need to farm and explore...
+                escape_time = 60 + 15 * len(escape_path)
+                spoiler_file.write("\n")
+                spoiler_file.write("Esape Timer: " + str(escape_time) + " seconds")
 
     print "RNG SEED - " + str(seed)
 

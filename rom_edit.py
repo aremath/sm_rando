@@ -107,12 +107,11 @@ def make_doors(door_list, clean_rom, write_rom):
 
     for door1, door2 in door_list:
         # special-case the pants room!
-        # TODO: this didn't quite work...
-        if door1 == "Pants_R":
+        if door1 == "Pants_R1":
             write_raw_bytes(write_rom, door_from[door1], door_to[door2])
             write_raw_bytes(write_rom, door_from[door2], door_to["Pants_Right_R"])
             write_raw_bytes(write_rom, door_from["Pants_Right_R"], door_to[door2])
-        elif door2 == "Pants_R":
+        elif door2 == "Pants_R1":
             write_raw_bytes(write_rom, door_from[door2], door_to[door1])
             write_raw_bytes(write_rom, door_from[door1], door_to["Pants_Right_R"])
             write_raw_bytes(write_rom, door_from["Pants_Right_R"], door_to[door1])
@@ -123,26 +122,6 @@ def make_doors(door_list, clean_rom, write_rom):
                 write_raw_bytes(write_rom, door_from[door1], door_to[door2])
             if door2 in door_from and door1 in door_to:
                 write_raw_bytes(write_rom, door_from[door2], door_to[door1])
-
-"""
-def parse_item_defns(item_definitions_file):
-    f = open(item_definitions_file, "r")
-    # key1 - item type (M, S, SJ, SA, etc.)
-    # key2 - location type ((N)ormal, (C)hozo, (H)idden)
-    # value - item memory to write to get that item
-    item_defs = collections.defaultdict(dict)
-    for line in f.readlines():
-        # remove junk
-        line = line.strip()
-        # skip comments
-        if line[0] == "#":
-            continue
-        (item_type, n_item, c_item, h_item) = line.split()
-        item_defs[item_type]["N"] = exec(n_item)
-        item_defs[item_type]["C"] = exec(c_item)
-        item_defs[item_type]["H"] = exec(h_item)
-    return item_defs
-"""
 
 def parse_item_locations(item_locations_file):
     f = open(item_locations_file)
@@ -220,7 +199,6 @@ def apply_ips(ips_file, write_rom, offset=5):
             offset += true_length
 
     # write the data
-    print bytes_to_write
     for address, data in bytes_to_write:
         write_raw_bytes(write_rom, address, data)
 

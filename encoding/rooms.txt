@@ -1316,8 +1316,8 @@ West_Sand_Hall - 7D461
 L
 R
 TS							- X
-L <-> R						- GS
-TS -> ALL					- GS
+L <-> R						- | HJ GS
+TS -> ALL					- | HJ GS
 
 Oasis - 7D48E
 L
@@ -1330,9 +1330,8 @@ East_Sand_Hall - 7D4C2
 L
 R
 TS							- X
-L -> R						- GS
-R -> L						- | GS HJ
-TS -> ALL					- GS
+L <-> R						- | GS HJ
+TS -> ALL					- | GS HJ
 
 West_Sand_Hole - 7D4EF
 TS							- X
@@ -1374,7 +1373,6 @@ Butterfly_Room - 7D5EC
 TS							- X
 L
 R							- Draygon
-L <-> R						- | GS HJ B
 
 # no ice clip for you >:D
 Botwoon_Hallway - 7D617
@@ -1411,15 +1409,13 @@ Botwoon_Energy_Farm - 7D6FD
 L
 TS1							- X
 TS2							- X
-ALL -> L					- | GS HJ
 
 Colosseum - 7D72A
 L
 R1							- M
 R2							- S
-L <-> (R1 R2)				- | GS (& HJ G)
-R1 -> R2					- | GS HJ
-R2 -> R1					- | GS (& HJ G)
+L <-> (R1 R2)				- | GS G
+R2 -> R1					- | GS G
 
 Aqueduct_Save - 7D765
 R
