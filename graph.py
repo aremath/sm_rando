@@ -94,7 +94,7 @@ class BFSItemsState(object):
     # does other make progress relative to self?
     # if it's at another node with maybe better items
     # or if it's at the same node with strictly better items
-    #TODO: this isn't right
+    #TODO: this isn't right?
     def is_progress(self, other):
         return self < other or (self.node != other.node and self.items <= other.items and len(self.wildcards) + len(self.items) <= len(other.wildcards) + len(other.items))
     # a node is progress if it's the same node with either more items or more wildcards
@@ -275,8 +275,15 @@ class ConstraintGraph(object):
 
         # key - node name
         # key - item set
-        # value - tuples of (wildcards (set), assignments (key - node, value - item assignment))
+        # value - list of tuples of (wildcards (set), assignments (key - node, value - item assignment))
         finished = collections.defaultdict(lambda: collections.defaultdict(list))
+
+        def is_finished(state):
+            count = 0
+            for x in finished[state.node][state.items]:
+                if len(x[0]) >= len(state.wildcards):
+                    count += 1
+            return count > 0
 
         # what items we actually needed to reach the end...
         final_state = None
@@ -295,50 +302,50 @@ class ConstraintGraph(object):
         queue.put(start_state)
         while queue.qsize() > 0:
             state = queue.get()
-            node = state.node
             wildcards = state.wildcards
             items = state.items
             assignments = state.assignments
             if end_state is not None and state >= end_state:
                 final_state = state
                 break
-            node_data = self.name_node[node].data
+            node_data = self.name_node[state.node].data
             # in addition to fixed items, pass an assigments list and check it
             if isinstance(node_data, Item):
                 # if we don't already have this item, pick it up
-                if node not in wildcards and node not in assignments:
-                    wildcards.add(node)
+                if state.node not in wildcards and state.node not in assignments:
+                    wildcards.add(state.node)
                     # if there's not already an entry for this item set with at least as many wildcards, then add it
-                    if len([x for x in finished[node][items] if len(x[0]) >= len(wildcards)]) == 0:
-                        finished[node][items].append((wildcards.copy(), assignments.copy()))
+                    if not is_finished(state):
+                        finished[state.node][state.items.copy()].append((wildcards.copy(), assignments.copy()))
                         queue.put(state.copy())
                     # there's no need to process edges - picking up that item will allow you to cross strictly more edges
                     continue
-                elif node in assignments:
-                    if assignments[node] not in items:
-                        items |= ItemSet(assignments[node])
-                        finished[node][items].append((wildcards.copy(), assignments.copy()))
-                        queue.put(state.copy())
+                elif state.node in assignments:
+                    if assignments[state.node] not in items:
+                        state.items |= ItemSet(assignments[state.node])
+                        if not is_finished(state):
+                            finished[state.node][state.items.copy()].append((wildcards.copy(), assignments.copy()))
+                            queue.put(state.copy())
                         continue
             elif isinstance(node_data, Boss):
-                # if we haven't defeated this boss yet, do so.
+                # if we haven't defeated this boss yet, do so
                 if node_data.type not in items:
-                    items |= ItemSet([node_data.type])
-                    finished[node][items].append((wildcards.copy(), assignments.copy()))
-                    queue.put(state.copy())
+                    state.items |= ItemSet([node_data.type])
+                    if not is_finished(state):
+                        finished[state.node][state.items.copy()].append((wildcards.copy(), assignments.copy()))
+                        queue.put(state.copy())
                     # there's no need to process edges - defeating that boss will allow you to cross strictly more edges
                     continue
             # now cross edges
-            for edge in self.node_edges[node]:
+            for edge in self.node_edges[state.node]:
                 # for each set, use some wildcards to cross it, then add that node with those assignments to the queue
                 for item_set in edge.items.sets:
                     # items in item set that we don't already have
-                    need_items = item_set - items
-                    #print need_items
+                    need_items = item_set - state.items
                     # if we have enough wildcards to satisfy need_items and there are no fixed items that we do not already have
                     if len(need_items) <= len(wildcards) and len(need_items & fixed_items) == 0:
                         wildcards_copy = wildcards.copy()
-                        items_copy = items.copy()
+                        items_copy = state.items.copy()
                         assignments_copy = assignments.copy()
                         # make an assignment that allows crossing that edge
                         for item in need_items:
@@ -346,7 +353,7 @@ class ConstraintGraph(object):
                             assignments_copy[wildcard] = item
                             items_copy.add(item)
                         # if there's not already an entry for this item set with at least as many wildcards, then add it
-                        if len([x for x in finished[edge.terminal][items] if len(x[0]) >= len(wildcards)]) == 0:
+                        if not is_finished(BFSItemsState(edge.terminal, wildcards_copy, items_copy, assignments)):
                             # make sure finished has different pointers than queue!
                             finished[edge.terminal][items_copy].append((wildcards_copy.copy(), assignments_copy.copy()))
                             queue.put(BFSItemsState(edge.terminal, wildcards_copy, items_copy, assignments_copy))

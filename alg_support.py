@@ -44,6 +44,7 @@ def connect_doors(door1, direction1, door2, direction2, graph, exits_to_place, d
     if door2_data.items is not None:
         graph.add_edge(door2, door1, door2_data.items)
 
+#TODO have this take just a room, now that rooms have .doors?
 def dummy_exit_graph(graph, exits):
     dummy_exits = []
     dummy_graph = graph.copy()
@@ -130,7 +131,7 @@ def filter_paths(paths_through, state, room_exits):
             return False
         elif state.is_progress(other_state):
             if other_state.node == state.node + "dummy":
-                return (other_state.items > state.items or len(other_state.wildcards) > len(state.wildcards))
+                return ((other_state.items > state.items) or (len(other_state.wildcards) > len(state.wildcards)))
             else:
                 return True
         else:

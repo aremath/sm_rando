@@ -1,6 +1,7 @@
 # 36 items -> 64 bit set?
 # does python guarantee storage in 64 bit integers rather than some weird thing?
-# TODO: doing a hashtable lookup every time is slow
+#TODO: doing a hashtable lookup every time is slow
+#TODO: maybe not have a class? dealing with copy is sad
 item_mapping = {
     "B" : 1,
     "PB" : 1 << 1,
@@ -74,6 +75,12 @@ class ItemSet(object):
         return self.num == other.num
 
     # subset
+    def __lt__(self, other):
+        return self <= other and self != other
+
+    def __gt__(self, other):
+        return other < self
+
     def __le__(self, other):
         # s is a subset of o of adding s to o adds nothing
         return (self.num | other.num) == other.num

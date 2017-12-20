@@ -515,7 +515,7 @@ R1						- S
 R2						- M
 
 Kraid - 7A59F
-L
+L						- Kraid
 R
 Kraid
 L -> Kraid				- CB
@@ -734,7 +734,7 @@ R1								- S
 R2
 B
 M
-ALL -> L1						- | G SJ (| IB HJ)
+ALL -> L1						- | G SJ (& IB HJ)
 ALL -> (R1 R2)					- | HJ SJ
 ALL <-> (L4 B)					- | B PB
 

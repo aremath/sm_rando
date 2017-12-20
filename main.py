@@ -21,13 +21,18 @@ import sys
 #TODO: change scroll "colors" in kraid, crocomire, sporespawn, shaktool rooms?
 #TODO: G4 and varia cutscene .ipss
 #TODO: door leading to top of bowling turns grey once you beat phantoon?
+#TODO: make the RNG seed work -> random dictionary word?
+#TODO: is it possible to go back through bowling alley?
+#   make the create filename with the seed
+#TODO: figure out what's going on with pants room
+#TODO: figure out what's going on with multiple item copies
+#TODO: make the rom work
 
 def rom_setup(rom, time):
 	"""edits rom to skip ceres, etc."""
 	# skip ceres
-	# TODO: this doesn't really work when the rooms are randomized...?
+	# TODO: this doesn't work when the rooms are randomized...?
 	#write_raw_bytes(rom, "0x0016ebb", "\x05")
-
 
 	#TODO: there's some bug here I think... :(
 	# change escape timer
@@ -123,7 +128,15 @@ if __name__ == "__main__":
         #door_changes, item_changes, graph = basic_rando(rooms)
         door_changes = []
         item_changes = []
-        door_changes, item_changes, graph = item_quota_rando(rooms)
+        door_changes, item_changes, graph, state = item_quota_rando(rooms)
+        # check completability
+        start_state = BFSState(state.node, state.items)
+        end_state = BFSState("Statues_ET", ItemSet())
+        path_to_statues = graph.check_completability(start_state, end_state)
+        completable = path_to_statues is not None
+        print "Completable without items: " + str(completable)
+        if completable:
+            print path_to_statues
 
         # check completability - get to golden statues
         start_state = BFSState("Landing_Site_L2", all_items)

@@ -3,8 +3,7 @@ from graph import *
 from alg_support import *
 
 #TODO: test files in another folder?
-#TODO: create a function for testing room x
-#TODO: need ASSERTS
+#TODO: create a function for testing room x for a given property
 if __name__ == "__main__":
     rooms = parse_rooms("encoding/rooms.txt")
     warehouse_zeelas = rooms.pop("Warehouse_Zeelas")
@@ -25,9 +24,7 @@ if __name__ == "__main__":
     ### Landing site shenanigans
     landing_site = rooms.pop("Landing_Site")
     current_state = BFSItemsState("Landing_Site_L2", set(["Item_Dummy"]), ItemSet(), {})
-
     ls_graph, ls_exits = dummy_exit_graph(landing_site.graph, landing_site.doors)
-
     finished, completed, complete_items = ls_graph.BFS_items(current_state, fixed_items=fixed_items)
     reachable_exits = {exit: finished[exit] for exit in ls_exits if len(finished[exit]) != 0}
     #print_finished(reachable_exits)
@@ -54,3 +51,18 @@ if __name__ == "__main__":
     filtered_exits = filter_paths(finished, current_state, exits)
     assert BFSItemsState("Landing_Site_R2dummy", set(), ItemSet(["S"]), {"First_Missile_M":"S"}) in to_states(filtered_exits)
 
+    # Boss Nodes?
+    kraid = rooms.pop("Kraid")
+    current_state = BFSItemsState("Kraid_L", set(), ItemSet(["CB"]), {})
+    kraid_graph, kraid_exits = dummy_exit_graph(kraid.graph, kraid.doors)
+    finished, _, _ = kraid_graph.BFS_items(current_state, fixed_items=fixed_items)
+    print to_states(finished)
+    filtered_exits = filter_paths(finished, current_state, kraid_exits)
+    print_finished(filtered_exits)
+
+    #TODO: Water Closet
+
+    # Test dummy exit graph:
+    for room in rooms.values():
+        print room.name
+        dummy_graph, dummy_exits = dummy_exit_graph(room.graph, room.doors)
