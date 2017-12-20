@@ -14,17 +14,23 @@ The file paths are an example here, but the `--clean` file is the one that alrea
     python main.py --clean ~/sm.smc --create ~/sm_rando.smc --seed hello
 
 Which will set the randomization seed to `hello`. There's another option that's not yet implemented called `--completable`, which will keep generating seeds until it finds one that's completable. It's not working right now, but I'll update this file when it is, and you can use that for convenience instead of trying out a bunch of different seeds.
+
 The randomizer also provides a spoiler file with the same name as your rom but with .spoiler.txt appended. This spoiler file is a work in progress: right now it only contains the shortest path to escape Zebes.
 
 ## Miscellaneous Information
 It's not immediately obvious (at the moment) whether or not your seed is completable. I'm working on that too, but right now you can look at the bottom of the output. If there's a line with `Completable without items: True` and below that there's no line with `Can't Escape!`, then you have a completable seed.
+
 Emphasis on completable! These seeds will troll you, and it's entirely possible to get stuck and have to start over. I'm working on making this less common, but for now I recommend caution and save states to tide you through. There will also likely be parts where both ammo and energy will be a major concern. I'm also working on tweaking the drop rates to make this less of a problem, but you might want to use SMILE to start with some extra e-tanks, and to not have to start at Ceres.
 
 ## Advice
 One simple heuristic that can get you far in figuring out at least the beginnings of these seeds is that the logic will place items "near" where you need to use them. If you get supers early on, then the next item is likely to be behind a Super Missile door. If you find yourself in an area with a lot of missile expansions, it might be worth it to backtrack and try a different part of the map.
+
 If you're wondering if a given door is on the logic, read encoding/rooms.txt. It's long, and the syntax is a little weird, but all of the logic is there as to whether you're "allowed" to cross a given edge with your items. For the most part, I require you to do some wall jumping and some basic suitless stuff, but "speedrun tech" like Green Gate Glitch, Shortcharge, or Mockball isn't required. You can do a little more suitless Maridia than usual, since sand no longer traps you if you don't have Gravity Suit.
+
 Be careful when you're going through doors. Doors can easily drop you into Golden Torizo's Room, and if you're going to fast, those fall blocks aren't going to forgive you.
+
 In general, Energy Tanks aren't technically required to cross most edges. If you're low on energy or ammo, dropping into an "off-logic" area of the game can often fill you up.
+
 When traveling through sand pits, try to stay centered to avoid a bug where you can get stuck in the wall.
 
 ## Known Bugs
