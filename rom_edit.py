@@ -5,9 +5,11 @@
 from struct import *
 import collections
 import item_definitions
+import re
 
 #TODO: do this without opening and closing the file repeatedly
 #TODO: clean up usage of defns - either remove it or use definitions!
+#TODO: byte strings?
 
 def read_bytes(source, offset, length):
     """Gets length bytes from the given offset"""
@@ -221,3 +223,107 @@ def int_to_hex(convert_int):
     padded_hex_str = ("0" * (len(hex_str) % 2)) + hex_str
     # decode it to a byte (or set of bytes)
     return padded_hex_str.decode("hex")
+
+# pay attention to endianness
+# key - item name
+# value - item byte code for starting the game with that item
+#TODO: what about missiles?
+item_codes = {
+    "B"      : 0x1000,
+    "SPB"    : 0x0002,
+    "G"      : 0x4000,
+    "SA"     : 0x0008,
+    "V"      : 0x0001,
+    "GS"     : 0x0020,
+    "SB"     : 0x2000,
+    "HJ"     : 0x0100,
+    "SJ"     : 0x0200,
+    "MB"     : 0x0004,
+    "XR"     : 0x8000
+}
+
+# key - item name
+# value - item byte code for starting with that beam
+beam_codes = {
+    "WB"     : 0x0001,
+    "IB"     : 0x0002,
+    "Spazer" : 0x0004,
+    "PLB"    : 0x0008,
+    "CB"     : 0x1000
+}
+
+# key - item name
+# value - address to write the amount of ammo
+ammo_addrs = {
+    "E"  : "0xB2CE",
+    "S"  : "0xB2E0",
+    "PB" : "0xB2E9"
+}
+
+# takes an item definition as a string
+# parses it to make samus start with those items
+def make_starting_items(items, rom):
+    beam_list = []
+    item_list = []
+    ammo_list = []
+    items = items.split()
+    for item in items:
+        item_def = item.rstrip("1234567890")
+        int_match = re.search("\d+$", item)
+        item_n = None
+        if int_match is not None:
+            item_n = int(int_match.group(0))
+        # special case for ammo things
+        if item_def in item_codes:
+            item_list.append(item_def)
+        elif item_def in beam_codes:
+            beam_list.append(item_def)
+        elif item_def in ammo_addrs:
+            if item_n is not None:
+                ammo_list.append((item_def, item_n))
+            else:
+                print item_def + " requires an amount!"
+        else:
+            print item_def + " is not an item!"
+    # setup for writing the codes
+    write_raw_bytes(rom, "0xB2FD", "\x20\x20\xEF")
+    write_raw_bytes(rom, "0xEF20", "\xA9\x00\x00\x8D\xA2\x09\x8D\xA4\x09\xA9\x00\x00\x8D\xA6\x09\x8D\xA8\x09\x60")
+    make_start_beams(beam_list, rom)
+    make_start_items(item_list, rom)
+    make_start_ammo(ammo_list, rom)
+
+# helper function for make_starting_items
+# sets the beam bitmask
+def make_start_beams(beams, rom):
+    # beams is a list of str which indicates what beams to start with
+    total_code = 0
+    for beam in beams:
+        total_code += beam_codes[beam]
+    code_bytes = int_to_hex(total_code)
+    if len(code_bytes) == 1:
+        code_bytes = "\x00" + code_bytes
+    assert len(code_bytes) == 2 # the code is only two bytes
+    write_raw_bytes(rom, "0xEF2A", code_bytes[::-1]) # reverse code_bytes to get big-endian
+
+#TODO: this naming scheme is a little strange
+# helper function for make_starting_items
+# sets the item bitmask
+def make_start_items(items, rom):
+    total_code = 0
+    for item in items:
+        total_code += item_codes[item]
+    code_bytes = int_to_hex(total_code)
+    if len(code_bytes) == 1:
+        code_bytes = "\x00" + code_bytes
+    assert len(code_bytes) == 2
+    write_raw_bytes(rom, "0xEF21", code_bytes[::-1])
+
+# helper function for make_starting_items
+# sets the starting ammo amounts
+def make_start_ammo(ammos, rom):
+    # ammos is a list of tuples of (ammo type, amount)
+    for ammo_type, ammo_amount in ammos:
+        ammo_bytes = int_to_hex(ammo_amount)
+        #assert len(ammo_bytes) == 1
+        write_raw_bytes(rom, ammo_addrs[ammo_type], ammo_bytes[::-1])
+

@@ -21,7 +21,9 @@ import sys
 #TODO: figure out what's going on with multiple item copies
 #TODO: get rid of Drain...?
 #TODO: make the --completable option work
+#TODO: Old Mother Brain badness before zebes awake
 
+#TODO: move to rom_edit?
 def rom_setup(rom, time):
     """edits rom to skip ceres, etc."""
     # skip ceres
@@ -68,6 +70,16 @@ def rom_setup(rom, time):
     apply_ips("patches/g4_skip.ips", rom)
     apply_ips("patches/max_ammo_display.ips", rom)
     apply_ips("patches/wake_zebes.ips", rom)
+    #TODO: why does this break everything?
+    #apply_ips("patches/introskip_doorflags.ips", rom)
+
+def parse_starting_items(items):
+    items = items.split()
+    item_set = ItemSet()
+    for item in items:
+        item_def = item.rstrip("1234567890")
+        item_set.add(item_def)
+    return item_set
 
 def seed_rng(seed):
     seed = args.seed
@@ -82,6 +94,7 @@ if __name__ == "__main__":
     parser.add_argument("--create", metavar="<filename>", required=True, help="The path to the rom file you want to create.")
     parser.add_argument("--seed", metavar="<seed>", required=False, help="The seed you want to use for the RNG.")
     parser.add_argument("--completable", action="store_true", help="generate until you find a completable map.")
+    parser.add_argument("--starting_items", metavar="<item_list>", required=False, help="A list of items to start with: see Readme.md for details.")
     #TODO argument for which algorithm to use
 
     args = parser.parse_args()
@@ -96,6 +109,7 @@ if __name__ == "__main__":
     all_items.remove("Bombs")
     all_items = ItemSet(all_items)
     escape_timer = 0
+    starting_items = parse_starting_items(args.starting_items)
 
     if args.completable:
         completable = False
@@ -142,7 +156,7 @@ if __name__ == "__main__":
         #door_changes, item_changes, graph = basic_rando(rooms)
         door_changes = []
         item_changes = []
-        door_changes, item_changes, graph, state = item_quota_rando(rooms)
+        door_changes, item_changes, graph, state = item_quota_rando(rooms, starting_items)
         # check completability
         start_state = BFSState(state.node, state.items)
         end_state = BFSState("Statues_ET", ItemSet())
@@ -173,6 +187,7 @@ if __name__ == "__main__":
     # first, make the new rom file:
     shutil.copyfile(args.clean, args.create)
     rom_setup(args.create, escape_timer)
+    make_starting_items(args.starting_items, args.create)
 
     # then make the necessary changes
     make_items(item_changes, args.create)

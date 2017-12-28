@@ -17,7 +17,7 @@ import random
 #TODO: see if the item quota idea actually works??
 
 # new idea - give the player some items, then just randomly place the rest of the map
-def item_quota_rando(rooms, nitems=6):
+def item_quota_rando(rooms, starting_items=ItemSet()):
     clean_rooms(rooms)
     check_door_totals(rooms)
 
@@ -27,7 +27,7 @@ def item_quota_rando(rooms, nitems=6):
     exits_to_connect = landing_site.doors
 
     # keeps track of the current BFS state
-    current_state = BFSItemsState("Landing_Site_R2")
+    current_state = BFSItemsState("Landing_Site_R2", items_=starting_items)
     current_state.assignments = get_starting_assignments()
 
     # keeps track of exits reachable from current node
@@ -56,7 +56,6 @@ def item_quota_rando(rooms, nitems=6):
 
     #TODO: maybe doing this places too many items too early?
     while len(rooms_to_place) > 0:
-    #while len(current_items) < nitems:
         #print "At: " + str(current_state)
         # wildcard BFS to find reachable exits
         bfs_finished, _, _ = current_graph.BFS_items(current_state, None, fixed_items)

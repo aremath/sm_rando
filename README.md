@@ -1,6 +1,6 @@
 # SMRando Version 0.0.1
 Tools for door and item randomization of Super Metroid
-You need a Super Metroid [J] ROM (Unheadered? Headered? I'm not sure (TODO))
+You need a Super Metroid [JU] ROM
 You'll also need python 2.7 because I'm silly.
 Note that this is a very rough draft - expect bugs and strange behavior.
 
@@ -56,3 +56,4 @@ This is just a list of things I'm working on: bugs to fix, features to implement
 * `--completable` option
 * Make the algorithm better at avoiding softlocks.
 
+#TODO: Acknowledgements
