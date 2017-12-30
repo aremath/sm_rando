@@ -50,6 +50,7 @@ When traveling through sand pits, try to stay centered to avoid a bug where you 
 * The logic can force you to fight Spore Spawn or other bosses (or even wait for Shaktool) during escape. I'm working on a way to make sure it gives you enough time for these events :)
 * The Zip Tube room in Maridia does not appear in the randomizer because the player can't move after going through it!
 * Sometimes you get stuck in the wall when moving from one sand pit to another.
+* The room where you get morph ball is weird - The items might not appear until Zebes is awake, but might disappear if you visit it before Zebes is awake, and I'm not even sure what the Zebes awake trigger is.
 
 ## You Can Help!
 * If you notice a bug, or have some advice, open an issue on the github, and I'll try to check it periodically and make improvements. I'm somewhat busy, and I might not be able to consistently provide support, but I'll do what I can.
@@ -64,6 +65,7 @@ This is just a list of things I'm working on: bugs to fix, features to implement
 * Fix the boss screen scroll glitch
 * Make the RNG seed easier to use: make the randomly generated seed possible to copy/paste
 * Make the algorithm better at avoiding softlocks.
+* Figure out how to skip Ceres. The "normal" way to skip it is bugged :(
 
 ## Acknowledgements
 Thanks to everyone who helped with this project. If you listened to me harp about completability or graphs, you know who you are and thank you for putting up with me, and giving me support and ideas.
