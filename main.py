@@ -74,6 +74,8 @@ def rom_setup(rom, time):
     #apply_ips("patches/introskip_doorflags.ips", rom)
 
 def parse_starting_items(items):
+    if items is None:
+        return ItemSet()
     items = items.split()
     item_set = ItemSet()
     for item in items:
@@ -102,94 +104,72 @@ if __name__ == "__main__":
     spoiler_file = open(args.create + ".spoiler.txt", "w")
 
     # setup
-    rooms = parse_rooms("encoding/rooms.txt")
     # copy it to remove Bombs
     # TODO: GET RID OF Bombs
     all_items = item_types[:]
     all_items.remove("Bombs")
     all_items = ItemSet(all_items)
+    # escape timer vars
     escape_timer = 0
+    tourian_time = 60
+    time_per_node = 15
     starting_items = parse_starting_items(args.starting_items)
 
-    if args.completable:
-        completable = False
-        while not completable:
-            door_changes, item_changes, graph = basic_rando(rooms)
-            start_state = BFSState("Landing_Site_L2", all_items)
-            end_state = BFSState("Statues_ET", all_items)
-            # check completability - get to golden statues with all items
-            path_to_statues = graph.check_completability(start_state, end_state)
-            completable = path_to_statues is not None
-            seed = seed_rng(None)
-            
-            if completable:
-                spoiler_file.write("Path to Statues:\n")
-                spoiler_file.write(str(path_to_statues))
-                spoiler_file.write("\n")
-
-                # find the escape path
-                # TODO: am I really going to assume they picked up everything? this might make escape pretty hard...
-                # TODO: find a way to disable grey doors during escape
-                # TODO: might wanna make sure they don't have to, like, defeat crocomire during escape
-                # or at least they have the time necessary to do so :P
-                # - to do this: if there's a "problematic" node in the shortest escape path,
-                # remove it from the graph and do another BFS. If there's no path, then award them time to beat that node
-                # If there is another path, then just award them time to complete that path
-                items = all_items | ItemSet(["Kraid", "Phantoon", "Draygon", "Ridley"])
-                escape_start = BFSState("Escape_4_R", items)
-                escape_end = BFSState("Landing_Site_L2", items)
-                escape_path = graph.check_completability(escape_start, escape_end)
-
-                # trace back
-                if escape_path is None:
-                    # if there's no escape path, then the seed isn't completable
-                    completable = False
-                else:
-                    spoiler_file.write("Path to Escape:\n")
-                    spoiler_file.write(str(escape_path))
-                    # one minute to get out of tourian, then 20 seconds per room
-                    #TODO: is this fair? the player might need to farm and explore...
-                    escape_time = 60 + 10 * len(escape_path)
-                    spoiler_file.write("\n")
-                    spoiler_file.write("Esape Timer: " + str(escape_time))
-    else:
-        #door_changes, item_changes, graph = basic_rando(rooms)
-        door_changes = []
-        item_changes = []
+    completable = False
+    while not completable:
+        #TODO: re-parsing rooms is quick and dirty...
+        rooms = parse_rooms("encoding/rooms.txt")
         door_changes, item_changes, graph, state = item_quota_rando(rooms, starting_items)
-        # check completability
+        # check completability - can reach statues?
         start_state = BFSState(state.node, state.items)
         end_state = BFSState("Statues_ET", ItemSet())
         path_to_statues = graph.check_completability(start_state, end_state)
         completable = path_to_statues is not None
-        print "Completable without items: " + str(completable)
         if completable:
-            print path_to_statues
-            # escape?
+            # check completability - can escape?
             items = all_items | ItemSet(["Kraid", "Phantoon", "Draygon", "Ridley"])
             escape_start = BFSState("Escape_4_R", items)
             escape_end = BFSState("Landing_Site_L2", items)
             escape_path = graph.check_completability(escape_start, escape_end)
-            if escape_path is None:
-                print "Can't Escape!"
+            if escape_path is None: 
+                completable = False
             else:
                 spoiler_file.write("Path to Escape:\n")
                 spoiler_file.write(str(escape_path))
                 # one minute to get out of tourian, then 30 seconds per room
                 #TODO: is this fair? the player might need to farm and explore...
-                escape_time = 60 + 15 * len(escape_path)
+                #TODO: simple node-length means intermediate nodes / etc. will cause problems
+                escape_time = tourian_time + time_per_node * len(escape_path)
                 spoiler_file.write("\n")
                 spoiler_file.write("Esape Timer: " + str(escape_time) + " seconds")
+        # accept the seed regardless if we don't care about completability
+        if not args.completable:
+            break
+        # re-seed the rng for a new map (if we need to)
+        if not completable and args.completable:
+            seed = seed_rng(None)
 
+    print "Completable: " + str(completable)
     print "RNG SEED - " + str(seed)
 
     # now that we have the door changes and the item changes, implement them!
     # first, make the new rom file:
     shutil.copyfile(args.clean, args.create)
     rom_setup(args.create, escape_timer)
-    make_starting_items(args.starting_items, args.create)
+    if args.starting_items is not None:
+        make_starting_items(args.starting_items, args.create)
 
     # then make the necessary changes
     make_items(item_changes, args.create)
     make_doors(door_changes, args.clean, args.create)
 
+
+#TODO: these are some things I noted earlier about the escape paths
+# find the escape path
+# TODO: am I really going to assume they picked up everything? this might make escape pretty hard...
+# TODO: find a way to disable grey doors during escape
+# TODO: might wanna make sure they don't have to, like, defeat crocomire during escape
+# or at least they have the time necessary to do so :P
+# - to do this: if there's a "problematic" node in the shortest escape path,
+# remove it from the graph and do another BFS. If there's no path, then award them time to beat that node
+# If there is another path, then just award them time to complete that path

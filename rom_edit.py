@@ -284,7 +284,7 @@ def make_starting_items(items, rom):
             else:
                 print item_def + " requires an amount!"
         else:
-            print item_def + " is not an item!"
+            print item_def + " is not supported as a starting item!"
     # setup for writing the codes
     write_raw_bytes(rom, "0xB2FD", "\x20\x20\xEF")
     write_raw_bytes(rom, "0xEF20", "\xA9\x00\x00\x8D\xA2\x09\x8D\xA4\x09\xA9\x00\x00\x8D\xA6\x09\x8D\xA8\x09\x60")

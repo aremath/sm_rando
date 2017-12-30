@@ -107,6 +107,7 @@ B
 Crab_Maze - 7957D
 T
 L
+T <-> L				- MB
 
 Crateria_Power_Door - 795A8
 R

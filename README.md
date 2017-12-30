@@ -13,23 +13,33 @@ The file paths are an example here, but the `--clean` file is the one that alrea
 
     python main.py --clean ~/sm.smc --create ~/sm_rando.smc --seed hello
 
-Which will set the randomization seed to `hello`. There's another option that's not yet implemented called `--completable`, which will keep generating seeds until it finds one that's completable. It's not working right now, but I'll update this file when it is, and you can use that for convenience instead of trying out a bunch of different seeds.
+Which will set the randomization seed to `hello`. There's another option called `--completable`, which will keep generating seeds until it finds one that's completable. To use this, just do
 
-The randomizer also provides a spoiler file with the same name as your rom but with .spoiler.txt appended. This spoiler file is a work in progress: right now it only contains the shortest path to escape Zebes.
+    python main.py --clean ~/sm.smc --create ~/sm_rando.smc --completable
+
+You can use the `--seed` option with `--completable`, in which case it will try the suggested seed first. However, the `--completable` option will need to re-seed the RNG if it turns out that your seed wasn't completable, so there's no real reason to do this.
+
+The final command-line option is `--starting_items`. This command edits what items Samus will start with when you land on Ceres station. The syntax for the command looks like this:
+
+    python main.py --clean ~/sm.smc --create ~/sm_rando.smc --starting items B S10 E500 WB
+
+This example gives you Bombs, 10 Super Missiles, 500 Energy, and Wave Beam on starting the game (why you'd want bombs without morph ball beats me). The algorithm will take your starting items into account when deciding if a seed is completable and deciding what rooms to place where. This means that the same seed with different starting items can produce different results! The names for all the items are in `encoding/rooms.txt`. Currently, I haven't figured out a way to edit your starting missiles, or your starting reserve tanks. The program will give you a warning about that, and not give you those items.
+
+The randomizer also provides a spoiler file with the same name as your rom but with `.spoiler.txt` appended. This spoiler file is a work in progress: right now it only contains the shortest path to escape Zebes.
 
 ## Miscellaneous Information
-It's not immediately obvious (at the moment) whether or not your seed is completable. I'm working on that too, but right now you can look at the bottom of the output. If there's a line with `Completable without items: True` and below that there's no line with `Can't Escape!`, then you have a completable seed.
+The bottom of the output from `main.py` will tell you whether your seed is completable (and what the seed is, just to confirm). If you get a `Completable: False`, do not expect to be able to complete the game!
 
-Emphasis on completable! These seeds will troll you, and it's entirely possible to get stuck and have to start over. I'm working on making this less common, but for now I recommend caution and save states to tide you through. There will also likely be parts where both ammo and energy will be a major concern. I'm also working on tweaking the drop rates to make this less of a problem, but you might want to use SMILE to start with some extra e-tanks, and to not have to start at Ceres.
+Emphasis on completable! These seeds will troll you, and it's entirely possible to get stuck and have to start over. I'm working on making this less common, but for now I recommend caution and save states to tide you through. There will also likely be parts where both ammo and energy will be a major concern. I'm also working on tweaking the drop rates to make this less of a problem, but you might want to use the `--starting_items` option or SMILE to start with some extra e-tanks.
 
 ## Advice
 One simple heuristic that can get you far in figuring out at least the beginnings of these seeds is that the logic will place items "near" where you need to use them. If you get supers early on, then the next item is likely to be behind a Super Missile door. If you find yourself in an area with a lot of missile expansions, it might be worth it to backtrack and try a different part of the map.
 
-If you're wondering if a given door is on the logic, read encoding/rooms.txt. It's long, and the syntax is a little weird, but all of the logic is there as to whether you're "allowed" to cross a given edge with your items. For the most part, I require you to do some wall jumping and some basic suitless stuff, but "speedrun tech" like Green Gate Glitch, Shortcharge, or Mockball isn't required. You can do a little more suitless Maridia than usual, since sand no longer traps you if you don't have Gravity Suit.
+If you're wondering if a given door is on the logic, read `encoding/rooms.txt`. It's long, and the syntax is a little weird, but all of the logic is there as to whether you're "allowed" to cross a given edge with your items. For the most part, I require you to do some wall jumping and some basic suitless stuff, but "speedrun tech" like Green Gate Glitch, Shortcharge, or Mockball isn't required. You can do a little more suitless Maridia than usual, since sand no longer traps you if you don't have Gravity Suit.
 
 Be careful when you're going through doors. Doors can easily drop you into Golden Torizo's Room, and if you're going to fast, those fall blocks aren't going to forgive you.
 
-In general, Energy Tanks aren't technically required to cross most edges. If you're low on energy or ammo, dropping into an "off-logic" area of the game can often fill you up.
+In general, Energy Tanks aren't technically required to cross most edges. Also, you only need one ammo of each type to cross those edges. If you're low on energy or ammo, dropping into an "off-logic" area of the game can often fill you up.
 
 When traveling through sand pits, try to stay centered to avoid a bug where you can get stuck in the wall.
 
@@ -45,15 +55,19 @@ When traveling through sand pits, try to stay centered to avoid a bug where you 
 * If you notice a bug, or have some advice, open an issue on the github, and I'll try to check it periodically and make improvements. I'm somewhat busy, and I might not be able to consistently provide support, but I'll do what I can.
 * If you're interested, one task that I probably won't get around to for a while is writing a "speedrun" version of rooms.txt. Feeel free to include some High-Jump-less Lava Dive :). However, Make sure that your strats are contained within a single room. You can't use speedbooster to cross Coliseum if you can't charge a shinespark in the room before. I tried to make the encoding of rooms.txt fairly straightforward to understand, but if you have a question, I'm happy to help.
 * If you have some romhacking advice, I'm new at this! There's some features I thought of, like making the back door to Kraid, Crocomore, etc. into a grey door to prevent the graphical errors problem, but that I don't really have the expertise for.
-* If you notice a problem with rooms.txt, let me know! Without a proper spoiler it's hard to know when the logic is asking you to do something is possible, but I'd like to know about it if I generated a seed that I told you was completable, but actually wasn't.
+* If you notice a problem with `rooms.txt`, let me know! Without a proper spoiler it's hard to know when the logic is asking you to do something is possible, but I'd like to know about it if I generated a seed that I told you was completable, but actually wasn't.
 
 ## In Progress
 This is just a list of things I'm working on: bugs to fix, features to implement, etc.
 * Stop placing multiple copies of items
-* Change the overall balance of items: More Supers and PBs, fewer missiles
+* Change the overall balance of items: More Supers and PBs, fewer Missiles
 * Fix the boss screen scroll glitch
 * Make the RNG seed easier to use: make the randomly generated seed possible to copy/paste
-* `--completable` option
 * Make the algorithm better at avoiding softlocks.
 
-#TODO: Acknowledgements
+## Acknowledgements
+Thanks to everyone who helped with this project. If you listened to me harp about completability or graphs, you know who you are and thank you for putting up with me, and giving me support and ideas.
+
+Additionally, I'd like to thank the Super Metroid community. The motivation for this (and the idea behind it) came out of a love for Super Metroid, but that's also partially due to the great community that's passionate about this game.
+
+A lot of the technical basis was in the [Item Randomizer](https://dessyreqt.github.io/smrandomizer/), for which `Dessyreqt` and many others are responsible. I also got some mileage out of the code for the logic-less [Door Randomizer](https://smdoor.codeplex.com/). I used [SMILE](http://metroidconstruction.com/resource.php?id=63) and [SMILE RF](http://forum.metroidconstruction.com/index.php?topic=3575.0) to do a lot of the testing, so `Scyzer` and `Jathys` deserve recognition, as well as `begrimed` who wrote the incredible [guide](http://www.metroidconstruction.com/SMMM/). The `#smhacking` channel of the Super Metroid discord was also helpful, and answered some hacking questions.

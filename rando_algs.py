@@ -183,9 +183,6 @@ def item_quota_rando(rooms, starting_items=ItemSet()):
     for node, item in current_state.assignments.items():
         if node in current_graph.name_node:
             current_graph.name_node[node].data.type = item
-    #print door_changes
-    print current_state
-    #print unassigned_item_nodes
     # place unassigned items
     #TODO: maybe do something more sophisticated to place progression items at reachable locations?
     # first, calculate the items that haven't been placed!
