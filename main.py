@@ -19,9 +19,14 @@ import sys
 #TODO: is it possible to go back through bowling alley?
 #   make the create filename with the seed
 #TODO: figure out what's going on with multiple item copies
-#TODO: get rid of Drain...?
+#TODO: get rid of Drain?
 #TODO: make the --completable option work
-#TODO: Old Mother Brain badness before zebes awake
+#TODO: Old Mother Brain badness before zebes awake + other things with zebes waking up (last missiles)
+#TODO: fix brinstar elevator stupid things?
+#TODO: I got spring ball instead of morph ball?
+#TODO: randomize ceres within ceres, tourian within tourian?
+#TODO: Boss rush mode!
+#TODO: random number of missiles / supers / pbs per expansion?
 
 #TODO: move to rom_edit?
 def rom_setup(rom, time):
@@ -72,6 +77,11 @@ def rom_setup(rom, time):
     apply_ips("patches/wake_zebes.ips", rom)
     #TODO: why does this break everything?
     #apply_ips("patches/introskip_doorflags.ips", rom)
+
+#TODO: is there a possibility for a door not to be in door_changes?
+def write_door_changes(door_changes, spoiler_file):
+    for left, right in door_changes:
+        spoiler_file.write(left + " <> " + right + "\n")
 
 def parse_starting_items(items):
     if items is None:
@@ -139,9 +149,9 @@ if __name__ == "__main__":
                 # one minute to get out of tourian, then 30 seconds per room
                 #TODO: is this fair? the player might need to farm and explore...
                 #TODO: simple node-length means intermediate nodes / etc. will cause problems
-                escape_time = tourian_time + time_per_node * len(escape_path)
+                escape_timer = tourian_time + time_per_node * len(escape_path)
                 spoiler_file.write("\n")
-                spoiler_file.write("Esape Timer: " + str(escape_time) + " seconds")
+                spoiler_file.write("Esape Timer: " + str(escape_timer) + " seconds\n")
         # accept the seed regardless if we don't care about completability
         if not args.completable:
             break
@@ -151,6 +161,9 @@ if __name__ == "__main__":
 
     print "Completable: " + str(completable)
     print "RNG SEED - " + str(seed)
+
+    spoiler_file.write("DOORS:\n")
+    write_door_changes(door_changes, spoiler_file)
 
     # now that we have the door changes and the item changes, implement them!
     # first, make the new rom file:

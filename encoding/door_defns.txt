@@ -350,11 +350,12 @@ Lower_Norfair_Farm_L		0x00198ca	Ridley_R
 Lower_Norfair_Farm_R		0x00198d6	Plowerhouse_L
 Fast_Pillars_Setup_L1		0x00198e2	Main_Hall_R
 Fast_Pillars_Setup_R1		0x00198ee	Mickey_Mouse_L
-# this one is a duplicate of 0x0019e2
+# this one is a duplicate of 0x00198e2
 #	0x00198fa
 Fast_Pillars_Setup_L2		0x0019906	Fast_Rippers_R
 Fast_Pillars_Setup_R2		0x0019912	Pillars_L
-Mickey_Mouse_L				0x001991e	Fast_Pillars_Setup_R1
+Mickey_Mouse_L				0x001992a	Fast_Pillars_Setup_R1
+# also 0x001991e
 # this one is a duplicate of 0x001991e
 #	0x001992a
 Mickey_Mouse_R				0x0019936	The_Worst_Room_in_the_Game_L1

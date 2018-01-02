@@ -198,6 +198,7 @@ ALL -> R1					- X
 (R2 R3 L M2) -> M1			- X
 (R2 R3 L M1) -> M2			- X
 R1 -> ALL					- MB
+(L R3) <-> R2				- | E M GS V SA CB
 
 Crateria_Supers - 799F9
 L1
@@ -1067,9 +1068,9 @@ L3
 RT
 M
 L1 <-> ALL						- X
-L2 -> ALL						- | G E
+L2 -> ALL						- | G E SJ
 L3 -> L2						- X
-ALL -> (M RT)					- Phantoon
+ALL -> (L3 M RT)				- & Phantoon MB
 ALL -> M						- | B PB
 ALL -> RT						- & SB PB
 

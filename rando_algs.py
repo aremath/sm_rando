@@ -15,6 +15,7 @@ import random
 #TODO: figure out where / why this is getting stuck
 #TODO: keep the state at the end to help with the final BFS
 #TODO: see if the item quota idea actually works??
+#TODO: use connect_doors and make_door in the item quota??
 
 # new idea - give the player some items, then just randomly place the rest of the map
 def item_quota_rando(rooms, starting_items=ItemSet()):
