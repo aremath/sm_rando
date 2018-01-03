@@ -107,6 +107,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", metavar="<seed>", required=False, help="The seed you want to use for the RNG.")
     parser.add_argument("--completable", action="store_true", help="generate until you find a completable map.")
     parser.add_argument("--starting_items", metavar="<item_list>", required=False, help="A list of items to start with: see Readme.md for details.")
+    parser.add_argument("--graph", action="store_true", help="create a room graph spoiler file. You will need graphviz installed in your $PATH")
     #TODO argument for which algorithm to use
 
     args = parser.parse_args()
@@ -164,6 +165,11 @@ if __name__ == "__main__":
 
     spoiler_file.write("DOORS:\n")
     write_door_changes(door_changes, spoiler_file)
+
+    # make the spoiler graph
+    if args.graph:
+        import spoiler_graph 
+        spoiler_graph.make_spoiler_graph(door_changes, args.create)
 
     # now that we have the door changes and the item changes, implement them!
     # first, make the new rom file:
