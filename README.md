@@ -59,6 +59,7 @@ When traveling through sand pits, try to stay centered to avoid a bug where you 
 * Sometimes you get stuck in the wall when moving from one sand pit to another.
 * The room where you get morph ball is weird - The items might not appear until Zebes is awake, but might disappear if you visit it before Zebes is awake, and I'm not even sure what the Zebes awake trigger is.
 * Saving does not work except in Tourian: reloading a save even after a death will glitch things out.
+* Getting the Morph Ball item can give you Spring Ball instead. Use the `--starting_items MB` command-line option for now.
 
 ## You Can Help!
 * If you notice a bug, or have some advice, open an issue on the github, and I'll try to check it periodically and make improvements. I'm somewhat busy, so I might not be able to consistently provide support, but I'll do what I can.

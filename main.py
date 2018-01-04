@@ -83,6 +83,10 @@ def write_door_changes(door_changes, spoiler_file):
     for left, right in door_changes:
         spoiler_file.write(left + " <> " + right + "\n")
 
+def write_item_assignments(item_assignments, spoiler_file):
+    for node, item in item_assignments:
+        spoiler_file.write(node + ": " + item + "\n")
+
 def parse_starting_items(items):
     if items is None:
         return ItemSet()
@@ -162,6 +166,9 @@ if __name__ == "__main__":
 
     print "Completable: " + str(completable)
     print "RNG SEED - " + str(seed)
+
+    spoiler_file.write("ITEMS:\n")
+    write_item_assignments(item_changes, spoiler_file)
 
     spoiler_file.write("DOORS:\n")
     write_door_changes(door_changes, spoiler_file)

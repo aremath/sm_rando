@@ -1511,7 +1511,7 @@ R
 Draygon
 R -> L						- Draygon
 L -> R						- & Draygon GS (| HJ SJ)
-ALL -> Draygon				- & GS E S (| CB G) 
+ALL -> Draygon				- & GS E S MB (| CB G) 
 
 Tourian_Elevator - 7DAAE
 EB
