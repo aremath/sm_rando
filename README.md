@@ -26,7 +26,7 @@ You can use the `--seed` option with `--completable`, in which case it will try 
 
 Another useful command-line option is `--starting_items`. This command edits what items Samus will start with when you land on Ceres station. The syntax for the command looks like this:
 
-    python main.py --clean ~/sm.smc --create ~/sm_rando.smc --starting items B S10 E500 WB
+    python main.py --clean ~/sm.smc --create ~/sm_rando.smc --starting_items "B S10 E500 WB"
 
 This example gives you Bombs, 10 Super Missiles, 500 Energy, and Wave Beam on starting the game (why you'd want bombs without morph ball beats me). The algorithm will take your starting items into account when deciding if a seed is completable and deciding what rooms to place where. This means that the same seed with different starting items can produce different results! The names for all the items are in `encoding/rooms.txt`. Currently, I haven't figured out a way to edit your starting missiles, or your starting reserve tanks. The program will give you a warning about that, and not give you those items.
 
