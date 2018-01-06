@@ -176,6 +176,14 @@ if __name__ == "__main__":
                 # one minute to get out of tourian, then 30 seconds per room
                 #TODO: is this fair? the player might need to farm and explore...
                 #TODO: simple node-length means intermediate nodes / etc. will cause problems
+                # give the player time to defeat minibosses
+                for node in escape_path:
+                    if node == "Crocomire_T":
+                        escape_timer += (70 - 2*time_per_node)
+                    elif node == "Spore_Spawn_B":
+                        escape_timer += (45 - 2*time_per_node)
+                    elif node == "Golden_Torizo_R":
+                        escape_time += (45 - 2* time_per_node)
                 escape_timer = tourian_time + time_per_node * len(escape_path)
                 spoiler_file.write("\n")
                 spoiler_file.write("Esape Timer: " + str(escape_timer) + " seconds\n")

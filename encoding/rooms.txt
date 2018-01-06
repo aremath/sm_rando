@@ -98,7 +98,7 @@ ET
 East_Ocean - 794FD
 L
 R
-L <-> R				- | GS SJ
+L <-> R				- GS
 
 Forgotten_Highway - 79552
 L
