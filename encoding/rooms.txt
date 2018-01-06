@@ -344,9 +344,14 @@ R
 EB
 MB
 PB
-L <-> PB				- | B PB
-L <-> (EB R MB)			- PB
-PB <-> (EB R MB)		- PB
+ALL <-> PB				- X
+ALL <-> MB				- X
+L <-> (EB R)			- PB
+
+# Old MB room constraints
+#L <-> PB				- | B PB
+#L <-> (EB R MB)			- PB
+#PB <-> (EB R MB)		- PB
 
 Construction_Zone - 79F11
 L1						- M
@@ -1189,8 +1194,7 @@ B
 M
 S
 ALL -> M						- X
-(R1 R3 R4 B M) <-> S			- X
-(R1 R3 R4 B M) <-> RMB2			- X
+(R1 R3 R4 B M) <-> (S RMB2)		- X
 (B R3 R4) -> R1					- GS
 (B R4) -> R3					- GS
 
