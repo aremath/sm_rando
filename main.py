@@ -97,6 +97,27 @@ def parse_starting_items(items):
         item_set.add(item_def)
     return item_set
 
+def remove_external_edges(graph, node):
+    """Removes all edges from node to a node in another room."""
+    self_room = node.split("_")[:-1]
+    for edge in graph.node_edges[node]:
+        edge_room = edge.terminal.split("_")[:-1]
+        if edge_room != self_room:
+            graph.remove_edge(node, edge.terminal)
+
+def prepare_for_escape(graph):
+    """Prepares the graph for searching for escape paths
+    by removing edges that can't be used during escape."""
+    remove_external_edges(graph, "Parlor_L1")
+    remove_external_edges(graph, "Parlor_L2")
+    remove_external_edges(graph, "Parlor_L3")
+    remove_external_edges(graph, "Parlor_B")
+    remove_external_edges(graph, "Parlor_R3")
+    remove_external_edges(graph, "Climb_Room_R1")
+    remove_external_edges(graph, "Climb_Room_R2")
+    remove_external_edges(graph, "Climb_Room_R3")
+    remove_external_edges(graph, "Climb_Room_L")
+
 def seed_rng(seed):
     seed = args.seed
     if seed is None:
@@ -143,6 +164,7 @@ if __name__ == "__main__":
         if completable:
             # check completability - can escape?
             items = all_items | ItemSet(["Kraid", "Phantoon", "Draygon", "Ridley"])
+            prepare_for_escape(graph)
             escape_start = BFSState("Escape_4_R", items)
             escape_end = BFSState("Landing_Site_L2", items)
             escape_path = graph.check_completability(escape_start, escape_end)
@@ -199,3 +221,4 @@ if __name__ == "__main__":
 # - to do this: if there's a "problematic" node in the shortest escape path,
 # remove it from the graph and do another BFS. If there's no path, then award them time to beat that node
 # If there is another path, then just award them time to complete that path
+
