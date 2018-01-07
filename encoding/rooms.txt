@@ -1208,7 +1208,7 @@ T2
 (L T1) -> ALL					- GS
 ALL -> T1						- GS
 T2 -> R							- | GS (& HJ E)
-(T2 R) -> L						- | GS (& HJ E)
+(T2 R) -> ALL					- | GS (& HJ E)
 
 Mama_Turtle - 7D055
 L
