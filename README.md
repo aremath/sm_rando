@@ -1,4 +1,4 @@
-# Super Metroid World Randomizer Version 0.0.1
+# Super Metroid World Randomizer Version 0.0.3
 Door and item randomization of Super Metroid.
 
 You need a Super Metroid [JU] ROM.
@@ -24,7 +24,7 @@ Which will set the randomization seed to `hello`. There's another option called 
 
 You can use the `--seed` option with `--completable`, in which case it will try the suggested seed first. However, the `--completable` option will need to re-seed the RNG if it turns out that your seed wasn't completable, so there's no real reason to do this.
 
-Another useful command-line option is `--starting_items`. This command edits what items Samus will start with when you land on Ceres station. The syntax for the command looks like this:
+Another useful command-line option is `--starting_items`. This command edits what items Samus will start with when you land on Zebes. The syntax for the command looks like this:
 
     python main.py --clean ~/sm.smc --create ~/sm_rando.smc --starting_items "B S10 E500 WB"
 
@@ -54,13 +54,12 @@ In general, Energy Tanks aren't technically required to cross most edges. Also, 
 When traveling through sand pits, try to stay centered to avoid a bug where you can get stuck in the wall.
 
 ## Known Bugs
-* There are sometimes graphical glitches entering some Crateria Rooms, and when leaving Kraid. Pressing Start should clear these up.
+* There are sometimes graphical glitches entering some Crateria rooms, when loading a save to Landing Site, and when leaving Kraid. Pressing Start should clear up the Kraid ones. The others disappear when they go offscreen.
 * If you enter Crocomire, Shaktool, and a couple of other boss rooms through the wrong door, the screen glitches out. Don't panic! If you can navigate the room without being able to see, you should be able to shoot the door and make it back out.
 * The logic can force you to fight Spore Spawn or other bosses (or even wait for Shaktool) during escape. I'm working on a way to make sure it gives you enough time for these events :)
 * The Zip Tube room in Maridia does not appear in the randomizer because the player can't move after going through it!
 * Sometimes you get stuck in the wall when moving from one sand pit to another.
 * The room where you get morph ball is weird - The items might not appear until Zebes is awake, but might disappear if you visit it before Zebes is awake, and I'm not even sure what the Zebes awake trigger is. As far as the logic is concerned, the items in the morph ball room are never reachable.
-* Saving does not work except in Tourian: reloading a save even after a death will glitch things out.
 * Getting the Morph Ball item can give you Spring Ball instead. Use the `--starting_items MB` command-line option for now.
 
 ## You Can Help!
@@ -74,7 +73,6 @@ This is just a list of things I'm working on: bugs to fix, features to implement
 * Fix the boss screen scroll glitch
 * Make the RNG seed easier to use: make the randomly generated seed possible to copy/paste
 * Make the algorithm better at avoiding softlocks.
-* Figure out how to skip Ceres. The "normal" way to skip it is bugged :(
 * Figure out what to do about Zebes awake-/asleep-ness
 * Make the spoiler file more descriptive and more useful
 * Keep your ammo after the Mother Brain fight.

@@ -20,7 +20,6 @@ import sys
 #   make the create filename with the seed
 #TODO: figure out what's going on with multiple item copies
 #TODO: get rid of Drain?
-#TODO: make the --completable option work
 #TODO: Old Mother Brain badness before zebes awake + other things with zebes waking up (last missiles)
 #TODO: fix brinstar elevator stupid things?
 #TODO: I got spring ball instead of morph ball?
@@ -34,7 +33,7 @@ def rom_setup(rom, time):
     """edits rom to skip ceres, etc."""
     # skip ceres
     # TODO: this doesn't work when the rooms are randomized...?
-    #write_raw_bytes(rom, "0x0016ebb", "\x05")
+    write_raw_bytes(rom, "0x0016ebb", "\x05")
 
     # make sand easier to jump out of without gravity
     write_raw_bytes(rom, "0x2348c", "\x00")
