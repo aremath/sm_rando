@@ -67,7 +67,6 @@ def make_test_rom(rom_file, offset, direction):
 
     door = read_raw_bytes(rom_file, offset, 12)
     write_raw_bytes(rom_file, replace_door, door)
-    
 
 def parse_doors(door_file, clean_rom):
     """Use the door definitions files so that door nodes can be used to acces
@@ -150,6 +149,35 @@ def make_items(item_list, write_rom):
             address, location_type = item_locations[location]
             write_raw_bytes(write_rom, address, item_defns[item][location_type])
 
+def parse_saves(save_file):
+    f = open(save_file, "r")
+    # key -
+    # value -
+    save_locs = {}
+
+    for line in f.readlines():
+        # remove unnecessary characters
+        line = line.strip()
+        # skip comments
+        if line[0] == "#":
+            continue
+        (save_room, save_door, offset) = line.split()
+        save_locs[save_room + "_" + save_door] = offset
+
+    return save_locs
+
+def make_saves(door_changes, clean_rom, write_rom):
+    door_from, _ = parse_doors("encoding/door_defns.txt", clean_rom)
+    # the last 4 characters comprise the pointer
+    door_from = {node: addr[-4:] for node, addr in door_from.items()}
+    # now convert to bytes
+    door_from = {node: int_to_hex(int(addr, base=16))[::-1] for node, addr in door_from.items()}
+    save_locs = parse_saves("encoding/saves.txt")
+    for ldoor, rdoor in door_changes:
+        if ldoor in save_locs:
+            write_raw_bytes(write_rom, save_locs[ldoor], door_from[rdoor])
+        if rdoor in save_locs:
+            write_raw_bytes(write_rom, save_locs[rdoor], door_from[ldoor])
 
 # applying patches!
 def apply_patches(patches, write_rom):

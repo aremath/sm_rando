@@ -1,0 +1,27 @@
+# This file encodes the save rooms, which use pointers into the door data table to work
+# Since we randomize that table, we have to also re-write the save data bank
+# ROOM is the room with the save point (name as per the rooms.txt file)
+# Door is which door in the save room is used for the save.
+# 	For example, Landing_Site_L2 is the reference door for the ship save:
+#	if Landing_Site_L2 is hooked up to Halfie_Climb_R1, then the pointer to the door data for Halfie_Climb_R1 needs to be written to OFFSET in order to make the landing site save work.
+#ROOM				DOOR	OFFSET
+Landing_Site		L1		0x44c7
+Parlor_Save_Room	R		0x44d5
+Pink_Save			R		0x45d1
+Green_Entrance_Save	R		0x45df
+Green_Beetom_Save	R		0x45ed
+Kraid_Save			L		0x45fb
+Caterpillar_Save	L		0x4609
+Post-Croc_Save		L		0x46db
+Bubble_Save			R		0x46e9
+Business_Save		R		0x46f7
+Crocomire_Save		L		0x4705
+Lower_Elevator_Save	R		0x4713
+Red_Keyhunter_Save	L		0x4721
+Wrecked_Save		L		0x491d
+Glass_Tunnel_Save	L		0x4919
+Maridia_First_Save	L		0x4927
+Aqueduct_Save		R		0x4935
+Draygon_Save		L		0x4943
+Mother_Brain_Save	R		0x4a31
+Tourian_Save		L		0x4a3f

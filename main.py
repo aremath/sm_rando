@@ -223,6 +223,7 @@ if __name__ == "__main__":
     # then make the necessary changes
     make_items(item_changes, args.create)
     make_doors(door_changes, args.clean, args.create)
+    make_saves(door_changes, args.clean, args.create)
 
 
 #TODO: these are some things I noted earlier about the escape paths
