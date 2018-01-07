@@ -1,5 +1,5 @@
-# SMRando Version 0.0.1
-Tools for door and item randomization of Super Metroid.
+# Super Metroid World Randomizer Version 0.0.1
+Door and item randomization of Super Metroid.
 
 You need a Super Metroid [JU] ROM.
 
@@ -28,7 +28,10 @@ Another useful command-line option is `--starting_items`. This command edits wha
 
     python main.py --clean ~/sm.smc --create ~/sm_rando.smc --starting_items "B S10 E500 WB"
 
-This example gives you Bombs, 10 Super Missiles, 500 Energy, and Wave Beam on starting the game (why you'd want bombs without morph ball beats me). The algorithm will take your starting items into account when deciding if a seed is completable and deciding what rooms to place where. This means that the same seed with different starting items can produce different results! The names for all the items are in `encoding/rooms.txt`. Currently, I haven't figured out a way to edit your starting missiles, or your starting reserve tanks. The program will give you a warning about that, and not give you those items.
+This example gives you Bombs, 10 Super Missiles, 500 Energy, and Wave Beam on starting the game (why you'd want bombs without morph ball beats me). The quotes around the list of items you want to start with are important.
+The algorithm will take your starting items into account when deciding if a seed is completable and deciding what rooms to place where.
+This means that the same seed with different starting items can produce different results! The names for all the items are in `encoding/rooms.txt`.
+Currently, I haven't figured out a way to edit your starting missiles, or your starting reserve tanks. The program will give you a warning about that, and not give you those items.
 
 If you have graphviz, the `--graph` command-line option will also generate a room graph showing the ways the rooms are connected in this seed. Minibosses are colored green, bosses are colored red, the starting point is colored blue, Samus' ship is colored blue, the golden statues room is colored yellow, and the end of Tourian escape (and the beginning of the rest of escape) is colored purple.
 
@@ -51,13 +54,12 @@ In general, Energy Tanks aren't technically required to cross most edges. Also, 
 When traveling through sand pits, try to stay centered to avoid a bug where you can get stuck in the wall.
 
 ## Known Bugs
-* The algorithm sometimes places multiple copies of items. It's not harmful to pick up multiple copies of an item, but it is weird.
 * There are sometimes graphical glitches entering some Crateria Rooms, and when leaving Kraid. Pressing Start should clear these up.
 * If you enter Crocomire, Shaktool, and a couple of other boss rooms through the wrong door, the screen glitches out. Don't panic! If you can navigate the room without being able to see, you should be able to shoot the door and make it back out.
 * The logic can force you to fight Spore Spawn or other bosses (or even wait for Shaktool) during escape. I'm working on a way to make sure it gives you enough time for these events :)
 * The Zip Tube room in Maridia does not appear in the randomizer because the player can't move after going through it!
 * Sometimes you get stuck in the wall when moving from one sand pit to another.
-* The room where you get morph ball is weird - The items might not appear until Zebes is awake, but might disappear if you visit it before Zebes is awake, and I'm not even sure what the Zebes awake trigger is.
+* The room where you get morph ball is weird - The items might not appear until Zebes is awake, but might disappear if you visit it before Zebes is awake, and I'm not even sure what the Zebes awake trigger is. As far as the logic is concerned, the items in the morph ball room are never reachable.
 * Saving does not work except in Tourian: reloading a save even after a death will glitch things out.
 * Getting the Morph Ball item can give you Spring Ball instead. Use the `--starting_items MB` command-line option for now.
 
@@ -68,15 +70,14 @@ When traveling through sand pits, try to stay centered to avoid a bug where you 
 * If you notice a problem with `rooms.txt`, let me know! Without a proper spoiler it's hard to know when the logic is asking you to do something is possible, but I'd like to know about it if I generated a seed that I told you was completable, but actually wasn't.
 
 ## In Progress
-This is just a list of things I'm working on: bugs to fix, features to implement, etc.
-* Stop placing multiple copies of items
-* Change the overall balance of items: More Supers and PBs, fewer Missiles
+This is just a list of things I'm working on: bugs to fix, features to implement, etc. If you have an insight into how to make one of them happen, let me know!
 * Fix the boss screen scroll glitch
 * Make the RNG seed easier to use: make the randomly generated seed possible to copy/paste
 * Make the algorithm better at avoiding softlocks.
 * Figure out how to skip Ceres. The "normal" way to skip it is bugged :(
 * Figure out what to do about Zebes awake-/asleep-ness
 * Make the spoiler file more descriptive and more useful
+* Keep your ammo after the Mother Brain fight.
 
 ## Acknowledgements
 Thanks to everyone who helped with this project. If you listened to me harp about completability or graphs, you know who you are and thank you for putting up with me, and giving me support and ideas.

@@ -881,6 +881,7 @@ L <-> R							- SB
 Red_Pirates_Shaft - 7B139
 R
 B
+ALL <-> ALL 					- E
 
 Business_Save - 7B167
 L
@@ -1197,6 +1198,7 @@ ALL -> M						- X
 (R1 R3 R4 B M) <-> (S RMB2)		- X
 (B R3 R4) -> R1					- GS
 (B R4) -> R3					- GS
+RMB2 -> S						- & GS (| B PB SPB)
 
 Fish_Tank - 7D017
 L
@@ -1205,8 +1207,8 @@ T1
 T2
 (L T1) -> ALL					- GS
 ALL -> T1						- GS
-T2 -> R							- | GS HJ
-(T2 R) -> L						- | GS HJ
+T2 -> R							- | GS (& HJ E)
+(T2 R) -> L						- | GS (& HJ E)
 
 Mama_Turtle - 7D055
 L
@@ -1324,8 +1326,8 @@ West_Sand_Hall - 7D461
 L
 R
 TS							- X
-L <-> R						- | HJ GS
-TS -> ALL					- | HJ GS
+L <-> R						- | (& HJ E) GS
+TS -> ALL					- | (& HJ E) GS
 
 Oasis - 7D48E
 L
@@ -1338,8 +1340,8 @@ East_Sand_Hall - 7D4C2
 L
 R
 TS							- X
-L <-> R						- | GS HJ
-TS -> ALL					- | GS HJ
+L <-> R						- | GS (& HJ E)
+TS -> ALL					- | GS (& HJ E)
 
 West_Sand_Hole - 7D4EF
 TS							- X

@@ -144,7 +144,8 @@ def item_quota_rando(rooms, starting_items=ItemSet()):
                 current_state.node = current_state.node[:-5]
 
                 # connect the two rooms at chosen_exit , chosen_entrance
-                room_unassigned_items = [x for x in room.item_nodes if x not in current_state.assignments]
+                # for now, add every item node: we don't know which ones will end up being assigned.
+                unassigned_item_nodes.extend(room.item_nodes)
 
                 # update dummy exits!
                 if chosen_entrance + "dummy" in room_dummy_exits:
@@ -178,6 +179,7 @@ def item_quota_rando(rooms, starting_items=ItemSet()):
         if not found:
             print "No rooms with a path-through"
             break
+    unassigned_item_nodes = [node for node in unassigned_item_nodes if node not in current_state.assignments]
     item_changes.extend(current_state.assignments.items())
     # make the current assignment a reality (in the graph)
     # TODO: with already-assigned nodes that haven't been placed yet?
@@ -193,7 +195,7 @@ def item_quota_rando(rooms, starting_items=ItemSet()):
     for item_node in unassigned_item_nodes:
         item = items_to_place.pop()
         current_graph.name_node[item_node].data.type = item
-        item_changes.append(item_node, item)
+        item_changes.append((item_node, item))
 
     # remove dummy exits
     for exit in dummy_exits:
