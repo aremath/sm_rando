@@ -150,7 +150,7 @@ ALL <-> R1 				- | B PB
 ALL <-> R2				- | B PB
 
 Old_Mother_Brain - 7975C
-L
+L						- X
 R
 M
 (L R) -> M				- | B PB SA
