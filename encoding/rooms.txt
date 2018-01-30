@@ -421,7 +421,7 @@ R
 Blue_Brinstar_Boulders - 7A1AD
 L
 R
-R -> L					- | G SJ
+R -> L					- | GS SJ
 
 Billy_Mays - 7A1D8
 R
@@ -595,7 +595,7 @@ R
 ALL -> L1				- X
 ALL -> L3				- PB
 L1 -> L2				- | B PB
-L1 -> R					- | B PB
+(L1 L2) -> R			- | B PB
 R -> L2					- SB
 ALL <->	L3				- PB
 R -> L3					- SB
