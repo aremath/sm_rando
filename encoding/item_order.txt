@@ -1,0 +1,15 @@
+# Bosses
+Kraid < Phantoon < (Draygon Ridley)
+(GS SJ) < Draygon
+V < Ridley
+CB < Kraid
+E < Phantoon
+
+# Beams
+(CB Spazer) < (WB IB) < PLB
+
+# Other Stuff
+MB < (B PB SPB)
+B < PB
+M < S < PB
+(G HJ) < SJ
