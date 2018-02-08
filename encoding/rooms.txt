@@ -488,7 +488,7 @@ Spazer_Troll - 7A408
 L
 R1						- S
 R2
-ALL -> R1				- | B PB
+ALL <-> R1				- | B PB
 
 Spazer - 7A447
 L
