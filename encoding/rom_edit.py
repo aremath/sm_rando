@@ -104,7 +104,7 @@ def make_doors(door_list, clean_rom, write_rom):
     # this connects door1 to door2, and vice versa.
 
     # first, get the door dictionary
-    door_from, door_to = parse_doors("encoding/door_defns.txt", clean_rom)
+    door_from, door_to = parse_doors("encoding/dsl/door_defns.txt", clean_rom)
 
     for door1, door2 in door_list:
         # special-case the pants room!
@@ -143,7 +143,7 @@ def make_items(item_list, write_rom):
     # item_list is a list of tuples, (location, item) where location is the name of 
     # an item node, and item is the name of an item.
     item_defns = item_definitions.make_item_definitions()
-    item_locations = parse_item_locations("encoding/item_locations.txt")
+    item_locations = parse_item_locations("encoding/dsl/item_locations.txt")
     for location, item in item_list:
         if location in item_locations:
             address, location_type = item_locations[location]
@@ -167,12 +167,12 @@ def parse_saves(save_file):
     return save_locs
 
 def make_saves(door_changes, clean_rom, write_rom):
-    door_from, _ = parse_doors("encoding/door_defns.txt", clean_rom)
+    door_from, _ = parse_doors("encoding/dsl/door_defns.txt", clean_rom)
     # the last 4 characters comprise the pointer
     door_from = {node: addr[-4:] for node, addr in door_from.items()}
     # now convert to bytes
     door_from = {node: int_to_hex(int(addr, base=16))[::-1] for node, addr in door_from.items()}
-    save_locs = parse_saves("encoding/saves.txt")
+    save_locs = parse_saves("encoding/dsl/saves.txt")
     for ldoor, rdoor in door_changes:
         if ldoor in save_locs:
             write_raw_bytes(write_rom, save_locs[ldoor], door_from[rdoor])

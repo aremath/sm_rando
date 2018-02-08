@@ -20,25 +20,27 @@ class BasicGraph(object):
     def BFS(self, start, end=None):
         # key - node
         # value - the previous node in the BFS
-        #TODO: derp use a queue!
         offers = {}
         finished = set()
-        stack = [start]
+        queue = [start]
         node = ""
         while len(stack > 0):
-            node = stack.pop()
+            node = queue.pop()
             if end is not None and node == end:
                 break
             finished |= set(node)
             for neighbor in self.node_edges[node]:
                 if neighbor not in finished:
-                    stack.append(neighbor)
+                    queue.append(neighbor)
                     offer[neighbor] = node
+        return finished, offer
 
-        if end is None:
-            return finished
+    def bfs_path(offer, end, start):
+        path = []
+        node = end
+        if end not in offer:
+            return None
         else:
-            path = []
             while node != start:
                 path.append(node)
                 node = offer[node]

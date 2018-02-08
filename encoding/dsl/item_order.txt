@@ -5,6 +5,9 @@ V < Ridley
 CB < Kraid
 E < Phantoon
 
+# Minibosses
+Bomb_Torizo < (Spore_Spawn Crocomire) < Botwoon < Golden_Torizo
+
 # Beams
 (CB Spazer) < (WB IB) < PLB
 

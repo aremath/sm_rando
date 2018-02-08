@@ -14,7 +14,7 @@
 # (L R B T ET EB TS BS LMB RMB)
 
 from constraints import *
-from graph import *
+from data_types.graph import *
 import collections
 
 door_types = ["L", "R", "B", "T", "ET", "EB", "TS", "BS", "LMB", "RMB"]

@@ -1,5 +1,5 @@
 
-from parse_rooms import *
+from encoding.parse_rooms import *
 import collections
 
 def make_door(door1, direction1, door2, direction2, new_room, graph, exits_to_place, door_changes, item_changes, items_to_place):

@@ -12,7 +12,7 @@
 # can always turn every item off, there is no reason for an edge to ever require
 # you not to have an item.
 
-from minsetset import *
+from data_types.minsetset import *
 
 def parse_constraint(constraint):
 	# BASE CASE

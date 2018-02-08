@@ -1,7 +1,7 @@
 
-from parse_rooms import *
-from rom_edit import *
-from rando_algs import *
+from encoding.parse_rooms import *
+from encoding.rom_edit import *
+from door_rando.rando_algs import *
 
 import random
 import argparse
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     completable = False
     while not completable:
         #TODO: re-parsing rooms is quick and dirty...
-        rooms = parse_rooms("encoding/rooms.txt")
+        rooms = parse_rooms("encoding/dsl/rooms.txt")
         door_changes, item_changes, graph, state = item_quota_rando(rooms, starting_items)
         # check completability - can reach statues?
         start_state = BFSState(state.node, state.items)
@@ -209,7 +209,7 @@ if __name__ == "__main__":
 
     # make the spoiler graph
     if args.graph:
-        import spoiler_graph 
+        from door_rando import spoiler_graph 
         spoiler_graph.make_spoiler_graph(door_changes, args.create)
 
     # now that we have the door changes and the item changes, implement them!
