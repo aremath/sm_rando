@@ -1,4 +1,3 @@
-
 import itertools
 import random
 
@@ -57,3 +56,7 @@ def can_place(preds, to_place):
         if len([pred for pred in preds if pred[1] == item]) == 0:
             can.append(item)
     return can
+
+def order():
+    preds = parse_preds("encoding/dsl/item_order.txt")
+    return choose_order(preds, all_things)

@@ -23,7 +23,7 @@
 # number of items), and find whether a given map is completable! Completability can be defined in many ways, but I normally use this:
 # There is a path from Landing site with no items to Golden Statues with all items, and a path from the end of escape with all items 
 # to the landing site. It's possible to choose a much more relaxed version of completability - that is, you can find enough ammo to beat
-# mother brain, and there's a path to escape. The problem with this is that I use Sets to represent items it is relatively hard to 
+# mother brain, and there's a path to escape. The problem with this is that sets represent the items you have and it is hard to 
 # calculate the number of missiles, energy tanks, etc. that you can obtain. The main idea, though, is that if you can access all items,
 # you can cross every edge and obtain every* item. 
 # * except the Main Street missiles if you can't do that shortcharge. My encoding makes no edges to that item, for this reason.
@@ -146,7 +146,7 @@ class ConstraintGraph(object):
                 return
         assert False, "No such edge: " + node1 + " -> " + node2
 
-    def is_edge(node1, node2):
+    def is_edge(self, node1, node2):
         """is there an edge from node1 to node2?"""
         assert node1 in self.name_node, "Node does not exist: " + node1
         assert node2 in self.name_node, "Node does not exist: " + node2

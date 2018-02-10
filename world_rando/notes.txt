@@ -1,0 +1,11 @@
+maptiles
+key1 - x
+key2 - y
+key3 - what to get
+     "t" -> what type of map tile it is
+     "L" -> list of journeys traveling left
+     "R" -> "" right
+     "U" -> "" up
+     "D" -> "" down
+
+
