@@ -1,9 +1,6 @@
 import itertools
 import random
-
-items = ["B", "PB", "SPB", "S", "M", "G", "SA", "V", "GS", "SB", "MB", "CB", "WB", "E", "PLB", "IB", "HJ", "SJ", "Spazer"]
-bosses = ["Kraid", "Phantoon", "Draygon", "Ridley"]
-all_things = items + bosses
+import sm_global
 
 def parse_preds(pred_file):
     f = open(pred_file, "r")
@@ -59,4 +56,4 @@ def can_place(preds, to_place):
 
 def order():
     preds = parse_preds("encoding/dsl/item_order.txt")
-    return choose_order(preds, all_things)
+    return choose_order(preds, sm_global.all_things)

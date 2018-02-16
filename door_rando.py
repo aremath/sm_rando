@@ -2,6 +2,7 @@
 from encoding.parse_rooms import *
 from encoding.rom_edit import *
 from door_rando.rando_algs import *
+from encoding import sm_global
 
 import random
 import argparse
@@ -142,8 +143,7 @@ if __name__ == "__main__":
     # setup
     # copy it to remove Bombs
     # TODO: GET RID OF Bombs
-    all_items = item_types[:]
-    all_items.remove("Bombs")
+    all_items = sm_global.items[:]
     all_items = ItemSet(all_items)
     # escape timer vars
     escape_timer = 0

@@ -23,16 +23,16 @@ def load_map_tiles(map_dir):
 
 def is_below(xy1, xy2):
     """is xy2 directly below xy1?"""
-    return xy2[1] == xy1[1] + 1 and xy2[0] == xy1[0]
+    return xy2 == xy1.down()
 
 def is_left(xy1, xy2):
-    return xy2[0] == xy1[0] - 1 and xy2[1] == xy1[1]
+    return xy2 == xy1.left()
 
 def is_right(xy1, xy2):
-    return xy2[0] == xy1[0] + 1 and xy2[1] == xy1[1]
+    return xy2 == xy1.right()
 
 def is_above(xy1, xy2):
-    return xy2[1] == xy1[1] - 1 and xy2[0] == xy1[0]
+    return xy2 == xy1.up()
 
 def has(wall_list, f, xy):
     """does wall_list have a wall satisfying property f?"""
@@ -78,15 +78,15 @@ def find_image(walls, xy):
     elif nwalls == 4:
         return "4w", 0
        
-def map_viz(cmap, region, filename):
+def map_viz(cmap, region, filename, map_dir):
     mrange, mins = map_range(cmap, region)
-    map_image = Image.new("RGBA", ((mrange[0]+1)*16, (mrange[1]+1)*16), "black")
+    map_image = Image.new("RGBA", ((mrange.x+1)*16, (mrange.y+1)*16), "black")
     # bind the current region for easy re-use
     bregion = cmap[region]
-    wmap, blank, item = load_map_tiles("encoding/map_tiles")
-    for x in range(mrange[0]+1):
-        for y in range(mrange[1]+1):
-            relxy = (x + mins[0], y + mins[0])
+    wmap, blank, item = load_map_tiles(map_dir)
+    for x in range(mrange.x+1):
+        for y in range(mrange.y+1):
+            relxy = MCoords(x, y) + mins
             xy = (x,y)
             if relxy in bregion:
                 mtile = bregion[relxy]

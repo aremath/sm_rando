@@ -1,4 +1,4 @@
-
+from encoding import sm_global
 from encoding.parse_rooms import *
 import collections
 
@@ -241,19 +241,15 @@ def map_items():
 
 def map_items():
     """get the items for the map - default behavior is just the normal numbers"""
-    items_to_place = (2 * item_types) + (20 * ["M"]) + (12 * ["S"]) + (10 * ["PB"]) + (14 * ["E"])
+    items_to_place = (2 * sm_global.items) + (22 * ["M"]) + (12 * ["S"]) + (10 * ["PB"]) + (14 * ["E"])
     assert len(items_to_place) == 100, len(items_to_place)
     # stupid special cases
-    items_to_place.remove("Bombs")
-    items_to_place.remove("Bombs")
-    items_to_place.append("B")
-    items_to_place.append("B")
     return items_to_place
 
 
 def get_fixed_items():
     """get the set of items whose locations cannot be wildcarded"""
-    return ItemSet(boss_types) | ItemSet(special_types)
+    return ItemSet(sm_global.boss_types) | ItemSet(sm_global.special_types)
 
 def get_starting_assignments():
     """get the assignments to items whose locations which do not accept wildcards"""

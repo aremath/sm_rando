@@ -16,13 +16,7 @@
 from constraints import *
 from data_types.graph import *
 import collections
-
-door_types = ["L", "R", "B", "T", "ET", "EB", "TS", "BS", "LMB", "RMB"]
-item_types = ["B", "PB", "SPB", "S", "M", "G", "SA", "V", "GS", "SB", "HJ", "MB", "CB", "WB", "E", "PLB", "Spazer", "Bombs", "RT", "XR", "IB", "SJ"]
-boss_types = ["Kraid", "Phantoon", "Draygon", "Ridley", "Botwoon", "Spore_Spawn", "Golden_Torizo", "Bomb_Torizo", "Mother_Brain", "Crocomire", "Ceres_Ridley"]
-#TODO: Crateria_Awake for final missile?
-#TODO: Figure out what's going on with Volcano_Room
-special_types = ["Drain", "Shaktool", "START"]
+import sm_global
 
 door_hookups = {
 	"L": "R",
@@ -181,12 +175,12 @@ def parse_node_name(node_name, constraint):
 	# get the type by stripping the number from the end
 	node_type = node_name.rstrip("1234567890")
 
-	if node_type in door_types:
+	if node_type in sm_global.door_types:
 		accessible = True
 		if constraint is None:
 			accessible = False
 		return Door(0, constraint, accessible, node_type)
-	elif node_type in item_types:
+	elif node_type in sm_global.item_types:
 		# quick and dirty fix. Otherwise the bombs thing would be parsed as a bottom exit
 		# and not an item node.
 		if node_type == "Bombs":
@@ -194,7 +188,7 @@ def parse_node_name(node_name, constraint):
 		return Item(0, node_type)
 	# Special nodes act as bosses - they're the same in that they can't be
 	# randomized
-	elif node_type in boss_types or node_type in special_types:
+	elif node_type in sm_global.boss_types or node_type in sm_global.special_types:
 		return Boss(node_type)
 	else:
 		assert False, "Unrecognized Type: " + node_name
