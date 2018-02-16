@@ -12,8 +12,11 @@ if __name__ == "__main__":
     path = get_path(offers, start, end)
     bfs_map = {}
     bfs_map["E"] = {}
+    # put the tiles into the map
     for xy in path:
         bfs_map["E"][xy] = MapTile("")
-    elide_walls(bfs_map, "E")
+    # partition it into rooms
+    _, _ = random_rooms(int(len(path)/3), bfs_map, "E")
+    #elide_walls(bfs_map, "E")
     map_viz.map_viz(bfs_map, "E", "map.png", "../encoding/map_tiles")
 

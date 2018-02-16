@@ -5,6 +5,7 @@
 # value - MapTile
 import collections
 import heapq
+import random
 
 class MCoords(object):
     
@@ -47,6 +48,9 @@ class MCoords(object):
 
     def euclidean(self, other):
         return ((self.x-other.x)**2 + (self.y-other.y)**2)**(0.5)
+
+    def __repr__(self):
+        return "(" + str(self.x) + "," + str(self.y) + ")"
         
 
 class MapTile(object):
@@ -57,7 +61,7 @@ class MapTile(object):
         # value - list of items needed to reach
         self.d = collections.defaultdict(list)
         # list of (x,y) adjacent to this tile indicating where the walls are
-        self.walls = [] #TODO: what about sloped map tiles?
+        self.walls = [] #TODO: what about sloped map tiles? #TODO: walls as a set
         self.is_item = False
 
     def add_path(to_coords, with_items):
@@ -112,27 +116,27 @@ def map_search(start, goal, pred=lambda x: True, dist=lambda x,y: euclidean(x,y)
     # not found
     return None
 
-def map_bfs(cmap, region, start, goal, pred=lambda x: True):
+def map_bfs(start, goal, pred=lambda x: True):
     """bfs over nodes satisfying pred. If goal is None, just returns all there was to see."""
     #TODO: what to do if there's no pred and no goal?
-    q = [start]
+    q = collections.dequeue([start])
     finished = set()
     offers = {}
     finished.add(start)
     while len(q) > 0:
-        pos = q.pop()
+        pos = q.popleft()
         if pos == goal:
             return offers, finished
         n = pos.neighbors()
         for a in n:
             if a not in finished and pred(a):
-                heappush(h, (dist(a, goal), a))
+                q.append(a)
                 finished.add(a)
                 offers[a] = pos
     return offers, finished
 
 #TODO
-def map_lsearch(cmap, region, start, goal, pred=lambda x:True, dist=lambda x,y: euclidean(x,y)):
+def map_lsearch(start, goal, pred=lambda x:True, dist=lambda x,y: euclidean(x,y)):
     """special search that first finds failure states in moving from start to goal,
     then moves only towards the goal to reach it, minimizing dist at each step.
     The goal here is that we can generate random, but more 'straight' paths than a random
@@ -159,4 +163,48 @@ def elide_walls(cmap, region):
         for a in n:
             if a not in cmap[region]:
                 cmap[region][xy].walls.append(a)
+
+#lambda x: 0 means BFS in a heapq (first element first)
+# can use random to alter the pattern of vertices grabbed by
+# each mean
+def bfs_partition(space, means, priority=lambda x: 0):
+    # setup
+    # key - mean, value - set of positions that mean has considered
+    mfinished = {mean: set() for mean in means}
+    # key - mean, value - for position p, what made the a* offer to p?
+    moffers = {mean: {} for mean in means}
+    for mean in means:
+        mfinished[mean].add(mean)
+    mpos = {mean: mean for mean in means}
+    mheaps = {mean: [(0, mean)] for mean in means}
+    all_finished = set(means)
+    while all_finished != space:
+        for mean in means:
+            if len(mheaps[mean]) > 0:
+                _, mpos[mean] = heapq.heappop(mheaps[mean])
+            else:
+                continue
+            for n in mpos[mean].neighbors():
+                if n not in all_finished and n in space:
+                    heapq.heappush(mheaps[mean], (priority(n), n))
+                    mfinished[mean].add(n)
+                    all_finished.add(n)
+                    moffers[n] = mpos[mean]
+    return moffers, mfinished
+
+def random_rooms(n, cmap, region):
+    # choose means
+    means = random.sample(cmap[region].keys(), n)
+    paths, partitions = bfs_partition(set(cmap[region].keys()), means)
+    for mean in means:
+        room_walls(cmap, region, partitions[mean])
+    return paths, partitions
+
+def room_walls(cmap, region, room):
+    """ puts the walls into a room, given as a set of MCoords """
+    for xy in room:
+        for n in xy.neighbors():
+            if n not in room:
+                cmap[region][xy].walls.append(n)
+
 
