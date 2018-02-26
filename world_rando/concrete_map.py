@@ -57,10 +57,10 @@ class MapTile(object):
 
     def __init__(self, mtype):
         self.t = mtype
-        # key - (x,y) pair
-        # value - list of items needed to reach
+        # key - MCoords
+        # value - itemset needed to reach
         self.d = collections.defaultdict(list)
-        # list of (x,y) adjacent to this tile indicating where the walls are
+        # list of MCoords adjacent to this tile indicating where the walls are
         self.walls = [] #TODO: what about sloped map tiles? #TODO: walls as a set
         self.is_item = False
 
@@ -87,6 +87,12 @@ def map_range(cmap, region):
 def euclidean(p1, p2):
     """euclidean metric"""
     return p1.euclidean(p2)
+
+def manhattan(p1, p2):
+    return abs(p1.x - p2.x) + abs(p1.y - p2.y)
+
+def rand_d(p1, p2):
+    return euclidean(p1, p2) + random.uniform(0,9)
 
 #TODO: some optimizations can be made
 # note that dist can be random, in which case this is kind of a random walk that
@@ -119,13 +125,13 @@ def map_search(start, goal, pred=lambda x: True, dist=lambda x,y: euclidean(x,y)
 def map_bfs(start, goal, pred=lambda x: True):
     """bfs over nodes satisfying pred. If goal is None, just returns all there was to see."""
     #TODO: what to do if there's no pred and no goal?
-    q = collections.dequeue([start])
+    q = collections.deque([start])
     finished = set()
     offers = {}
     finished.add(start)
     while len(q) > 0:
         pos = q.popleft()
-        if pos == goal:
+        if goal is not None and pos == goal:
             return offers, finished
         n = pos.neighbors()
         for a in n:
@@ -189,7 +195,7 @@ def bfs_partition(space, means, priority=lambda x: 0):
                     heapq.heappush(mheaps[mean], (priority(n), n))
                     mfinished[mean].add(n)
                     all_finished.add(n)
-                    moffers[n] = mpos[mean]
+                    moffers[mean][n] = mpos[mean]
     return moffers, mfinished
 
 def random_rooms(n, cmap, region):

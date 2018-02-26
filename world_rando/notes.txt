@@ -1,11 +1,13 @@
-maptiles
-key1 - x
-key2 - y
-key3 - what to get
-     "t" -> what type of map tile it is
-     "L" -> list of journeys traveling left
-     "R" -> "" right
-     "U" -> "" up
-     "D" -> "" down
+Worley pattern ideas:
+
+To split up rooms, distribute n means through the map
+	now, run a series of steps with randomized BFS (shuffle the queue every time?) for each mean.
+	a mean "claims" the territory that it searches - one mean cannot claim territory already claimed by another mean
+	keep going until all available territory has been claimed.
+
+How to decide on value of n?
+
+
+This technique might also be able to create a partition of the map for deciding what 'aesthetic area' each room is in!
 
 

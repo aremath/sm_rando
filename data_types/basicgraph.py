@@ -1,3 +1,5 @@
+import itertools
+
 class BasicGraph(object):
 
     def __init__(self):
@@ -20,6 +22,15 @@ class BasicGraph(object):
             assert edge.terminal != node2, "An edge already exists: " + node1 + " -> " + node2
         edge = Edge(node2, data)
         self.nodes[node1].edges.append(edge)
+
+    def update_edge(self, node1, node2, data=None):
+        if self.is_edge(node1, node2):
+            #TODO innefficient!
+            for edge in self.nodes[node1].edges:
+                if edge.terminal == node2:
+                    edge.data = data
+        else:
+            self.add_edge(node1, node2, data)
 
     def is_edge(self, node1, node2, p=lambda x: True):
         """ is there an edge from node1 to node2 satisfying p?"""
@@ -50,6 +61,19 @@ class BasicGraph(object):
                     indices_to_delete.append(index)
             for index in indices_to_delete:
                 del node.edges[index]
+
+    def subgraph(self, nodes):
+        """Returns a new graph which is a subgraph of self, using the nodes of nodes.
+           Data will typically be shared by nodes and edges."""
+        sgraph = BasicGraph()
+        # add the nodes
+        for node in nodes:
+            sgraph.add_node(node, self.nodes[node].data)
+        # make the edges
+        for n1, n2 in itertools.permutations(nodes, r=2):
+            if self.is_edge(n1, n2):
+                sgraph.add_edge(n1, n2)
+        return sgraph
 
     #TODO: add a predicate to test the node data or the edge data for impassibility
     def BFS(self, start, end=None):

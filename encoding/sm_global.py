@@ -13,3 +13,12 @@ special_types = ["Drain", "Shaktool", "START"]
 
 door_types = ["L", "R", "B", "T", "ET", "EB", "TS", "BS", "LMB", "RMB"]
 
+regions = {
+    "Wrecked_Ship" : ["Phantoon"],
+    "Maridia"      : ["Draygon", "Botwoon"],
+    "Crateria"     : ["Bomb_Torizo", "START"], # technically start could be in Ceres or anywhere I guess
+    "Norfair"      : ["Golden_Torizo", "Ridley", "Crocomire"],
+    "Brinstar"     : ["Kraid", "Spore_Spawn"],
+    "Tourian"      : ["Mother_Brain"]
+}
+
