@@ -78,18 +78,17 @@ def find_image(walls, xy):
     elif nwalls == 4:
         return "4w", 0
        
-def map_viz(cmap, region, filename, map_dir):
-    mrange, mins = map_range(cmap, region)
+def map_viz(rcmap, filename, map_dir):
+    mrange, mins = map_range(rcmap)
     map_image = Image.new("RGBA", ((mrange.x+1)*16, (mrange.y+1)*16), "black")
     # bind the current region for easy re-use
-    bregion = cmap[region]
     wmap, blank, item = load_map_tiles(map_dir)
     for x in range(mrange.x+1):
         for y in range(mrange.y+1):
             relxy = MCoords(x, y) + mins
             xy = (x,y)
-            if relxy in bregion:
-                mtile = bregion[relxy]
+            if relxy in rcmap:
+                mtile = rcmap[relxy]
                 image_name, rotation = find_image(mtile.walls, relxy)
                 image = wmap[image_name]
                 imrotate = image.rotate(rotation)

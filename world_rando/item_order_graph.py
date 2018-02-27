@@ -1,9 +1,18 @@
 from data_types import basicgraph
 from encoding import item_order
+from encoding import sm_global
 import random
 import heapq
 import collections
 import itertools
+
+def abstract_map():
+    """puts it all together to make an abstract map with regions and elevators"""
+    order, graph = order_graph()
+    region_order, region_finished = partition_order(graph, sm_global.regions)
+    n_elevators = make_elevators(graph, region_finished)
+    rsg = region_subgraphs(graph, region_finished)
+    return order, graph, rsg
 
 def order_graph():
     """Creates an item order graph, which is an

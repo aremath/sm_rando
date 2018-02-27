@@ -67,10 +67,10 @@ class MapTile(object):
     def add_path(to_coords, with_items):
         self.d[to_coords].append(with_items)
 
-def map_extent(cmap, region):
+def map_extent(rcmap):
     """ returns the 'extent' of the cmap: two 
     mcoords, which are the bounding box"""
-    mtiles = cmap[region].keys()
+    mtiles = rcmap.keys()
     if len(mtiles) == 0:
         return None
     minx = min(mtiles, key=lambda item: item.x).x
@@ -79,9 +79,9 @@ def map_extent(cmap, region):
     maxy = max(mtiles, key=lambda item: item.y).y
     return (MCoords(minx, miny), MCoords(maxx, maxy))
 
-def map_range(cmap, region):
+def map_range(rcmap):
     """returns the actual ranges of the map, along with the placement of that range in x,y"""
-    mmin, mmax = map_extent(cmap, region)
+    mmin, mmax = map_extent(rcmap)
     return mmax - mmin, mmin
 
 def euclidean(p1, p2):
@@ -198,19 +198,19 @@ def bfs_partition(space, means, priority=lambda x: 0):
                     moffers[mean][n] = mpos[mean]
     return moffers, mfinished
 
-def random_rooms(n, cmap, region):
+def random_rooms(n, rcmap):
     # choose means
-    means = random.sample(cmap[region].keys(), n)
-    paths, partitions = bfs_partition(set(cmap[region].keys()), means)
+    means = random.sample(rcmap.keys(), n)
+    paths, partitions = bfs_partition(set(rcmap.keys()), means)
     for mean in means:
-        room_walls(cmap, region, partitions[mean])
+        room_walls(rcmap, partitions[mean])
     return paths, partitions
 
-def room_walls(cmap, region, room):
+def room_walls(rcmap, room):
     """ puts the walls into a room, given as a set of MCoords """
     for xy in room:
         for n in xy.neighbors():
             if n not in room:
-                cmap[region][xy].walls.append(n)
+                rcmap[xy].walls.append(n)
 
 
