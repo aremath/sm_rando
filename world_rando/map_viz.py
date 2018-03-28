@@ -11,15 +11,19 @@ def load_map_tiles(map_dir):
     i2wp = Image.open(map_dir + "/2wallpipe.png")
     i3w  = Image.open(map_dir + "/3wall.png")
     i4w  = Image.open(map_dir + "/4wall.png")
-    ba  = Image.open(map_dir + "/blank_alpha.png")
-    ia  = Image.open(map_dir + "/item_alpha.png")
+    ba   = Image.open(map_dir + "/blank_alpha.png")
+    ia   = Image.open(map_dir + "/item_alpha.png")
+    ea   = Image.open(map_dir + "/is_elevator.png")
+    et   = Image.open(map_dir + "/elevator.png")
     wall_dict = {"0w" : i0w,
                  "1w" : i1w,
                  "2w" : i2w,
                  "2wp": i2wp,
                  "3w" : i3w,
-                 "4w" : i4w}
-    return wall_dict, ba, ia
+                 "4w" : i4w,
+                 "et" : et
+                }
+    return wall_dict, ba, ia, ea
 
 def is_below(xy1, xy2):
     """is xy2 directly below xy1?"""
@@ -77,24 +81,30 @@ def find_image(walls, xy):
             return "3w", 90
     elif nwalls == 4:
         return "4w", 0
+    assert False, "no matching walls! " + str(walls)
        
 def map_viz(rcmap, filename, map_dir):
     mrange, mins = map_range(rcmap)
     map_image = Image.new("RGBA", ((mrange.x+1)*16, (mrange.y+1)*16), "black")
     # bind the current region for easy re-use
-    wmap, blank, item = load_map_tiles(map_dir)
+    wmap, blank, item, elevator = load_map_tiles(map_dir)
     for x in range(mrange.x+1):
         for y in range(mrange.y+1):
             relxy = MCoords(x, y) + mins
             xy = (x,y)
             if relxy in rcmap:
                 mtile = rcmap[relxy]
-                image_name, rotation = find_image(mtile.walls, relxy)
+                if mtile.is_e_tile:
+                    image_name, rotation = "et", 0
+                else:
+                    image_name, rotation = find_image(mtile.walls, relxy)
                 image = wmap[image_name]
                 imrotate = image.rotate(rotation)
                 map_image.paste(imrotate, (x*16,y*16), imrotate)
                 if mtile.is_item:
                     map_image.paste(item, (x*16,y*16), item)
+                if mtile.is_elevator:
+                    map_image.paste(elevator, (x*16,y*16), elevator)
             else:
                 # it's a blank
                 map_image.paste(blank, (x*16,y*16), blank)

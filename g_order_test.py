@@ -6,7 +6,7 @@ if __name__ == "__main__":
     print o
     ro, rf = partition_order(g, sm_global.regions)
     print rf
-    n = make_elevators(g, rf)
+    es = make_elevators(g, rf)
     r_s = region_subgraphs(g, rf)
     for r, sg in r_s.items():
         sg.visualize(r)

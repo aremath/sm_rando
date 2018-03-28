@@ -57,3 +57,8 @@ def can_place(preds, to_place):
 def order():
     preds = parse_preds("encoding/dsl/item_order.txt")
     return choose_order(preds, sm_global.all_things)
+
+def region_order():
+    preds = parse_preds("encoding/dsl/region_order.txt")
+    return choose_order(preds, sm_global.regions.keys())
+

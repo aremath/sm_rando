@@ -10,9 +10,11 @@ def abstract_map():
     """puts it all together to make an abstract map with regions and elevators"""
     order, graph = order_graph()
     region_order, region_finished = partition_order(graph, sm_global.regions)
-    n_elevators = make_elevators(graph, region_finished)
+    elevators = make_elevators(graph, region_finished)
+    region_order = item_order.region_order()
+    es = elevator_directions(elevators, region_order)
     rsg = region_subgraphs(graph, region_finished)
-    return order, graph, rsg
+    return order, graph, rsg, es, region_order
 
 def order_graph():
     """Creates an item order graph, which is an
@@ -89,15 +91,16 @@ def partition_order(graph, initial, priority=lambda x: 0):
 #   2. Make an elevator for each unique region crossing
 #
 def make_elevators(graph, regions):
-    n_elevators = 0
+    elevators = collections.defaultdict(list)
     crossings = find_crossings(graph, regions)
     for regs, edges in crossings.items():
         r1, r2 = tuple(regs)
         assert (len(edges) > 0), "Invalid regions: no nodes in " + r1 + ", " + r2
-        n_elevators += 1
         # n1 has an edge to n2 crossing either from r1->r2 or r2->r1
         r1_e_name = "Elevator " + r1 + "+" + r2 + " @ " + r1
         r2_e_name = "Elevator " + r1 + "+" + r2 + " @ " + r2
+        elevators[r1].append((r1_e_name, r2))
+        elevators[r2].append((r2_e_name, r1))
         graph.add_node(r1_e_name)
         graph.add_node(r2_e_name)
         regions[r1].add(r1_e_name)
@@ -114,7 +117,7 @@ def make_elevators(graph, regions):
                 graph.update_edge(r1_e_name, n2)
             else:
                 assert False, "Node not in either region: " + n1
-    return n_elevators
+    return elevators
         
 
 # crossings:
@@ -143,3 +146,22 @@ def region_subgraphs(graph, regions):
     for region, nodes in regions.items():
         region_sgraphs[region] = graph.subgraph(nodes)
     return region_sgraphs
+
+def elevator_directions(elevators, region_order):
+    up_es = set()
+    down_es = set()
+
+    for r1, t_list in elevators.items():
+        for t in t_list:
+            e_name, r2 = t
+            # determine if r1 is before or after r2
+            r1_index = region_order.index(r1)
+            r2_index = region_order.index(r2)
+            if r1_index > r2_index:
+                down_es.add(e_name)
+            elif r2_index > r1_index:
+                up_es.add(e_name)
+            else:
+                assert False, "Elevator to same region"
+    return up_es, down_es
+

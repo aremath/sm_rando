@@ -61,8 +61,11 @@ class MapTile(object):
         # value - itemset needed to reach
         self.d = collections.defaultdict(list)
         # list of MCoords adjacent to this tile indicating where the walls are
-        self.walls = [] #TODO: what about sloped map tiles? #TODO: walls as a set
+        self.walls = set() #TODO: what about sloped map tiles? #TODO: walls as a set
         self.is_item = False
+        self.is_elevator = False
+        self.is_e_tile = False
+        self.is_fixed = False
 
     def add_path(to_coords, with_items):
         self.d[to_coords].append(with_items)
@@ -80,9 +83,36 @@ def map_extent(rcmap):
     return (MCoords(minx, miny), MCoords(maxx, maxy))
 
 def map_range(rcmap):
-    """returns the actual ranges of the map, along with the placement of that range in x,y"""
+    """Returns the actual ranges of the map, along with the placement of that range in x,y"""
     mmin, mmax = map_extent(rcmap)
     return mmax - mmin, mmin
+
+def map_offset(cmap, offset):
+    """Returns a new cmap which is the same as the old cmap at a different offset. Data may be shared."""
+    offset_map = {m + offset : mtile for m, mtile in cmap.items()}
+    # offset the walls
+    for t in offset_map.values():
+        t.walls = set([i + offset for i in t.walls])
+    return offset_map
+
+def add_cmaps(cmap1, cmap2, collision_policy):
+    """Puts cmap1 and cmap2 together. Data may be shared."""
+    new_cmap = {}
+    for c, t in cmap1.items():
+        new_cmap[c] = t
+    for c, t in cmap2.items():
+        if c in new_cmap:
+            if collision_policy == "f":
+                continue
+            elif collision_policy == "e":
+                assert False, "cmap collision: " + str(c)
+            elif collision_policy == "n":
+                return None
+            else:
+                assert False, "Bad collision policy"
+        else:
+            new_cmap[c] = t
+    return new_cmap
 
 def euclidean(p1, p2):
     """euclidean metric"""
@@ -113,8 +143,7 @@ def map_search(start, goal, pred=lambda x: True, dist=lambda x,y: euclidean(x,y)
         _, pos = heapq.heappop(h)
         if pos == goal:
             return offers, finished
-        n = pos.neighbors()
-        for a in n:
+        for a in pos.neighbors():
             if a not in finished and pred(a):
                 heapq.heappush(h, (dist(a, goal), a))
                 finished.add(a)
@@ -162,13 +191,13 @@ def get_path(offers, start, end):
         pos = offers[pos]
     return path[::-1]
 
-def elide_walls(cmap, region):
+def elide_walls(cmap):
     """ adds walls to cmap where the tile abuts empty space """
-    for xy in cmap[region].keys():
+    for xy in cmap.keys():
         n = xy.neighbors()
         for a in n:
-            if a not in cmap[region]:
-                cmap[region][xy].walls.append(a)
+            if a not in cmap:
+                cmap[xy].walls.add(a)
 
 #lambda x: 0 means BFS in a heapq (first element first)
 # can use random to alter the pattern of vertices grabbed by
@@ -211,6 +240,29 @@ def room_walls(rcmap, room):
     for xy in room:
         for n in xy.neighbors():
             if n not in room:
-                rcmap[xy].walls.append(n)
+                rcmap[xy].walls.add(n)
 
+###
+# SPECIFY MAP TILES
+# ways to specify a set of map tiles to search with map_search (using pred)
+###
+
+def is_above(xy1, xy2):
+    return xy1.x == xy2.x and xy1.y < xy2.y
+
+def is_below(xy1, xy2):
+    return xy1.x == xy2.x and xy1.y > xy2.y
+
+def is_p_list(xy1, xys, p):
+    """does xy1 satisfy p with any element of xys?"""
+    for xy2 in xys:
+        if p(xy1, xy2):
+            return True
+    return False
+
+def is_below_l(xy1, xys):
+    return is_p_list(xy1, xys, is_below)
+
+def is_above_l(xy1, xys):
+    return is_p_list(xy1, xys, is_above)
 

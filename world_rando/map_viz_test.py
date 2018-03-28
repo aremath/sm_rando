@@ -27,4 +27,4 @@ if __name__ == "__main__":
     example_map["Maridia"][MCoords(4,5)] = MapTile("")
     example_map["Maridia"][MCoords(4,5)].walls = [MCoords(4,6),MCoords(4,4),MCoords(3,4)]
 
-    map_viz.map_viz(example_map, "Maridia", "map.png", "../encoding/map_tiles")
+    map_viz.map_viz(example_map["Maridia"], "map.png", "../encoding/map_tiles")
