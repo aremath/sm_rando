@@ -46,7 +46,6 @@ def less_naive_gen(dimensions, dist, graph, elevators):
     node_list = graph.nodes.keys()
     node_locs = {}
     # choose elevator locations: down elevators are the lowest locs, and up are the highest locs
-    #TODO: seems like it doesn't always return the lowest n or highest n points
     sorted_locs = sorted(locs, key=lambda n: n.y)
     up_e_xy = []
     down_e_xy = []
@@ -54,11 +53,11 @@ def less_naive_gen(dimensions, dist, graph, elevators):
         if node in up_es:
             node_locs[node] = sorted_locs.pop(0) # highest y coordinate is further down
             up_e_xy.append(node_locs[node])
-            node_list.remove(node)
         elif node in down_es:
             node_locs[node] = sorted_locs.pop()
             down_e_xy.append(node_locs[node])
-            node_list.remove(node)
+    # remove the elevators from the list to choose locs for the rest of the nodes
+    node_list = list(set(node_list) - up_es - down_es)
 
     random.shuffle(node_list)
     #TODO: need to choose node locations that are not randomly above or below an elevator, or this breaks things
@@ -70,7 +69,9 @@ def less_naive_gen(dimensions, dist, graph, elevators):
         if node_list[i] not in node_locs:
             node_locs[node_list[i]] = sorted_locs[i]
 
-    for node in graph.nodes:
+    rnodes = graph.nodes.keys()
+    random.shuffle(rnodes)
+    for node in rnodes:
         for edge in graph.nodes[node].edges:
             # path from n1 to n2
             # first, find all nodes reachable from n1

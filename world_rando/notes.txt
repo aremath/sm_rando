@@ -149,3 +149,7 @@ Cell Automaton -> Generate cave walls
 + Add Pipes and stuff?
 
 3-square jump height underwater no gravity
+
+TODO:
+Adding other item nodes to the abstract map
+use (bfs_dist / euclidean dist) to create new paths

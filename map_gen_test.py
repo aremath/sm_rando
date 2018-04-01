@@ -22,7 +22,7 @@ if __name__ == "__main__":
     ntiles = 0
     room_dims = []
     for region, graph in rsg.items():
-        graph.visualize(region)
+        graph.visualize("a_" + region)
         print "Generating map for " + region
         cmap[region], rooms = map_gen.less_naive_gen((50, 25), less_rand_d, graph, es)
         ntiles += len(cmap[region])
