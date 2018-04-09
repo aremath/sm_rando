@@ -6,9 +6,18 @@ import heapq
 import collections
 import itertools
 
+#TODO: every item needs to keep a unique ID
+# so that it can know its PLM index when it
+# comes time to place it as a PLM.
+
+#TODO: bug in the partition algorithm that creates deadlock?
+
 def abstract_map():
     """puts it all together to make an abstract map with regions and elevators"""
     order, graph = order_graph()
+    #TODO: add items before or after partition?
+    # after is probably better...
+    add_items(graph, {"S": 10, "PB": 10, "M": 10, "E": 10})
     region_order, region_finished = partition_order(graph, sm_global.regions)
     elevators = make_elevators(graph, region_finished)
     region_order = item_order.region_order()
@@ -164,4 +173,22 @@ def elevator_directions(elevators, region_order):
             else:
                 assert False, "Elevator to same region"
     return up_es, down_es
+
+def add_items(graph, items):
+    """adds the requested amount of each item to the specified abstract map
+    randomly. Items is a dictionary with key - item type to add, value - number to add"""
+    for item_type, n in items.items():
+        assert item_type in sm_global.items, item_type + " is not a valid item!"
+        for i in range(n):
+            #TODO: where to connect to it?
+            #   - need to be able to know what items we have at the location
+            #   - at this point, only edges know this info...?
+            # for now, pick a random edge and intersperse the node on it
+            node_name = item_type + str(i)
+            from_node = random.choice(list(graph.nodes.keys()))
+            graph.add_node(node_name)
+            graph.add_edge(from_node, node_name)
+            graph.add_edge(node_name, from_node)
+            #TODO: need to store item information on each of these edges?
+            #TODO: store what type of item it is in the node data?
 
