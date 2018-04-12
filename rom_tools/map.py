@@ -3,24 +3,39 @@
 # 
 
 defaultMapSize = 0x800
+defaultHiddenSize = 0x100
 
 class MapTile(object):
-	"""docstring for MapTile"""
 	def __init__(self):
+		self.__default()
+
+	def __default(self):
 		self.vflip = False
 		self.hflip = False
 		self.color = 0
-		self.tile = 0
+		self.tile = 0x1F
+		self.hidden = True
+
+
 	def __firstByte(self):
-		return bytes([0])
+		return bytes([self.tile])
+		
+
 	def __secondByte(self):
-		return bytes([0])
+		i = (0x04) * self.color
+		if self.vflip:
+			i += 0x80 
+		if self.hflip:
+			i += 0x40
+		return bytes([i])
+
 	def toBytes(self):
 		return self.__firstByte() + self.__secondByte()
 
+	def isHidden(self):
+		return not self.hidden
 
-class Map(object):
-	"""docstring for Map"""
+class AreaMap(object):
 	def __init__(self):
 		self.tileList = [MapTile()] * defaultMapSize
 
@@ -30,11 +45,26 @@ class Map(object):
 		else:
 			return False
 
-	def toBytes(self):
+	def __isRightSize(self):
 		if not self.__rightSize():
 			print("Something is wrong")
+
+	def mapToBytes(self):
+		self.__isRightSize()
 		x = bytes()
 		for tile in self.tileList:
 			x += tile.toBytes()
 		return x
-		
+			
+	def hiddenToBytes(self):
+		l = []
+		t = 0
+		self.__isRightSize()
+		for i in range(len(self.tileList)):
+			if i > 0 and ((i % 8) == 0):
+				l.append(t)
+				t = 0
+			t *= 2
+			t += self.tileList[i].hidden
+		l.append(t)
+		return bytes(l)
