@@ -1,9 +1,9 @@
 import level
 import subprocess
 from shutil import copy2 as fileCopy
+from hashlib import md5
 
-
-def __validSNES(addr):
+def _validSNES(addr):
 	if (addr < 0) or (addr >0x1000000):
 		return False
 	else:
@@ -11,23 +11,23 @@ def __validSNES(addr):
 		b = addr & 0x8000 != 0
 		return m != b
 
-def __assertValid(addr):
-	if not __validSNES(addr):
+def _assertValid(addr):
+	if not _validSNES(addr):
 		raise IndexError 
 	else:
 		return addr
 
-def __PCtoSNES(addr):
+def _PCtoSNES(addr):
 	a = ((addr << 1) & 0xFF0000) + 0x800000
 	b = addr & 0xFFFF
 	return a|b
 
 
-def __SNEStoPC(addr):
+def _SNEStoPC(addr):
 	"""Converts LORAM addresses to PC Addresses."""
 	return ((addr & 0x7f0000) >> 1) | (addr & 0x7FFF)
 
-def __intSplit(n):
+def _intSplit(n):
 	""" Splits and Endians pointers for "ROM MODE" """
 	l = []
 	a=n
@@ -36,7 +36,7 @@ def __intSplit(n):
 		a = a >> 8
 	return l
 
-def __backupFile(filename):
+def _backupFile(filename):
 	try: 
 		fileCopy(filename, filename + ".bak")
 	except:
@@ -50,7 +50,7 @@ class RomManager(object):
 	"""docstring for RomManager"""
 
 	def __init__(self,romname = None):
-		#NOTE all these values are rough estimate placeholders, replace eventually.
+		#TODO all these values are rough estimate placeholders, replace eventually.
 		self.freeBlock = 0x220000
 		self.lastBlock = 0x277FFF
 		self.freeHeader = 0x78000
@@ -62,8 +62,10 @@ class RomManager(object):
 
 
 	def loadRom(self, filename):
-		__backupFile(filename)
+		_backupFile(filename)
 		self.rom = open(filename, "r+b")
+		if self.__checksum():
+			print(WORKED)
 
 	def saveRom(self):
 		self.rom.close()
@@ -87,8 +89,17 @@ class RomManager(object):
 		print("Not Yet Implimented")
 
 	def writeToRom(self, offset, data):
+		#TODO this totally doesn't work does it?
 		self.rom.seek(offset)
 		self.rom.write(data)
+
+	def __checksum(self):
+		# TODO takes checksum wrong somehow?
+		# TODO actually compare with correct answer
+		self.rom.seek(0)
+		check = md5(self.rom.read()).hexdigest()
+		print(check)
+		return True
 	
 	def placeLevels(self, levelList):
 		""" Take a list of Level objects, insert all of these into the ROM """
@@ -112,12 +123,19 @@ class RomManager(object):
 
 			## Run through the list, placing data 
 			addr = self.placeBlock(data[i])
-			convert = __intSplit(__assertValid(__PCtoSNES(addr)))
+			convert = _intSplit(_assertValid(_PCtoSNES(addr)))
 			## and setting headers pointers approprietly
 			headers[i].setDataPointer(convert)
 			
 		## TODO Place the headers some day
 
+	def placeMap(self, areamap, mapaddr, hiddenaddr):
+		mapdata = areamap.mapToBytes()
+		hiddendata = areamap.hiddenToBytes()
+		self.writeToRom(mapaddr, mapdata)
+		self.writeToRom(hiddenaddr, hiddendata)
+
+		
 
 l = level.Level()
 r=RomManager()
