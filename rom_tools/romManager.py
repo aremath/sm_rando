@@ -1,5 +1,6 @@
 import level
 import subprocess
+import areamap
 from shutil import copy2 as fileCopy
 from hashlib import md5
 
@@ -65,7 +66,7 @@ class RomManager(object):
 		_backupFile(filename)
 		self.rom = open(filename, "r+b")
 		if self.__checksum():
-			print(WORKED)
+			print("WORKED")
 
 	def saveRom(self):
 		self.rom.close()
@@ -92,6 +93,11 @@ class RomManager(object):
 		#TODO this totally doesn't work does it?
 		self.rom.seek(offset)
 		self.rom.write(data)
+
+	def readFromRom(self, offset, numbytes):
+		self.rom.seek(offset)
+		r = self.rom.read(numbytes)
+		return r 
 
 	def __checksum(self):
 		# TODO takes checksum wrong somehow?
