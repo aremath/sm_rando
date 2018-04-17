@@ -22,19 +22,20 @@ if __name__ == "__main__":
     ntiles = 0
     room_dims = []
     for region, graph in rsg.items():
-        graph.visualize(region)
+        graph.visualize("output/a_" + region)
         print "Generating map for " + region
-        cmap[region], rooms = map_gen.less_naive_gen((50, 25), less_rand_d, graph, es)
+        # 64, 30 reserves one square in the y-direction for elevators to protrude up
+        cmap[region], rooms = map_gen.less_naive_gen((64, 30), less_rand_d, graph, es)
         ntiles += len(cmap[region])
         for room in rooms.values():
             room_dims.append(len(room))
 
     print "Tiles: " + str(ntiles)
     for region, rcmap in cmap.items():
-        map_viz.map_viz(rcmap, region + ".png", "encoding/map_tiles")
+        map_viz.map_viz(rcmap, "output/" + region + ".png", "encoding/map_tiles")
 
     # compute average room dims
     plt.hist(room_dims)
-    plt.savefig("roomdims.png")
+    plt.savefig("output/roomdims.png")
     
 

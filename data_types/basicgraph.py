@@ -3,7 +3,7 @@ import itertools
 class BasicGraph(object):
 
     def __init__(self):
-        self.nodes = {}
+        self.nodes = {} # key - node name, value - node data
         self.nnodes = 0
 
     def add_node(self, name, data=None):
@@ -103,6 +103,15 @@ class BasicGraph(object):
             for edge in node.edges:
                 new_graph.add_edge(node_name, edge.terminal, edge.data)
         return new_graph
+
+    def get_edges(self):
+        """returns all the edges in self as a list of node tuples"""
+        #TODO: generator?
+        edges = []
+        for node_name, node in self.nodes.items():
+            for edge in node.edges:
+                edges.append((node_name, edge.terminal))
+        return edges
 
     def __repr__(self):
         self_str = ""

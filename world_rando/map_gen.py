@@ -33,6 +33,7 @@ def naive_gen(dimensions, dist, graph, es):
 #TODO: generalize this?
 # take in node placement 'strategy'
 # take in line drawing 'strategy'
+#TODO: add save points!
 
 def less_naive_gen(dimensions, dist, graph, elevators):
     # first, make the graph
@@ -46,7 +47,6 @@ def less_naive_gen(dimensions, dist, graph, elevators):
     node_list = graph.nodes.keys()
     node_locs = {}
     # choose elevator locations: down elevators are the lowest locs, and up are the highest locs
-    #TODO: seems like it doesn't always return the lowest n or highest n points
     sorted_locs = sorted(locs, key=lambda n: n.y)
     up_e_xy = []
     down_e_xy = []
@@ -54,11 +54,11 @@ def less_naive_gen(dimensions, dist, graph, elevators):
         if node in up_es:
             node_locs[node] = sorted_locs.pop(0) # highest y coordinate is further down
             up_e_xy.append(node_locs[node])
-            node_list.remove(node)
         elif node in down_es:
             node_locs[node] = sorted_locs.pop()
             down_e_xy.append(node_locs[node])
-            node_list.remove(node)
+    # remove the elevators from the list to choose locs for the rest of the nodes
+    node_list = list(set(node_list) - up_es - down_es)
 
     random.shuffle(node_list)
     #TODO: need to choose node locations that are not randomly above or below an elevator, or this breaks things
@@ -70,7 +70,9 @@ def less_naive_gen(dimensions, dist, graph, elevators):
         if node_list[i] not in node_locs:
             node_locs[node_list[i]] = sorted_locs[i]
 
-    for node in graph.nodes:
+    rnodes = graph.nodes.keys()
+    random.shuffle(rnodes)
+    for node in rnodes:
         for edge in graph.nodes[node].edges:
             # path from n1 to n2
             # first, find all nodes reachable from n1
@@ -81,6 +83,7 @@ def less_naive_gen(dimensions, dist, graph, elevators):
             dists = sorted(dists, key = lambda n: n[1])
             #TODO: probability distribution over dists?
             d = dists[0]
+            #TODO: if d == node_locs[edge.terminal] -> no need for a path
             # make a new path to that item from the closest reachable point
             # here, we respect the constraint that nodes along the path can't coincide with an elevator
             offers, finished = map_search(d[0], node_locs[edge.terminal], dist=dist, pred=lambda xy: avoids_elevators(xy, up_e_xy, down_e_xy))
@@ -158,5 +161,14 @@ def avoids_elevators(xy, up_es, down_es):
     up and down elevators"""
     return (not is_p_list(xy, up_es, is_above)) and (not is_p_list(xy, down_es, is_below))
 
-def test(x, n):
-    return True
+def connecting_path(cmap, t1, t2, threshold):
+    """creates a path from t1 to t2 if
+    bfs_d(t1, t2) / d(t1, t2) exceeds threshold."""
+    assert t1 in cmap, str(t1) + " not in cmap."
+    assert t2 in cmap, str(t1) + " not in cmap."
+    assert not cmap[t1].is_fixed
+    assert not cmap[t2].is_fixed
+    o, f = map_bfs(t1, t2, pred=lambda x: x in cmap and not cmap[x].is_fixed)
+    p = get_path(o, t1, t2)
+    ratio = len(p) / euclidean(t1, t2) + 1e-5 # epsilon for nonzero
+

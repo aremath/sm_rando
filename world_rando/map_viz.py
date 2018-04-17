@@ -1,5 +1,5 @@
 # visualizes a concrete map of the form laid out in concrete_map.py
-
+import collections #defaultdict
 from concrete_map import *
 from PIL import Image
 
@@ -110,3 +110,60 @@ def map_viz(rcmap, filename, map_dir):
                 map_image.paste(blank, (x*16,y*16), blank)
     map_image.save(filename)
     return map_image
+
+def gen_cases(lrep):
+    """take a pattern-matching TF line and generate the cases"""
+    if len(lrep) == 1:
+        if lrep[0] == "T":
+            return [[True]]
+        elif lrep[0] == "F":
+            return [[False]]
+        else:
+            return [[True], [False]]
+    if lrep[0] == "T":
+        return map(lambda l: [True] + l[:], gen_cases(lrep[1:]))
+    elif lrep[0] == "F":
+        return map(lambda l: [False] + l[:], gen_cases(lrep[1:])) #TODO: do I need this copy?
+    elif lrep[0] == "_":
+        c1 = map(lambda l: [True] + l[:], gen_cases(lrep[1:])) #TODO: do I need this copy?
+        c2 = map(lambda l: [False] + l[:], gen_cases(lrep[1:])) #TODO: do I need this copy?
+        return c1 + c2
+    else:
+        assert False, lrep
+
+def tiles_parse(tile_file):
+    """Creates a simple boolean pattern matching dictionary.
+    out is a dict where key = a tuple of bools specifying what type of tile
+    and value = a tuple of (vflip, hflip, tile index) or None if there is no matching tile."""
+    out = {}
+    f = open(tile_file, "r")
+    # first, reverse the readlines so newer things are applied last
+    ls = f.readlines()[::-1]
+    for line in ls:
+        if len(line) == 0:
+            continue
+        elif line[0] == "#":
+            continue
+        else:
+            line =  line.strip()
+            line = line.split()
+            if len(line) == 0:
+                continue
+            if line[-1] == "ERROR":
+                val = None
+                lrep = line[:-1]
+            else:
+                val = tuple(line[-3:])
+                lrep = line[:-3]
+            cases = gen_cases(lrep)
+            keys = map(lambda l: tuple(l), cases)
+            for k in keys:
+                out[k] = val
+    return out
+
+def cmap_tiles(extent, cmap, tiles_dict):
+    """returns a list of tiles from the given cmap over the given extent"""
+    xmax, ymax = extent
+    #TODO
+    pass
+
