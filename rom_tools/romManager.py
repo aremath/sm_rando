@@ -5,6 +5,7 @@ from shutil import copy2 as fileCopy
 from hashlib import md5
 
 def _validSNES(addr):
+	"""Checks a givven snes lorom address to see if it is a valid adress"""
 	if (addr < 0) or (addr >0x1000000):
 		return False
 	else:
@@ -14,11 +15,12 @@ def _validSNES(addr):
 
 def _assertValid(addr):
 	if not _validSNES(addr):
-		raise IndexError 
+		raise IndexError
 	else:
 		return addr
 
 def _PCtoSNES(addr):
+	""" Converts from a PC rom adress to a snes lorom one"""
 	a = ((addr << 1) & 0xFF0000) + 0x800000
 	b = addr & 0xFFFF
 	return a|b
@@ -38,7 +40,8 @@ def _intSplit(n):
 	return l
 
 def _backupFile(filename):
-	try: 
+	""" Just tries to bakup the rom for easy re-use """
+	try:
 		fileCopy(filename, filename + ".bak")
 	except:
 		print("FILE DOESN'T EXIST")
@@ -48,7 +51,11 @@ def _backupFile(filename):
 
 
 class RomManager(object):
-	"""docstring for RomManager"""
+	"""The Rom Manager handles the actual byte facing aspects of the rom editing
+	   Can be used to both read and write to the rom, also contains meta data
+	   to make inserting rooms and room headers easier.
+	   Also *eventually* will be able to detect if your rom is `pure` and apply
+	   some necessary patches auto-magically"""
 
 	def __init__(self,romname = None):
 		#TODO all these values are rough estimate placeholders, replace eventually.
@@ -63,12 +70,15 @@ class RomManager(object):
 
 
 	def loadRom(self, filename):
+		"""actually loads the rom by filename, also saves a backup of the rom
+		   before any changes have been made"""
 		_backupFile(filename)
 		self.rom = open(filename, "r+b")
 		if self.__checksum():
 			print("WORKED")
 
 	def saveRom(self):
+		""" Saves all changes to the rom, for now that just closes it"""
 		self.rom.close()
 		self.rom = None
 
@@ -90,31 +100,33 @@ class RomManager(object):
 		print("Not Yet Implimented")
 
 	def writeToRom(self, offset, data):
-		#TODO this totally doesn't work does it?
+		""" With some bytes and an offset, we can write that to the rom"""
 		self.rom.seek(offset)
 		self.rom.write(data)
 
 	def readFromRom(self, offset, numbytes):
+		"""read a number of bytes from a certain offset"""
 		self.rom.seek(offset)
 		r = self.rom.read(numbytes)
-		return r 
+		return r
 
 	def __checksum(self):
+		"""check if this file is a 'pure' copy of the rom"""
 		# TODO takes checksum wrong somehow?
 		# TODO actually compare with correct answer
 		self.rom.seek(0)
 		check = md5(self.rom.read()).hexdigest()
 		print(check)
-		return True
-	
+		return True #TODO not this
+
 	def placeLevels(self, levelList):
 		""" Take a list of Level objects, insert all of these into the ROM """
-		
+
 		### Create lists of all the compressed level data, and the headers
 		temp = list(zip(*[(x.data.getCompressed(), x.header) for x in levelList]))
 		data = temp[0]
 		headers = temp[1]
-		
+
 
 		for i in range(len(data)):
 			### Desired order:
@@ -123,26 +135,24 @@ class RomManager(object):
 				# place level data in bank (wherever)
 					# so we can place the data pointer in the header
 				# Place level header in bank 8F
-			
 
 
 
-			## Run through the list, placing data 
+
+			## Run through the list, placing data
 			addr = self.placeBlock(data[i])
 			convert = _intSplit(_assertValid(_PCtoSNES(addr)))
 			## and setting headers pointers approprietly
 			headers[i].setDataPointer(convert)
-			
+
 		## TODO Place the headers some day
 
 	def placeMap(self, areamap, mapaddr, hiddenaddr):
+		"""When passed an areamap object, and the addresses to put the data in
+		   writes the relevant data to the rom. maybe one day an aditional
+		   "smart" version that knows these locations ahead of time will exist
+		"""
 		mapdata = areamap.mapToBytes()
 		hiddendata = areamap.hiddenToBytes()
 		self.writeToRom(mapaddr, mapdata)
 		self.writeToRom(hiddenaddr, hiddendata)
-
-		
-
-l = level.Level()
-r=RomManager()
-

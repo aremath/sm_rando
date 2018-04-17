@@ -1,11 +1,13 @@
 # maptiles length 0x1000 bytes
 # each 2 bytes is one "tile" for what that means
-# 
+#
 
 defaultMapSize = 0x800
 defaultHiddenSize = 0x100
 
 class MapTile(object):
+	""" a single tile in an area map. representable as two bytes. contains logic
+		to turn a set of easy to set parameters into the raw bytes"""
 	def __init__(self):
 		self.__default()
 
@@ -19,12 +21,12 @@ class MapTile(object):
 
 	def __firstByte(self):
 		return bytes([self.tile])
-		
+
 
 	def __secondByte(self):
 		i = (0x04) * self.color
 		if self.vflip:
-			i += 0x80 
+			i += 0x80
 		if self.hflip:
 			i += 0x40
 		return bytes([i])
@@ -36,6 +38,8 @@ class MapTile(object):
 		return not self.hidden
 
 class AreaMap(object):
+	""" a set of map tiles is an area map, can generate the whole map data
+		including the midden bitmap"""
 	def __init__(self):
 		self.tileList = [MapTile()] * defaultMapSize
 
@@ -55,7 +59,7 @@ class AreaMap(object):
 		for tile in self.tileList:
 			x += tile.toBytes()
 		return x
-			
+
 	def hiddenToBytes(self):
 		l = []
 		t = 0

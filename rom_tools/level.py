@@ -1,5 +1,5 @@
 from functools import reduce
-import os 
+import os
 from subprocess import Popen, PIPE, STDOUT
 import leveldatadefaults as datadefs
 
@@ -11,10 +11,12 @@ def __deleteIfExists(self, filename):
 
 
 class Level(object):
-	"""docstring for Level"""
+	"""Level objects contain many sub-classes, read those as well
+	   Contains the data fot a level header, the level data, and all its doors
+	   *one day will contain plm stuff too*"""
 	def __init__(self, size=(1,1), doors=1):
 
-		### Level Header Information 
+		### Level Header Information
 		self.header = RoomHeader(doors=doors)
 		self.header.setSize(size)
 		### Level Data Information
@@ -37,10 +39,8 @@ class Level(object):
 
 
 class RoomHeader(object):
-
-
-
-
+	""" Contains all the fields for the room header
+	    can be turned into raw bytes """
 	defaultIntro = [
 	0,		# Room Index
 	0,		# Room Area
@@ -64,20 +64,16 @@ class RoomHeader(object):
 	0,0,	# Enemy GFX Pointer
 	0,0, 	# BG x/y scrolling
 	0,0, 	# Room Scolls Pointer
-	0,0, 	# UNUSED 
+	0,0, 	# UNUSED
 	0,0, 	# Main ASM pointer
 	0,0, 	# PLM set pointer
 	0,0, 	# Background Pointer
 	0,0] 	# Setup ASM Pointer
 
-
-
-
-
 	def __init__(self, doors=1, events=0):
 		#### Layout ####
 		# 11 Standard bytes
-		# 5 extra bytes per Event 
+		# 5 extra bytes per Event
 		# 28 standard bytes
 		# 26 extra bytes per event
 		# 2 bytes per door
@@ -113,8 +109,10 @@ class RoomHeader(object):
 		return False
 
 class LevelData(object):
+	""" Contains all the level data (just a giant array of bytes) including
+	    the background data if need be """
 
-	
+
 	def __init__(self, size=(1,1)):
 		### Level Data Information
 		self.size = size
@@ -138,6 +136,8 @@ class LevelData(object):
 		return reduce((lambda x, y: x+y),map(bytes,[self.levelstart,self.tiledata, self.background, self.prgmdata]))
 
 	def getCompressed(self):
+		""" REALLY GROSS call to the existing compression .exe
+		    it returns the raw bytestring that is actually placed on the rom"""
 		#TODO Find way around killing process
 		#why do communicate and stdin.write no work?
 		hx = self.dataToHex()
@@ -163,9 +163,9 @@ class LevelData(object):
 
 	def __genericSafeGet(self, data, leng):
 		if len(data) != leng:
-			raise IndexError  
+			raise IndexError
 		elif (type(data) is not list) or (type(data[0]) is not int):
-			raise TypeError 
+			raise TypeError
 		else:
 			return data
 
@@ -176,9 +176,11 @@ class LevelData(object):
 
 	def setProgramData(self, data):
 		self.prgmdata = self.__genericSafeGet(data, len(self.prgmdata))
-	
+
 
 class Door(object):
+	""" Door object which *eventually* will contain all the data a door needs to
+		be put on the rom."""
 
 	default = [
 	0,0,		# Room ID, Destination (HOW?)
@@ -189,14 +191,11 @@ class Door(object):
 	0,			# screen x (which screen is it on?)
 	0,			# screen y
 	0,0,		# distance from spawn? (LR 80 00) (up 01 c0) (down 01 40)
-	0,0]		# door ASM pointer 
+	0,0]		# door ASM pointer
 
-	"""docstring for Door"""
 	def __init__(self):
 		self.data = [0x00]*12
 
 
 	def dataToHex(self):
 		return bytes(self.data)
-
-		
