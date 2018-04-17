@@ -32,9 +32,12 @@ class MapTile(object):
 		return bytes([i])
 
 	def toBytes(self):
+		#TODO check two bytes?
 		return self.__firstByte() + self.__secondByte()
 
 	def isHidden(self):
+		""" porrly named, actually returns if it isn't hidden. this is because
+			on the rom the data is stored as 0 for hidden, 1 for not """
 		return not self.hidden
 
 class AreaMap(object):
@@ -52,6 +55,7 @@ class AreaMap(object):
 	def __isRightSize(self):
 		if not self.__rightSize():
 			print("Something is wrong")
+			#TODO actually error?
 
 	def mapToBytes(self):
 		self.__isRightSize()

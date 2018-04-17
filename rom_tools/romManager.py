@@ -46,6 +46,16 @@ def _backupFile(filename):
 	except:
 		print("FILE DOESN'T EXIST")
 
+def _takeChecksum(filename):
+	""" md5sums a file """
+	with open(filename, 'rb') as file:
+		m = md5()
+		while True:
+			data = file.read(4048)
+			if not data:
+				break
+			m.update(data)
+	return m.hexdigest()
 
 
 
@@ -73,9 +83,21 @@ class RomManager(object):
 		"""actually loads the rom by filename, also saves a backup of the rom
 		   before any changes have been made"""
 		_backupFile(filename)
-		self.rom = open(filename, "r+b")
-		if self.__checksum():
-			print("WORKED")
+		checksum = _takeChecksum(filename)
+		if checksum == purRomSum:
+			print("Looks like a valid pure rom, we'll modd it first")
+			self.rom = open(filename, "r+b")
+			self.modRom()
+		elif checksum == moddedRomSum:
+			print("This is already modded, we can just load it")
+			self.rom = open(filename, "r+b")
+		else:
+			print("Something is wrong with this rom")
+
+	def modRom(self):
+		""" *eventually* will modify a pure rom to have the mods we need """
+		print("currently a stub")
+
 
 	def saveRom(self):
 		""" Saves all changes to the rom, for now that just closes it"""
@@ -110,14 +132,6 @@ class RomManager(object):
 		r = self.rom.read(numbytes)
 		return r
 
-	def __checksum(self):
-		"""check if this file is a 'pure' copy of the rom"""
-		# TODO takes checksum wrong somehow?
-		# TODO actually compare with correct answer
-		self.rom.seek(0)
-		check = md5(self.rom.read()).hexdigest()
-		print(check)
-		return True #TODO not this
 
 	def placeLevels(self, levelList):
 		""" Take a list of Level objects, insert all of these into the ROM """
