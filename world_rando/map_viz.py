@@ -161,9 +161,23 @@ def tiles_parse(tile_file):
                 out[k] = val
     return out
 
-def cmap_tiles(extent, cmap, tiles_dict):
-    """returns a list of tiles from the given cmap over the given extent"""
-    xmax, ymax = extent
-    #TODO
-    pass
+def cmap_to_tuples(cmap, tile_mapping):
+    """ create an dict of key - xy, value - (hflip, vflip, index) from a cmap for that area"""
+    cmap_tuples = {}
+    for mc, tile in cmap.items():
+        xy = (mc.x, mc.y)
+        is_e_arrow = False #TODO
+        is_e_shaft = tile.is_e_shaft #TODO - rather than is_e_tile
+        is_e_main  = tile.is_elevator #TODO new names
+        is_e_up    = tile.is_e_up      #TODO
+        is_save    = tile.is_save
+        is_item    = tile.is_item
+        l          = mc.left() in tile.walls
+        u          = mc.up() in tile.walls
+        r          = mc.right() in tile.walls
+        d          = mc.down() in tile.walls
+        t = (is_e_arrow, is_e_shaft, is_e_main, is_e_up, is_save, is_item, l, u, r, d)
+        if tile_mapping[t] is not None:
+            cmap_tuples[xy] = tile_mapping[t]
+    return cmap_tuples
 

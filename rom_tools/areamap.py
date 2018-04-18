@@ -41,12 +41,12 @@ class MapTile(object):
 			i += 0x40
 		return bytes([i])
 
-	def set(self,touple):
+	def set(self,_tuple):
 		""" (vflip, hflip, tile index)"""
 		if not touple == None:
-			self.vflip = touple[0]
-			self.hflip = touple[1]
-			self.index = touple[2]
+			self.hflip = _tuple[0]
+			self.vflip = _tuple[1]
+			self.index = _tuple[2]
 			self.color = 3 #TODO good default stuff
 			self.hidden = False
 
@@ -95,3 +95,17 @@ class AreaMap(object):
 			t += self.tileList[i].hidden
 		l.append(t)
 		return bytes(l)
+
+def tuples_to_amap(cmap_tuples, xr, yr)
+    """takes a dict with key - xy, value - (hflip, vflip, index) and creates the appropriate amap
+    xr is the x range and yr is the y range - these are the allowable xy ranges of the tiles, or the
+    sizes of the amap on the ROM"""
+    amap = AreaMap()
+    for x in range(xr):
+        for y in range(yr):
+            if (x,y) in cmap_tuples:
+                index = x + (y*xr) #TODO: index out of range problems?
+                newTile = MapTile()
+                newTile.set(cmap_tuples[(x,y)]
+                amap.tileList[index] = newTile
+    return amap
