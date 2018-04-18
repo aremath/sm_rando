@@ -3,6 +3,7 @@ import subprocess
 import areamap
 from shutil import copy2 as fileCopy
 from hashlib import md5
+from os import stat, remove, rename
 
 def _validSNES(addr):
 	"""Checks a givven snes lorom address to see if it is a valid adress"""
@@ -57,6 +58,9 @@ def _takeChecksum(filename):
 			m.update(data)
 	return m.hexdigest()
 
+def _fileLength(filename):
+	statinfo = stat(filename)
+	return statinfo.st_size
 
 
 
@@ -83,8 +87,21 @@ class RomManager(object):
 		"""actually loads the rom by filename, also saves a backup of the rom
 		   before any changes have been made"""
 		_backupFile(filename)
+
+
+		pureRomSum = '21f3e98df4780ee1c667b84e57d88675'
+		moddedRomSum = 'idk'
+		pureRomSize = 3145728
+
 		checksum = _takeChecksum(filename)
-		if checksum == purRomSum:
+		filesize = _fileLength(filename)
+		if not filesize == pureRomSize:
+			print("This is a headered rom, lets cut it off")
+			self.decapitateRom(filename)
+			checksum = _takeChecksum(filename)
+
+
+		if checksum == pureRomSum:
 			print("Looks like a valid pure rom, we'll modd it first")
 			self.rom = open(filename, "r+b")
 			self.modRom()
@@ -98,6 +115,15 @@ class RomManager(object):
 		""" *eventually* will modify a pure rom to have the mods we need """
 		print("currently a stub")
 
+	def decapitateRom(self, filename):
+		"""removes the header from the rom """
+		tmpname = filename + ".tmp"
+		with open(filename, 'rb') as src:
+			with open(tmpname, 'wb') as dest:
+				src.read(512)
+				dest.write(src.read())
+		remove(filename)
+		rename(tmpname, filename)
 
 	def saveRom(self):
 		""" Saves all changes to the rom, for now that just closes it"""
