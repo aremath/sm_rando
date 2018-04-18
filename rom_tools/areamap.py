@@ -5,6 +5,16 @@
 defaultMapSize = 0x800
 defaultHiddenSize = 0x100
 
+areamapLocs = {
+#"area":(hiddenbitsAddrs, tilesAddrs) pc addresses
+"crateria":(0x011727,0x1a9000),
+"brinstar":(0x011827,0x1a8000),
+"norfair":(0x011927,0x1aa000),
+"wrecked_ship":(0x011a27,0x1ab000),
+"maridia":(0x011b27,0x1ac000),
+"tourian":(0x011c27,0x1ad000)
+}
+
 class MapTile(object):
 	""" a single tile in an area map. representable as two bytes. contains logic
 		to turn a set of easy to set parameters into the raw bytes"""
