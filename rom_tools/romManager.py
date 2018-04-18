@@ -187,12 +187,24 @@ class RomManager(object):
 
 		## TODO Place the headers some day
 
-	def placeMap(self, areamap, mapaddr, hiddenaddr):
+	def smartPlaceMap(self, am, area):
+		""" uses the lookup dictionary in areamap.py to translate
+			a string area name into the addresses for placeMap()"""
+		t = areamap.areamapLocs[area]
+		self.placeMap(am, t[1], t[0])
+
+	def placeMap(self, am, mapaddr, hiddenaddr):
 		"""When passed an areamap object, and the addresses to put the data in
 		   writes the relevant data to the rom. maybe one day an aditional
 		   "smart" version that knows these locations ahead of time will exist
 		"""
-		mapdata = areamap.mapToBytes()
-		hiddendata = areamap.hiddenToBytes()
+		mapdata = am.mapToBytes()
+		hiddendata = am.hiddenToBytes()
 		self.writeToRom(mapaddr, mapdata)
 		self.writeToRom(hiddenaddr, hiddendata)
+
+
+# r=RomManager()
+# path="rom_files/pure.smc"
+# r.loadRom(path)
+# am = areamap.AreaMap()
