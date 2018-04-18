@@ -41,6 +41,15 @@ class MapTile(object):
 			i += 0x40
 		return bytes([i])
 
+	def set(self,touple):
+		""" (vflip, hflip, tile index)"""
+		if not touple == None:
+			self.vflip = touple[0]
+			self.hflip = touple[1]
+			self.index = touple[2]
+			self.color = 3 #TODO good default stuff
+			self.hidden = False
+
 	def toBytes(self):
 		#TODO check two bytes?
 		return self.__firstByte() + self.__secondByte()
