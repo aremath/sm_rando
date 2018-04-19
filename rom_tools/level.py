@@ -1,7 +1,7 @@
 from functools import reduce
 import os
 from subprocess import Popen, PIPE, STDOUT
-import leveldatadefaults as datadefs
+from . import leveldatadefaults as datadefs
 
 def __deleteIfExists(self, filename):
 	try:

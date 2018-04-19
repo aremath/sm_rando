@@ -43,7 +43,7 @@ def order_graph():
         #TODO: update the paths from current to finished with the path info (which things we have)
         #path = basicgraph.bfs_path(offers, current, entrance
         # choose the exit at random
-        exit = random.choice(g.nodes.keys())
+        exit = random.choice(list(g.nodes.keys()))
 
         # add the new node
         iname = i

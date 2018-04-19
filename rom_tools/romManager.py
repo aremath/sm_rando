@@ -1,6 +1,6 @@
-import level
+from . import level
 import subprocess
-import areamap
+from . import areamap
 from shutil import copy2 as fileCopy
 from hashlib import md5
 from os import stat, remove, rename
@@ -203,7 +203,10 @@ class RomManager(object):
     def placeCmap(self, cmap_ts, mapaddr, hiddenaddr):
         """Uses the output from map_viz.cmap_to_tuples to create an amap then place it"""
         amap = areamap.tuples_to_amap(cmap_ts, 64, 32) #TODO don't need to hardcode these!
-        self.placeMap(amap, mapaddr, hiddenaddr)
+        mapdata = amap.mapToBytes()
+        hiddendata = amap.hiddenToBytes()
+        self.writeToRom(mapaddr, mapdata)
+        self.writeToRom(hiddenaddr, hiddendata)
 
 #TODO: consistent naming schemes
 

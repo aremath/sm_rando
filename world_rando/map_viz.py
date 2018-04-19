@@ -1,6 +1,6 @@
 # visualizes a concrete map of the form laid out in concrete_map.py
 import collections #defaultdict
-from concrete_map import *
+from .concrete_map import *
 from PIL import Image
 
 #TODO: use path to find the files?
@@ -127,7 +127,7 @@ def gen_cases(lrep):
     elif lrep[0] == "_":
         c1 = map(lambda l: [True] + l[:], gen_cases(lrep[1:])) #TODO: do I need this copy?
         c2 = map(lambda l: [False] + l[:], gen_cases(lrep[1:])) #TODO: do I need this copy?
-        return c1 + c2
+        return list(c1) + list(c2)
     else:
         assert False, lrep
 
@@ -153,7 +153,8 @@ def tiles_parse(tile_file):
                 val = None
                 lrep = line[:-1]
             else:
-                val = tuple(line[-3:])
+                ints = map(lambda x: int(x, 16), line[-3:])
+                val = tuple(ints)
                 lrep = line[:-3]
             cases = gen_cases(lrep)
             keys = map(lambda l: tuple(l), cases)

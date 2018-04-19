@@ -1,5 +1,4 @@
-from concrete_map import *
-#from item_order_graph import *
+from .concrete_map import *
 
 # just try to re-create the graph
 def naive_gen(dimensions, dist, graph, es):
@@ -70,7 +69,7 @@ def less_naive_gen(dimensions, dist, graph, elevators):
         if node_list[i] not in node_locs:
             node_locs[node_list[i]] = sorted_locs[i]
 
-    rnodes = graph.nodes.keys()
+    rnodes = list(graph.nodes.keys())
     random.shuffle(rnodes)
     for node in rnodes:
         for edge in graph.nodes[node].edges:
@@ -112,7 +111,7 @@ def less_naive_gen(dimensions, dist, graph, elevators):
 
     # partition the map into random rooms
     #TODO: make sure that an elevator node and its 'is_elevator' are always paired...
-    room_size = len(cmap) / 4
+    room_size = len(cmap) // 4
     _, rooms = random_rooms(room_size, cmap)
     return cmap, rooms
 

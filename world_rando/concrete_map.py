@@ -51,6 +51,10 @@ class MCoords(object):
 
     def __repr__(self):
         return "(" + str(self.x) + "," + str(self.y) + ")"
+
+    # stupid way to break priority ties
+    def __lt__(self, other):
+        return self.x + self.y < other.x + other.y
         
 
 class MapTile(object):

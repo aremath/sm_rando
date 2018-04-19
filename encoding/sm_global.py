@@ -22,6 +22,7 @@ regions = {
     "Tourian"      : ["Mother_Brain"]
 }
 
+"""
 region_map_locs = { # hidden |  tiles
     "Wrecked_Ship" : (0x11a27, 0x1ab000),
     "Maridia"      : (0x11b27, 0x1ac000),
@@ -30,4 +31,4 @@ region_map_locs = { # hidden |  tiles
     "Brinstar"     : (0x11827, 0x1a8000),
     "Tourian"      : (0x11c27, 0x1ad000)
 }
-
+"""

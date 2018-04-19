@@ -1,6 +1,6 @@
 import itertools
 import random
-import sm_global
+from . import sm_global
 
 def parse_preds(pred_file):
     f = open(pred_file, "r")
@@ -56,9 +56,9 @@ def can_place(preds, to_place):
 
 def order():
     preds = parse_preds("encoding/dsl/item_order.txt")
-    return choose_order(preds, sm_global.all_things)
+    return choose_order(preds, list(sm_global.all_things))
 
 def region_order():
     preds = parse_preds("encoding/dsl/region_order.txt")
-    return choose_order(preds, sm_global.regions.keys())
+    return choose_order(preds, list(sm_global.regions.keys()))
 
