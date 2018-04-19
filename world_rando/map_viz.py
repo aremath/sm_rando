@@ -94,7 +94,7 @@ def map_viz(rcmap, filename, map_dir):
             xy = (x,y)
             if relxy in rcmap:
                 mtile = rcmap[relxy]
-                if mtile.is_e_tile:
+                if mtile.is_e_shaft:
                     image_name, rotation = "et", 0
                 else:
                     image_name, rotation = find_image(mtile.walls, relxy)
@@ -103,7 +103,7 @@ def map_viz(rcmap, filename, map_dir):
                 map_image.paste(imrotate, (x*16,y*16), imrotate)
                 if mtile.is_item:
                     map_image.paste(item, (x*16,y*16), item)
-                if mtile.is_elevator:
+                if mtile.is_e_main:
                     map_image.paste(elevator, (x*16,y*16), elevator)
             else:
                 # it's a blank
@@ -166,10 +166,10 @@ def cmap_to_tuples(cmap, tile_mapping):
     cmap_tuples = {}
     for mc, tile in cmap.items():
         xy = (mc.x, mc.y)
-        is_e_arrow = False #TODO
-        is_e_shaft = tile.is_e_shaft #TODO - rather than is_e_tile
-        is_e_main  = tile.is_elevator #TODO new names
-        is_e_up    = tile.is_e_up      #TODO
+        is_e_arrow = tile.is_e_arrow
+        is_e_shaft = tile.is_e_shaft
+        is_e_main  = tile.is_e_main
+        is_e_up    = tile.is_e_up
         is_save    = tile.is_save
         is_item    = tile.is_item
         l          = mc.left() in tile.walls

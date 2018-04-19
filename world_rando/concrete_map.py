@@ -62,10 +62,19 @@ class MapTile(object):
         self.d = collections.defaultdict(list)
         # list of MCoords adjacent to this tile indicating where the walls are
         self.walls = set() #TODO: what about sloped map tiles? #TODO: walls as a set
-        self.is_item = False
-        self.is_elevator = False
-        self.is_e_tile = False
+        # is it part of an already-known room?
         self.is_fixed = False
+
+        #TODO: walls as 4 bools?
+        # general tile info
+        self.is_item  = False
+        self.is_save  = False
+
+        # elevator information
+        self.is_e_up    = False
+        self.is_e_arrow = False
+        self.is_e_shaft = False
+        self.is_e_main  = False
 
     def add_path(to_coords, with_items):
         self.d[to_coords].append(with_items)

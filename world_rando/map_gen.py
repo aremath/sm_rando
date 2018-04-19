@@ -99,13 +99,14 @@ def less_naive_gen(dimensions, dist, graph, elevators):
     for node, loc in node_locs.items():
         cmap[loc] = MapTile("")
         if node in up_es:
-            cmap[loc].is_elevator = True
+            cmap[loc].is_e_main = True
+            cmap[loc].is_e_up     = True
             cmap[loc.up()] = MapTile("")
-            cmap[loc.up()].is_e_tile = True
+            cmap[loc.up()].is_e_shaft = True
         elif node in down_es:
-            cmap[loc].is_elevator = True
+            cmap[loc].is_e_main = True
             cmap[loc.down()] = MapTile("")
-            cmap[loc.down()].is_e_tile = True
+            cmap[loc.down()].is_e_shaft = True
         else:
             cmap[loc].is_item = True
 
