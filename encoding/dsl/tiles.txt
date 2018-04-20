@@ -21,10 +21,13 @@ F			F			T		_		_		_		_	_	_	_		ERROR
 F			F			F		F		T		_		_	_	_	_		0		0		4D
 _			_			_		_		T		_		_	_	_	_		ERROR
 
+#Normal Tile - Zero Walls
+F			F			F		F		F		F		F	F	F	F		0		0		1B
+
 # Normal Tile - One Wall
-F			F			F		F		F		F		T	F	F	F		0		0		27
+F			F			F		F		F		F		T	F	F	F		1		0		27
 F			F			F		F		F		F		F	T	F	F		0		0		26
-F			F			F		F		F		F		F	F	T	F		1		0		27
+F			F			F		F		F		F		F	F	T	F		0		0		27
 F			F			F		F		F		F		F	F	F	T		0		1		26
 
 # Normal Tile - Two Walls
@@ -32,7 +35,7 @@ F			F			F		F		F		F		F	F	F	T		0		1		26
 F			F			F		F		F		F		T	T	F	F		0		0		25
 F			F			F		F		F		F		F	T	T	F		1		0		25
 F			F			F		F		F		F		F	F	T	T		1		1		25
-F			F			F		F		F		F		T	F	F	T		1		0		25
+F			F			F		F		F		F		T	F	F	T		0		1		25
 # Pipe
 F			F			F		F		F		F		T	F	T	F		0		0		23
 F			F			F		F		F		F		F	T	F	T		0		0		22
@@ -57,7 +60,7 @@ F			F			F		F		F		T		F	F	F	T		0		1		76
 F			F			F		F		F		T		T	T	F	F		0		0		8E
 F			F			F		F		F		T		F	T	T	F		1		0		8E
 F			F			F		F		F		T		F	F	T	T		1		1		8E
-F			F			F		F		F		T		T	F	F	T		1		0		8E
+F			F			F		F		F		T		T	F	F	T		0		1		8E
 # Pipe - No Vertical Pipe Item Tile :(
 F			F			F		F		F		T		T	F	T	F		0		0		77
 F			F			F		F		F		T		F	T	F	T		0		0		5E
