@@ -202,11 +202,11 @@ class RomManager(object):
 
     def placeCmap(self, cmap_ts, mapaddr, hiddenaddr):
         """Uses the output from map_viz.cmap_to_tuples to create an amap then place it"""
-        amap = areamap.tuples_to_amap(cmap_ts, 64, 32) #TODO don't need to hardcode these!
+        amap = areamap.tuples_to_amap(cmap_ts)
         mapdata = amap.mapToBytes()
-        hiddendata = amap.hiddenToBytes()
+        #hiddendata = amap.hiddenToBytes()
         self.writeToRom(mapaddr, mapdata)
-        self.writeToRom(hiddenaddr, hiddendata)
+        #self.writeToRom(hiddenaddr, hiddendata)
 
 #TODO: consistent naming schemes
 

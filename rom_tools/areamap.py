@@ -24,7 +24,7 @@ class MapTile(object):
     def __default(self):
         self.vflip = False
         self.hflip = False
-        self.color = 0
+        self.color = 3
         self.tile = 0x1F
         self.hidden = True
 
@@ -95,21 +95,19 @@ class AreaMap(object):
         l.append(t)
         return bytes(l)
 
-def tuples_to_amap(cmap_tuples, xr, yr):
-    """takes a dict with key - xy, value - (hflip, vflip, index) and creates the appropriate amap
-    xr is the x range and yr is the y range - these are the allowable xy ranges of the tiles, or the
-    sizes of the amap on the ROM"""
+def tuples_to_amap(cmap_tuples):
+    """takes a dict with key - xy, value - (hflip, vflip, index) and creates the appropriate amap"""
     amap = AreaMap()
-    for x in range(xr):
-        for y in range(yr):
-            x_ = x
-            y_ = y+1 #offset
-            if (x,y) in cmap_tuples:
-                #print(x,y)
-                #print(cmap_tuples[(x,y)])
-                #print(index)
-                index = x_ + (y_*xr) #TODO: index out of range problems?
-                newTile = MapTile()
-                newTile.set(cmap_tuples[(x,y)])
-                amap.tileList[index] = newTile
+    for submap in range(2):
+        for x in range(32):
+            for y in range(32):
+                cmap_x = x + (submap * 32)
+                cmap_y = y - 1 #offset
+                cmap_vs = (cmap_x, cmap_y)
+                #print(cmap_vs, submap)
+                if cmap_vs in cmap_tuples:
+                    index = x + (y*32) + (submap * 0x400) #TODO: index out of range problems?
+                    newTile = MapTile()
+                    newTile.set(cmap_tuples[cmap_vs])
+                    amap.tileList[index] = newTile
     return amap

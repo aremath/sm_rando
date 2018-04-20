@@ -33,6 +33,7 @@ if __name__ == "__main__":
             room_dims.append(len(room))
 
     print("Tiles: " + str(ntiles))
+    print("Average room size: " + str(sum(room_dims)/len(room_dims)))
     rom = romManager.RomManager("../sm_guinea_pig_map_edit_copy.smc")
     for region, rcmap in cmap.items():
         # put it on the ROM
