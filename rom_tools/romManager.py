@@ -7,17 +7,17 @@ from os import stat, remove, rename
 import byte_ops
 
 def _assertValid(addr):
-    return byte_ops.assertValid(addr)
+    return byte_ops.assert_valid_SNES(addr)
 
 def _PCtoSNES(addr):
-    return byte_ops.PCtoSNES(addr)
+    return byte_ops.PC_to_SNES(addr)
 
 
 def _SNEStoPC(addr):
-    return byte_ops.SNEStoPC(addr)
+    return byte_ops.SNES_to_PC(addr)
 
 def _intSplit(n):
-    return byte_ops.intSplit(n)
+    return byte_ops.int_split(n)
 
 def _backupFile(filename):
     """ Just tries to bakup the rom for easy re-use """

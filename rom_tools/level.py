@@ -98,7 +98,7 @@ class RoomHeader(object):
 	def set_address(self, addr):
 		ln = len(self.dataToHex)
 		door_addr = addr + ln
-		door_bytes = byte_ops.intSplit(door_addr)
+		door_bytes = byte_ops.int_split(door_addr)
 		assert(len(door_bytes) == 2)
 		self._set_door_out_bytes(door_bytes)
 
@@ -227,7 +227,7 @@ class Door(object):
 
 	def __room_id(self):
 		id = self.leads_to.room_id
-		l = byte_ops.intSplit(id)
+		l = byte_ops.int_split(id)
 		assert(len(l) == 2)
 		return l
 
