@@ -259,15 +259,18 @@ class Door(object):
 		else:
 			return (0x01, 0xc0)
 
+	def __check_leads_to(self):
+		assert(self.leads_to != None)
+		assert(self.leads_to.leads_to == self)
+
 	def __update_data(self):
-		if (self.leads_to == None):
-			print("This room isn't setup right")
+		self.__check_leads_to()
 		self.data[2] = self.__bitflag()
 		self.data[3] = self.__direction()
 		pair = self.__distance()
 		self.data[8] = pair[0]
 		self.data[9] = pair[1]
-		id = self.__room_id()
+		l = self.__room_id()
 		self.data[0] = l[0]
 		self.data[1] = l[1]
 		top = self.__top_loc()
