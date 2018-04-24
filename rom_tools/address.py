@@ -32,3 +32,9 @@ class Address(object):
 
     def as_room_id_endian(self):
         return byte_ops.int_split(self.as_room_id())
+
+    def copy_increment(self,inc):
+        ad = self.as_PC() + inc
+        new = Address()
+        new.from_PC(ad)
+        return new

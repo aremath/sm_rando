@@ -24,9 +24,9 @@ class Level(object):
 		self.header_addr = None
 		### Level Data Information
 		self.data = LevelData(size)
-		self.levelpointer = [0x00,0x00,0x00]
+		self.data_addr = None
 		self.doors = [Door()] * doors
-		self.doorPointers = [[0x00,0x00] * doors]
+		self.door_addrs = [Address()] * doors
 
 	def newDoor(self):
 		self.doors.append(Door())
@@ -38,10 +38,17 @@ class Level(object):
 		for door in self.doors:
 			door.room_id = addr.as_room_id()
 
-	def setDataPointer(self, addr):
+	def set_data_addr(self, addr):
 		self.levelpointer = addr
-		self.header.setDataPointer(addr)
+		self.header.set_data_addr(addr)
 
+	def compress_data(self):
+		self.data_compressed = self.data.getCompressed()
+
+	def set_door_addrs(self, addrs):
+		assert(len(addrs) == len(self.door_addrs))
+		self.door_addrs = addrs
+		self.header.set_door_pointers(self.door_addrs)
 
 
 class RoomHeader(object):
@@ -99,10 +106,13 @@ class RoomHeader(object):
 		self.intro[5] = y
 
 	def set_address(self, addr):
-		#TODO no way this works
+		if not (isinstance(addr, Address)):
+			print("Pass me an address object please")
+			assert(False)
 		ln = len(self.dataToHex)
-		door_addr = addr + ln
-		door_bytes = byte_ops.int_split(door_addr)
+		door_offset = ln - (len(self.doorPointers))
+		door_addr = addr.copy_increment(door_offset)
+		doot_bytes = door_addr.as_room_id_endian()
 		assert(len(door_bytes) == 2)
 		self._set_door_out_bytes(door_bytes)
 
@@ -110,6 +120,10 @@ class RoomHeader(object):
 		index = 9
 		self.intro[index + 0] = bytes[0]
 		self.intro[index + 1] = bytes[1]
+
+	def set_door_pointers(self, pointers):
+		assert(len(self.doorPointers) == len(pointers))
+		self.doorPointers = pointers
 
 	def dataToHex(self):
 		i = bytes(self.intro)
@@ -119,7 +133,7 @@ class RoomHeader(object):
 		dp = reduce((lambda x, y: x+y),map(bytes,self.doorPointers))
 		return i + ei + sp + ep + dp
 
-	def setDataPointer(self,addr):
+	def set_data_addr(self,addr):
 		# TODO update for new addr object
 		if len(addr) != 3:
 			raise IndexError
@@ -200,7 +214,6 @@ class LevelData(object):
 class Door(object):
 	""" Door object which *eventually* will contain all the data a door needs to
 		be put on the rom."""
-	# TODO: handle knowing what door it goes to? what room? does the door know its own roomid and location?
 
 
 	default = [

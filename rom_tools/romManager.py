@@ -7,19 +7,6 @@ from hashlib import md5
 from os import stat, remove, rename
 import byte_ops
 
-def _assertValid(addr):
-    return byte_ops.assert_valid_SNES(addr)
-
-def _PCtoSNES(addr):
-    return byte_ops.PC_to_SNES(addr)
-
-
-def _SNEStoPC(addr):
-    return byte_ops.SNES_to_PC(addr)
-
-def _intSplit(n):
-    return byte_ops.int_split(n)
-
 def _backupFile(filename):
     """ Just tries to bakup the rom for easy re-use """
     try:
@@ -143,30 +130,45 @@ class RomManager(object):
 
     def placeLevels(self, levelList):
         """ Take a list of Level objects, insert all of these into the ROM """
+        ## compress all the data at the start
+        print("Compressing Data")
+        for level in levelList:
+            level.compress_data()
+        print("Compressed all the data!.... finally")
 
-        ### Create lists of all the compressed level data, and the headers
-        temp = list(zip(*[(x.data.getCompressed(), x.header) for x in levelList]))
-        data = temp[0]
-        headers = temp[1]
+        ## place level data and door data, updating headers along the way
+        for level in levelList:
+            level_addr = self.placeLevelData(level.data_compressed)
+            level.set_data_addr(level_addr)
+            door_addrs = list(map(self.place_door_data, level.doors))
+            level.set_door_addrs(door_addrs)
 
+        ## place the headers in places (updating the door objects along the way)
+        for level in levelLists:
+            addr = self.placeHeader(level.header)
+            level.set_header_addr(addr)
 
-        for i in range(len(data)):
-            ### Desired order:
-                # Place Door Data (in bank 83)
-                    # so we can place the door pointers in level header
-                # place level data in bank (wherever)
-                    # so we can place the data pointer in the header
-                # Place level header in bank 8F
+        ## update the doors
+        for level in levelList:
+            self.update_doors(level)
 
+        # order of oporations:
+        # 	(
+        # 		place level data
+        # 		place door data
+        # 	)
+        # 	update header
+        # 	place header + door pointers
+        # 	- do this for every room
+        # 	update door data
 
+    def update_doors(self, level):
+        assert(isinstance(level, Level))
+        for addr, door in zip(level.door_addrs, level.doors):
+            data = door.dataToHex()
+            dest = addr.as_PC()
+            self.writeToRom(dest, data)
 
-            ## Run through the list, placing data
-            addr = self.placeBlock(data[i])
-            convert = _intSplit(_assertValid(_PCtoSNES(addr)))
-            ## and setting headers pointers approprietly
-            headers[i].setDataPointer(convert)
-
-        ## TODO Place the headers some day
 
     def smartPlaceMap(self, am, area):
         """ uses the lookup dictionary in areamap.py to translate
