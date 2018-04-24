@@ -1,6 +1,7 @@
 import level
 import subprocess
 import areamap
+from address import Address
 from shutil import copy2 as fileCopy
 from hashlib import md5
 from os import stat, remove, rename
@@ -126,11 +127,15 @@ class RomManager(object):
 
     def writeToRom(self, offset, data):
         """ With some bytes and an offset, we can write that to the rom"""
+        if (isinstance(offset, Address)):
+            offset = offset.as_PC()
         self.rom.seek(offset)
         self.rom.write(data)
 
     def readFromRom(self, offset, numbytes):
         """read a number of bytes from a certain offset"""
+        if (isinstance(offset, Address)):
+            offset = offset.as_PC()
         self.rom.seek(offset)
         r = self.rom.read(numbytes)
         return r

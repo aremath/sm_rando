@@ -3,6 +3,7 @@ import os
 from subprocess import Popen, PIPE, STDOUT
 import leveldatadefaults as datadefs
 import byte_ops
+from address import Address
 
 def __deleteIfExists(self, filename):
 	try:
@@ -31,9 +32,11 @@ class Level(object):
 		self.doors.append(Door())
 
 	def set_header_addr(self,addr):
+		if not (isinstance(addr, Address)):
+			print("Please pass me an Address Object, not a number")
 		self.header_addr = addr
 		for door in self.doors:
-			door.addr_to_room_id(addr)
+			door.room_id = addr.as_room_id()
 
 	def setDataPointer(self, addr):
 		self.levelpointer = addr
@@ -96,6 +99,7 @@ class RoomHeader(object):
 		self.intro[5] = y
 
 	def set_address(self, addr):
+		#TODO no way this works
 		ln = len(self.dataToHex)
 		door_addr = addr + ln
 		door_bytes = byte_ops.int_split(door_addr)
@@ -116,6 +120,7 @@ class RoomHeader(object):
 		return i + ei + sp + ep + dp
 
 	def setDataPointer(self,addr):
+		# TODO update for new addr object
 		if len(addr) != 3:
 			raise IndexError
 		for i in range(len(addr)):
@@ -219,11 +224,6 @@ class Door(object):
 		self.screen_loc = (0,0)
 		self.leads_to = None
 		self.data = [0x00]*12
-
-	def addr_to_room_id(self, addr):
-		nadd = addr & 0xFFFF
-		self.room_id = nadd
-
 
 	def __room_id(self):
 		id = self.leads_to.room_id
