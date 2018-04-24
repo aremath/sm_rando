@@ -1,9 +1,10 @@
-from . import level
+import level
 import subprocess
-from . import areamap
+import areamap
 from shutil import copy2 as fileCopy
 from hashlib import md5
 from os import stat, remove, rename
+import byte_ops
 
 def _validSNES(addr):
     """Checks a givven snes lorom address to see if it is a valid adress"""
@@ -15,30 +16,17 @@ def _validSNES(addr):
         return m != b
 
 def _assertValid(addr):
-    if not _validSNES(addr):
-        raise IndexError
-    else:
-        return addr
+    return byte_ops.assertValid(addr)
 
 def _PCtoSNES(addr):
-    """ Converts from a PC rom adress to a snes lorom one"""
-    a = ((addr << 1) & 0xFF0000) + 0x800000
-    b = addr & 0xFFFF
-    return a|b
+    return byte_ops.PCtoSNES(addr)
 
 
 def _SNEStoPC(addr):
-    """Converts LORAM addresses to PC Addresses."""
-    return ((addr & 0x7f0000) >> 1) | (addr & 0x7FFF)
+    return byte_ops.SNEStoPC(addr)
 
 def _intSplit(n):
-    """ Splits and Endians pointers for "ROM MODE" """
-    l = []
-    a=n
-    while a > 0:
-        l = l + [a&0xFF]
-        a = a >> 8
-    return l
+    return byte_ops.intSplit(n)
 
 def _backupFile(filename):
     """ Just tries to bakup the rom for easy re-use """

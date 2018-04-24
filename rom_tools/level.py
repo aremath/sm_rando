@@ -1,7 +1,8 @@
 from functools import reduce
 import os
 from subprocess import Popen, PIPE, STDOUT
-from . import leveldatadefaults as datadefs
+import leveldatadefaults as datadefs
+import byte_ops
 
 def __deleteIfExists(self, filename):
 	try:
@@ -201,10 +202,22 @@ class Door(object):
 		self.direction = 0 #(0-r) (1-l) (2-d) (3-u)
 		self.autoClose = False
 		self.room_id = 0xffff
-		self.tile_loc = (0,0)
+		self.top_loc = (0,0)
 		self.screen_loc = (0,0)
 		self.leads_to = None
 		self.data = [0x00]*12
+
+	def __room_id(self):
+		id = self.leads_to.room_id
+		l = byte_ops.intSplit(id)
+		assert(len(l) == 2)
+		return l
+
+	def __top_loc(self):
+		return self.leads_to.top_loc
+
+	def __screen_loc(self):
+		return self.leads_to.screen_loc
 
 	def __bitflag(self):
 		bit = 0
@@ -229,11 +242,22 @@ class Door(object):
 			return (0x01, 0xc0)
 
 	def __update_data(self):
+		if (self.leads_to == None):
+			print("This room isn't setup right")
 		self.data[2] = self.__bitflag()
 		self.data[3] = self.__direction()
 		pair = self.__distance()
 		self.data[8] = pair[0]
 		self.data[9] = pair[1]
+		id = self.__room_id()
+		self.data[0] = l[0]
+		self.data[1] = l[1]
+		top = self.__top_loc()
+		self.data[4] = top[0]
+		self.data[5] = top[1]
+		screen = self.__screen_loc()
+		self.data[6] = screen[0]
+		self.data[7] = screen[1]
 
 	def dataToHex(self):
 		self.__update_data()
