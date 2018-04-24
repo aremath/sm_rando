@@ -20,6 +20,7 @@ class Level(object):
 		### Level Header Information
 		self.header = RoomHeader(doors=doors)
 		self.header.setSize(size)
+		self.header_addr = None
 		### Level Data Information
 		self.data = LevelData(size)
 		self.levelpointer = [0x00,0x00,0x00]
@@ -29,9 +30,10 @@ class Level(object):
 	def newDoor(self):
 		self.doors.append(Door())
 
-
-
-
+	def set_header_addr(self,addr):
+		self.header_addr = addr
+		for door in self.doors:
+			door.addr_to_room_id(addr)
 
 	def setDataPointer(self, addr):
 		self.levelpointer = addr
@@ -93,6 +95,17 @@ class RoomHeader(object):
 		self.intro[4] = x
 		self.intro[5] = y
 
+	def set_address(self, addr):
+		ln = len(self.dataToHex)
+		door_addr = addr + ln
+		door_bytes = byte_ops.intSplit(door_addr)
+		assert(len(door_bytes) == 2)
+		self._set_door_out_bytes(door_bytes)
+
+	def _set_door_out_bytes(self,bytes):
+		index = 9
+		self.intro[index + 0] = bytes[0]
+		self.intro[index + 1] = bytes[1]
 
 	def dataToHex(self):
 		i = bytes(self.intro)
@@ -206,6 +219,11 @@ class Door(object):
 		self.screen_loc = (0,0)
 		self.leads_to = None
 		self.data = [0x00]*12
+
+	def addr_to_room_id(self, addr):
+		nadd = addr & 0xFFFF
+		self.room_id = nadd
+
 
 	def __room_id(self):
 		id = self.leads_to.room_id

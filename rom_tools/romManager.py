@@ -6,15 +6,6 @@ from hashlib import md5
 from os import stat, remove, rename
 import byte_ops
 
-def _validSNES(addr):
-    """Checks a givven snes lorom address to see if it is a valid adress"""
-    if (addr < 0) or (addr >0x1000000):
-        return False
-    else:
-        m = ((addr & 0xFF0000) >> 16) % 2 == 0
-        b = addr & 0x8000 != 0
-        return m != b
-
 def _assertValid(addr):
     return byte_ops.assertValid(addr)
 
