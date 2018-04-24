@@ -51,7 +51,7 @@ class RoomHeader(object):
 	0x90,	# Up scroller Value
 	0xA0,	# Down Scroller Value
 	0,		# Special Graphics?
-	0,0]	# Door Out Pointer TODO what?
+	0,0]	# Door Out Pointer (points to door pointers at end of header) (assumes $8F)
 
 	defaultStandardPointers = [
 	0,0,	# STD 1 Pointer
@@ -181,21 +181,60 @@ class LevelData(object):
 class Door(object):
 	""" Door object which *eventually* will contain all the data a door needs to
 		be put on the rom."""
+	# TODO: handle knowing what door it goes to? what room? does the door know its own roomid and location?
+
 
 	default = [
-	0,0,		# Room ID, Destination (HOW?)
+	0,0,		# Room ID, Destination. an address bank $8F
 	0,			# Bitflag (00 for default, 40 for new area, 80 for elev same area, c0 for elev to new area)
 	0,			# Direction (0-r) (1-l) (2-d) (3-u) (same +4 for auto-close)
-	0,			# Door top x
-	0,			# Door top y
-	0,			# screen x (which screen is it on?)
-	0,			# screen y
+	0,			# Door top x (horizontal position of the closing blue door cap in the next room, counted in tiles.)
+	0,			# Door top y (vertical position of the closing blue door cap in the next room, counted in tiles.)
+	0,			# screen x counted from the very left in screens. [other room?]
+	0,			# screen y counted from the very top in screens.
 	0,0,		# distance from spawn? (LR 80 00) (up 01 c0) (down 01 40)
 	0,0]		# door ASM pointer
 
 	def __init__(self):
+		self.newArea = False
+		self.isElevator = False
+		self.direction = 0 #(0-r) (1-l) (2-d) (3-u)
+		self.autoClose = False
+		self.room_id = 0xffff
+		self.tile_loc = (0,0)
+		self.screen_loc = (0,0)
+		self.leads_to = None
 		self.data = [0x00]*12
 
+	def __bitflag(self):
+		bit = 0
+		if (self.isElevator):
+			bit += 0x80
+		if (self.newArea):
+			bit += 0x40
+		return bit
+
+	def __direction(self):
+		dir = self.direction
+		if (self.autoClose):
+			dir += 4
+		return dir
+
+	def __distance(self):
+		if (self.direction < 2):
+			return (0x80, 00)
+		elif (self.direction == 3):
+			return (0x01, 0x40)
+		else:
+			return (0x01, 0xc0)
+
+	def __update_data(self):
+		self.data[2] = self.__bitflag()
+		self.data[3] = self.__direction()
+		pair = self.__distance()
+		self.data[8] = pair[0]
+		self.data[9] = pair[1]
 
 	def dataToHex(self):
+		self.__update_data()
 		return bytes(self.data)
