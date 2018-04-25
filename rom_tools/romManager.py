@@ -1,6 +1,7 @@
 import level
 import subprocess
 import areamap
+from memory import Bank
 from address import Address
 from shutil import copy2 as fileCopy
 from hashlib import md5
@@ -106,12 +107,6 @@ class RomManager(object):
         print("Space left in levelData Banks: 0x%x" % (self.lastBlock - self.freeBlock))
         return offset
 
-    def placeHeader(self, header):
-        #TODO place headers for real
-        #TODO lots of keeping track of headers information
-        #TODO everything?
-        print("Not Yet Implimented")
-
     def writeToRom(self, offset, data):
         """ With some bytes and an offset, we can write that to the rom"""
         if (isinstance(offset, Address)):
@@ -128,6 +123,13 @@ class RomManager(object):
         return r
 
 
+    def _init_banks(self):
+        print("stub")
+        self.level_data_bank = Bank()
+        self.doors_bank = Bank()
+        self.headers_bank = Bank()
+        return
+
     def placeLevels(self, levelList):
         """ Take a list of Level objects, insert all of these into the ROM """
         ## compress all the data at the start
@@ -138,14 +140,14 @@ class RomManager(object):
 
         ## place level data and door data, updating headers along the way
         for level in levelList:
-            level_addr = self.placeLevelData(level.data_compressed)
+            level_addr = self.place_level_data(level.data_compressed)
             level.set_data_addr(level_addr)
             door_addrs = list(map(self.place_door_data, level.doors))
             level.set_door_addrs(door_addrs)
 
         ## place the headers in places (updating the door objects along the way)
         for level in levelLists:
-            addr = self.placeHeader(level.header)
+            addr = self.place_header(level.header)
             level.set_header_addr(addr)
 
         ## update the doors
@@ -156,11 +158,37 @@ class RomManager(object):
         # 	(
         # 		place level data
         # 		place door data
+        #       *eventually plm data*
         # 	)
         # 	update header
         # 	place header + door pointers
         # 	- do this for every room
         # 	update door data
+
+    def place_level_data(self, data):
+        size = len(data)
+        addr = self.level_data_bank.get_place(size)
+        assert(isinstance(addr, Address))
+        self.writeToRom(addr.as_PC(), data)
+        return addr
+
+    def place_door_data(self, door):
+        assert(isinstance(door, level.Door))
+        data = door.dataToHex()
+        size = len(data)
+        addr = self.doors_bank.get_place(size)
+        assert(isinstance(addr, Address))
+        self.writeToRom(addr.as_PC(), data)
+        return addr
+
+    def place_header(self, header):
+        assert(isinstance(header, level.Header))
+        data = header.dataToHex()
+        size = len(data)
+        addr = self.headers_bank.get_place(size)
+        assert(isinstance(addr, Address))
+        self.writeToRom(addr.as_PC(), data)
+        return addr
 
     def update_doors(self, level):
         assert(isinstance(level, Level))
