@@ -5,8 +5,19 @@ class Address(object):
     """Address Class that handles conversions
        this way we don't have to rememver which 'kind' of address we have
        just which kind we want to use"""
-    def __init__(self):
+    def __init__(self, pc=None):
+        if pc is not None:
+            self.from_PC(pc)
         return
+
+    def __repr__(self):
+        return hex(self.as_PC())
+
+    def __gt__(self, a2):
+        return self.as_PC() > a2.as_PC()
+
+    def __eq__(self, other):
+        return self.as_PC() == other.as_PC()
 
     def from_SNES(self,addr):
         byte_ops.assert_valid_SNES(addr)
