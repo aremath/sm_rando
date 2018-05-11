@@ -24,11 +24,22 @@ class BasicGraph(object):
         self.nodes[node1].edges.append(edge)
 
     def update_edge(self, node1, node2, data=None):
+        """new data for the edge between n1 and n2"""
         if self.is_edge(node1, node2):
             #TODO innefficient!
             for edge in self.nodes[node1].edges:
                 if edge.terminal == node2:
                     edge.data = data
+        else:
+            self.add_edge(node1, node2, data)
+
+    def update_edge_append(self, node1, node2, data):
+        """append data to the edge between n1 and n2"""
+        if self.is_edge(node1, node2):
+            #TODO innefficient!
+            for edge in self.nodes[node1].edges:
+                if edge.terminal == node2:
+                    edge.data.append(data)
         else:
             self.add_edge(node1, node2, data)
 
@@ -40,6 +51,15 @@ class BasicGraph(object):
             if edge.terminal == node2 and p(edge.data):
                 return True
         return False
+
+    def get_edge_data(self, node1, node2):
+        """ get the data (if any), in the edge from n1 to n2 """
+        assert node1 in self.nodes, "Node does not exist: " + node1
+        assert node2 in self.nodes, "Node does not exist: " + node2
+        for edge in self.nodes[node1].edges:
+            if edge.terminal == node2 and p(edge.data):
+                return edge.data
+        return None
 
     def remove_edge(self, node1, node2):
         assert node1 in self.nodes, "Node does not exist: " + node1

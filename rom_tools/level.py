@@ -150,7 +150,7 @@ class LevelData(object):
 		### Level Data Information
 		self.size = size
 		n = size[0]*size[1]
-		self.levelstart = [0x00,n]
+		self.levelstart = [0x00,n] # pretty sure levelstart should be the number of bytes in the uncompresssed tile data
 		self.tiledata = [0x00]*0x200*n
 		self.background = []
 		self.prgmdata = [0x00]*0x100*n
@@ -159,11 +159,8 @@ class LevelData(object):
 		x = self.size[0]
 		y = self.size[1]
 		newdat = datadefs.buildBoxRoom(x,y)
-		if (not (len(newdat) == len(self.tiledata))):
-			print("MAKE BOX IS BROKEN SOMEHOW")
-		else:
-			self.tiledata = newdat
-
+		assert len(newdat) == len(self.tiledata)), "MAKE BOX IS BROKEN SOMEHOW"
+        self.tiledata = newdat
 
 	def dataToHex(self):
 		return reduce((lambda x, y: x+y),map(bytes,[self.levelstart,self.tiledata, self.background, self.prgmdata]))

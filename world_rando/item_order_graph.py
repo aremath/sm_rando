@@ -1,6 +1,7 @@
 from data_types import basicgraph
 from encoding import item_order
 from encoding import sm_global
+from data_types import item_set
 import random
 import heapq
 import collections
@@ -33,23 +34,28 @@ def order_graph():
     order = item_order.order()
     g.add_node("START")
     current = "START"
-    things = set()
+    things = item_set.ItemSet()
     for index, i in enumerate(order):
         # first, BFS from current to find a candidate entrance
         finished, offers = g.BFS(current)
 
         # choose the entrance at random
         entrance = random.choice(list(finished))
-        #TODO: update the paths from current to finished with the path info (which things we have)
-        #path = basicgraph.bfs_path(offers, current, entrance
+        path = basicgraph.bfs_path(offers, current, entrance)
+        # add things constraints along the path
+        for i in range(len(path)):
+            if i + 1 < len(path):
+                g.update_edge_append(path[i], path[i+1], things.copy())
+
         # choose the exit at random
         exit = random.choice(list(g.nodes.keys()))
 
         # add the new node
         iname = i
         g.add_node(iname)
-        g.add_edge(entrance, iname)
-        g.add_edge(iname, exit)
+        g.add_edge(entrance, iname, data=[things.copy()])
+        things.add(iname)
+        g.add_edge(iname, exit, data=[things.copy()])
     return order, g
 
 def partition_order(graph, initial, priority=lambda x: 0):
@@ -67,7 +73,6 @@ def partition_order(graph, initial, priority=lambda x: 0):
         for node in initial[region]:
             rfinished[region].add(node)
     # key - region name, value, list of places in that region
-    #TODO: does this work, or do I need to use heappush?
     rheaps = {region: [(priority(i), i) for i in initial[region]] for region in initial}
 
     # build all_finished
@@ -116,14 +121,15 @@ def make_elevators(graph, regions):
         regions[r2].add(r2_e_name)
         graph.add_edge(r1_e_name, r2_e_name)
         graph.add_edge(r2_e_name, r1_e_name)
-        for n1, n2 in edges:
+        for n1, n2, d in edges:
             if n1 in regions[r1]:
-                graph.update_edge(n1, r1_e_name)
-                #TODO: update the r1_e -> r2_e edge
-                graph.update_edge(r2_e_name, n2) 
+                graph.update_edge(n1, r1_e_name, d)
+                graph.update_edge(r2_e_name, n2, d) 
+                graph.update_edge_append(r1_e_name, r2_e_name, d)
             elif n1 in regions[r2]:
-                graph.update_edge(n1, r2_e_name)
-                graph.update_edge(r1_e_name, n2)
+                graph.update_edge(n1, r2_e_name, d)
+                graph.update_edge(r1_e_name, n2, d)
+                graph.update_edge_append(r2_e_name, r1_e_name, d)
             else:
                 assert False, "Node not in either region: " + n1
     return elevators
@@ -141,7 +147,7 @@ def find_crossings(graph, regions):
             for node2 in regions[region2]:
                 for e in graph.nodes[node1].edges:
                     if e.terminal == node2:
-                        crossings[fset].append((node1, node2))
+                        crossings[fset].append((node1, node2, e.data))
     return crossings
 
 def node_in_region(node, regions):

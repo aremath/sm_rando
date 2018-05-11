@@ -49,12 +49,12 @@ class ItemSet(object):
 
     # modification
     def add(self, item):
-        self.num |= item_mapping[item]
+        return ItemSet(num=self.num | item_mapping[item])
 
     def remove(self, item):
         item_mask = item_mapping[item]
         assert self.num & item_mask != 0, "Item Set: cannot remove an element not in set"
-        self.num &= (~item_mask)
+        return ItemSet(num=self.num & (~item_mask))
 
     # set union
     def __or__(self, other):
