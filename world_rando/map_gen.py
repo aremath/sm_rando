@@ -1,5 +1,28 @@
 from .concrete_map import *
 
+def spring_model(node_locs, n_iterations, graph, spring_constant, spring_equilibrium, dt):
+    # node locs is node_name -> node_position
+    # node_name -> node_velocity
+    # hacky way of using mcoords as a vector
+    node_v = { n : MCoords(0,0) for n in node_locs }
+    # node_name -> node_acceleration
+    node_a = { n : MCoords(0,0) for n in node_locs }
+    iteration = 0
+    while iteration < n_iterations:
+        for n in node_locs:
+            # update node_a
+            for e in graph.nodes[n].edges:
+                # the amount of stretching, possibly negative
+                x = euclidean(node_locs[n], node_locs[e]) - spring_equilibrium
+                # direction
+                direction = (node_locs[n] - node_locs[a]).to_unit()
+                #-kx
+                node_a[e] = node_a[e] - direction.scale(spring_constant * x)
+            # update node_v
+            node_v[n] = node_v[n] + node_a[n] * dt
+            # update node_locs
+            node_locs[n] = node_locs[n] + node_v[n] * dt
+
 # just try to re-create the graph
 def naive_gen(dimensions, dist, graph, es):
 

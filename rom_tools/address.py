@@ -1,5 +1,4 @@
-import byte_ops
-
+from . import byte_ops
 
 class Address(object):
     """Address Class that handles conversions

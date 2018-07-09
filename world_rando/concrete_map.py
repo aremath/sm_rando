@@ -55,7 +55,13 @@ class MCoords(object):
     # stupid way to break priority ties
     def __lt__(self, other):
         return self.x + self.y < other.x + other.y
-        
+
+    def scale(self, scale_factor):
+        return MCoords(scale_factor*self.x, scale_factor*self.y)
+
+    def to_unit(self):
+        magnitude = self.euclidean(MCoords(0,0))
+        return self.scale(1/magnitude)
 
 class MapTile(object):
 

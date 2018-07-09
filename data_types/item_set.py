@@ -49,7 +49,7 @@ class ItemSet(object):
 
     # modification
     def add(self, item):
-        return ItemSet(num=self.num | item_mapping[item])
+        return ItemSet(num_=self.num | item_mapping[item])
 
     def remove(self, item):
         item_mask = item_mapping[item]

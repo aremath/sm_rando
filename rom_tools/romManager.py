@@ -1,12 +1,12 @@
-import level
+from . import level
 import subprocess
-import areamap
-from memory import Bank
-from address import Address
+from . import areamap
+from .memory import Bank
+from .address import Address
 from shutil import copy2 as fileCopy
 from hashlib import md5
 from os import stat, remove, rename
-import byte_ops
+from . import byte_ops
 
 def _backupFile(filename):
     """ Just tries to bakup the rom for easy re-use """

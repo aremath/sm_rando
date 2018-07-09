@@ -10,8 +10,12 @@ import itertools
 #TODO: every item needs to keep a unique ID
 # so that it can know its PLM index when it
 # comes time to place it as a PLM.
+# Can do this later when determining PLM placement, keeping a counter of items placed
 
-#TODO: bug in the partition algorithm that creates deadlock?
+#TODO: bug in the partition algorithm that creates deadlock.
+# Not allowing Tourian to grab nearby nodes is the issue, since a
+# node might only be eligible to be within tourian given the extra
+# node addition alg.
 
 def abstract_map():
     """puts it all together to make an abstract map with regions and elevators"""
@@ -43,9 +47,9 @@ def order_graph():
         entrance = random.choice(list(finished))
         path = basicgraph.bfs_path(offers, current, entrance)
         # add things constraints along the path
-        for i in range(len(path)):
-            if i + 1 < len(path):
-                g.update_edge_append(path[i], path[i+1], things.copy())
+        #for i in range(len(path)):
+        #    if i + 1 < len(path):
+        #        g.update_edge_append(path[i], path[i+1], things.copy())
 
         # choose the exit at random
         exit = random.choice(list(g.nodes.keys()))
@@ -125,11 +129,11 @@ def make_elevators(graph, regions):
             if n1 in regions[r1]:
                 graph.update_edge(n1, r1_e_name, d)
                 graph.update_edge(r2_e_name, n2, d) 
-                graph.update_edge_append(r1_e_name, r2_e_name, d)
+                #graph.update_edge_append(r1_e_name, r2_e_name, d)
             elif n1 in regions[r2]:
                 graph.update_edge(n1, r2_e_name, d)
                 graph.update_edge(r1_e_name, n2, d)
-                graph.update_edge_append(r2_e_name, r1_e_name, d)
+                #graph.update_edge_append(r2_e_name, r1_e_name, d)
             else:
                 assert False, "Node not in either region: " + n1
     return elevators
