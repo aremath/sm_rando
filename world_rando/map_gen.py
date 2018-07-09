@@ -1,9 +1,23 @@
 from .concrete_map import *
 
-def spring_model(node_locs, n_iterations, graph, spring_constant, spring_equilibrium, dt):
+#TODO: Bounds checking on the results of the spring model
+#TODO: A way to keep the model going until the average absolute spring force falls below a threshold?
+#TODO: This can break the way elevators are chosen...
+def spring_model(node_locs, graph, n_iterations, spring_constant, spring_equilibrium, dt):
+    """Changes node placement based on a simple spring model.
+    Node locs is the dictionary of initial node placements and is edited by the function.
+    graph is the graph of how the  nodes are connected to each other
+        (i.e. where to place springs).
+    n_iterations is how many time steps to run the model for.
+        A few should suffice for my purposes.
+    spring_constant is the k in -kx.
+    spring_equilibrium is the distance where the spring is at rest.
+    dt is the time step.
+    Doesn't return anything, but changes node_locs to a (hopefully) 
+    lower-energy configuration."""
     # node locs is node_name -> node_position
     # node_name -> node_velocity
-    # hacky way of using mcoords as a vector
+    # using mcoords as a vector
     node_v = { n : MCoords(0,0) for n in node_locs }
     # node_name -> node_acceleration
     node_a = { n : MCoords(0,0) for n in node_locs }
@@ -12,16 +26,23 @@ def spring_model(node_locs, n_iterations, graph, spring_constant, spring_equilib
         for n in node_locs:
             # update node_a
             for e in graph.nodes[n].edges:
+                t = e.terminal
                 # the amount of stretching, possibly negative
-                x = euclidean(node_locs[n], node_locs[e]) - spring_equilibrium
+                x = euclidean(node_locs[n], node_locs[t]) - spring_equilibrium
                 # direction
-                direction = (node_locs[n] - node_locs[a]).to_unit()
+                direction = (node_locs[n] - node_locs[t]).to_unit()
                 #-kx
-                node_a[e] = node_a[e] - direction.scale(spring_constant * x)
+                # TODO: Should be -?
+                node_a[t] = node_a[t] + direction.scale(spring_constant * x)
             # update node_v
-            node_v[n] = node_v[n] + node_a[n] * dt
+            node_v[n] = node_v[n] + node_a[n].scale(dt)
             # update node_locs
-            node_locs[n] = node_locs[n] + node_v[n] * dt
+            node_locs[n] = node_locs[n] + node_v[n].scale(dt)
+        iteration = iteration + 1
+    # resolve to an int
+    # TODO: is there a dict map function?
+    node_locs = { n: node_locs[n].resolve_int() for n in node_locs }
+    return node_locs
 
 # just try to re-create the graph
 def naive_gen(dimensions, dist, graph, es):
@@ -91,6 +112,14 @@ def less_naive_gen(dimensions, dist, graph, elevators):
     for i in range(len(node_list)):
         if node_list[i] not in node_locs:
             node_locs[node_list[i]] = sorted_locs[i]
+
+    # TODO: fiddle with the constants
+    # Run the spring model to lower the total "energy" of the graph:
+    # make it smaller in a sensible way.
+    # TODO: How to avoid collisions?
+    #print(node_locs)
+    node_locs = spring_model(node_locs, graph, 5, 1, 3, 0.1)
+    #print(node_locs)
 
     rnodes = list(graph.nodes.keys())
     random.shuffle(rnodes)

@@ -12,10 +12,15 @@ import itertools
 # comes time to place it as a PLM.
 # Can do this later when determining PLM placement, keeping a counter of items placed
 
-#TODO: bug in the partition algorithm that creates deadlock.
-# Not allowing Tourian to grab nearby nodes is the issue, since a
-# node might only be eligible to be within tourian given the extra
-# node addition alg.
+# How eagerly each region grabs nodes - Larger allows more nuance, but is higher variance
+default_weights ={
+    "Wrecked_Ship"  : 2,
+    "Maridia"       : 4,
+    "Crateria"      : 4,
+    "Norfair"       : 4,
+    "Brinstar"      : 4,
+    "Tourian"       : 1
+}
 
 def abstract_map():
     """puts it all together to make an abstract map with regions and elevators"""
@@ -23,7 +28,8 @@ def abstract_map():
     #TODO: add items before or after partition?
     # after is probably better...
     add_items(graph, {"S": 10, "PB": 10, "M": 10, "E": 10})
-    region_order, region_finished = partition_order(graph, sm_global.regions)
+    #region_order, region_finished = partition_order(graph, sm_global.regions)
+    region_order, region_finished = weighted_partition_order(graph, sm_global.regions, default_weights)
     elevators = make_elevators(graph, region_finished)
     region_order = item_order.region_order()
     es = elevator_directions(elevators, region_order)
@@ -201,4 +207,74 @@ def add_items(graph, items):
             graph.add_edge(node_name, from_node)
             #TODO: need to store item information on each of these edges?
             #TODO: store what type of item it is in the node data?
+
+def make_rand_weighted_list(weights):
+    """Create a shuffled list using weights. Weights is a key->int dict that contains how 
+    many of each key to place into the weighted list."""
+    out = []
+    for key, weight in weights.items():
+        out.extend([key]*weight)
+    random.shuffle(out)
+    return out
+
+#TODO: a way to make this have less variance?
+#   A parameter that determines how often every region gets a choice versus
+#   pulling from the weighted list.
+def weighted_partition_order(graph, initial, weights, priority=lambda x: 0):
+    """Partitions the item order graph into regions."""
+    # initial: region name (ex. "Maridia") -> nodes in that region
+    # weights: region name -> total weight for that region (int)
+    # The weights are not normalized, but for example if the weight sums to 100,
+    # and the weight of "Tourian" is 2, then the Tourian region should have 2 chances
+    # to grab a node for every 100 total chances. Note that this changes as the set of
+    # live regions changes. A region with no unclaimed neighbors has no chances to grab
+    # any nodes.
+
+    gnodes = set(graph.nodes.keys())
+    # roffers: region name -> offers for that region (node set)
+    roffers = { region: {} for region in initial}
+    # rfinished: region name -> finished for that region (node set)
+    rfinished = {region: set() for region in initial}
+    # Initialize rfinished with initial
+    for region in initial:
+        for node in initial[region]:
+            rfinished[region].add(node)
+    # rheaps: region name -> list of nodes in that region (with priority)
+    rheaps = {region: [(priority(i), i) for i in initial[region]] for region in initial}
+
+    # all_finished is the set of nodes that have a region assignment
+    all_finished = set()
+    for rnodes in initial.values():
+        all_finished |= set(rnodes)
+
+    # Determines which region's turn it is
+    node_chances = []
+
+    # stop when every node has a region assignment
+    while all_finished != gnodes:
+        # If we've gone through the list of chances, re-generate it
+        if len(node_chances) == 0:
+            node_chances = make_rand_weighted_list(weights)
+        # choose the current region from node_chances
+        region = node_chances.pop()
+        # If there are nodes with live neighbors...
+        if len(rheaps[region]) > 0:
+            _, rnode = heapq.heappop(rheaps[region])
+        # If there are no nodes with live neighbors, remove this node from the list of chances
+        # and remove it from the weights dictionary. This region is no longer live.
+        else:
+            del weights[region]
+            node_chances = [r for r in node_chances if r != region]
+            continue
+        # Add the node's neighbors
+        #TODO: only add one of its neighbors at a time?
+        for e in graph.nodes[rnode].edges:
+            t = e.terminal
+            if t not in all_finished:
+                heapq.heappush(rheaps[region], (priority(t), t))
+                rfinished[region].add(t)
+                roffers[region][t] = rnode
+                all_finished.add(t)
+
+    return roffers, rfinished
 

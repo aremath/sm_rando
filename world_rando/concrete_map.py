@@ -63,6 +63,9 @@ class MCoords(object):
         magnitude = self.euclidean(MCoords(0,0))
         return self.scale(1/magnitude)
 
+    def resolve_int(self):
+        return MCoords(int(self.x), int(self.y))
+
 class MapTile(object):
 
     def __init__(self, mtype):
