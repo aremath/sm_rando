@@ -126,8 +126,8 @@ def less_naive_gen(dimensions, dist, graph, elevators):
     for node in rnodes:
         for edge in graph.nodes[node].edges:
             # path from n1 to n2
-            # first, find all nodes reachable from n1
-            o, f = map_bfs(node_locs[node], None, pred = lambda x: x in cmap)
+            # first, find all nodes reachable from n1 that are already placed
+            o, f = map_bfs(node_locs[node], None, reach_pred = lambda x: x in cmap)
             # find the closest.
             #TODO: euclidean?
             dists = [(p, euclidean(p, node_locs[edge.terminal])) for p in list(f)]
@@ -137,7 +137,7 @@ def less_naive_gen(dimensions, dist, graph, elevators):
             #TODO: if d == node_locs[edge.terminal] -> no need for a path
             # make a new path to that item from the closest reachable point
             # here, we respect the constraint that nodes along the path can't coincide with an elevator
-            offers, finished = map_search(d[0], node_locs[edge.terminal], dist=dist, pred=lambda xy: avoids_elevators(xy, up_e_xy, down_e_xy))
+            offers, finished = map_search(d[0], node_locs[edge.terminal], dist=dist, reach_pred=lambda xy: avoids_elevators(xy, up_e_xy, down_e_xy))
             path = get_path(offers, d[0], node_locs[edge.terminal])
             # make the path into tiles
             #TODO: respect the constraints on the edge
@@ -220,7 +220,16 @@ def connecting_path(cmap, t1, t2, threshold):
     assert t2 in cmap, str(t1) + " not in cmap."
     assert not cmap[t1].is_fixed
     assert not cmap[t2].is_fixed
-    o, f = map_bfs(t1, t2, pred=lambda x: x in cmap and not cmap[x].is_fixed)
+    o, f = map_bfs(t1, lambda x: x == t2, reach_pred=lambda x: x in cmap and not cmap[x].is_fixed)
     p = get_path(o, t1, t2)
     ratio = len(p) / euclidean(t1, t2) + 1e-5 # epsilon for nonzero
+
+# Want to search for a location that satisfies the properties:
+#   - In_Bounds - Within the bounded area allowed for the map
+#               And placing the pattern here respects the bounds
+#   - Can_Place - None of the fixed tiles in the submap we are placing overlap with any already-placed tiles
+#   - Avoids_Elevators - As above, but only respecting elevators that have already been placed
+# One way of achieving avoids_elevators is just to "fix" every square above or 
+# below an elevator when placing it. Then make elevators look for squares where they're not above
+# (or below) any already-placed square. (And for ease, perhaps place the elevators first)
 

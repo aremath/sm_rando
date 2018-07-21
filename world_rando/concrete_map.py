@@ -66,6 +66,18 @@ class MCoords(object):
     def resolve_int(self):
         return MCoords(int(self.x), int(self.y))
 
+    def wall_relate(self, other):
+        if other == self.up():
+            return "U"
+        elif other == self.left():
+            return "L"
+        elif other == self.right():
+            return "R"
+        elif other == self.down():
+            return "D"
+        else:
+            assert False, "No wall_relate"
+
 class MapTile(object):
 
     def __init__(self, mtype):
@@ -73,12 +85,11 @@ class MapTile(object):
         # key - MCoords
         # value - itemset needed to reach
         self.d = collections.defaultdict(list)
-        # list of MCoords adjacent to this tile indicating where the walls are
-        self.walls = set() #TODO: what about sloped map tiles? #TODO: walls as a set
+        # set of ("L", "R", "U", "D") indicating which walls this tile has.
+        self.walls = set() #TODO: what about sloped map tiles?
         # is it part of an already-known room?
         self.is_fixed = False
 
-        #TODO: walls as 4 bools?
         # general tile info
         self.is_item  = False
         self.is_save  = False
@@ -111,11 +122,11 @@ def map_range(rcmap):
 
 def map_offset(cmap, offset):
     """Returns a new cmap which is the same as the old cmap at a different offset. Data may be shared."""
-    offset_map = {m + offset : mtile for m, mtile in cmap.items()}
+    return {m + offset : mtile for m, mtile in cmap.items()}
     # offset the walls
-    for t in offset_map.values():
-        t.walls = set([i + offset for i in t.walls])
-    return offset_map
+    #for t in offset_map.values():
+    #    t.walls = set([i + offset for i in t.walls])
+    #return offset_map
 
 def add_cmaps(cmap1, cmap2, collision_policy):
     """Puts cmap1 and cmap2 together. Data may be shared."""
@@ -152,7 +163,7 @@ def rand_d(p1, p2):
 #TODO: optional "timeout" argument that makes sure that
 #   a. the random walk will terminate
 #   b. it won't just take forever when you don't give it a pred
-def map_search(start, goal, pred=lambda x: True, dist=lambda x,y: euclidean(x,y)):
+def map_search(start, goal, reach_pred=lambda x: True, dist=lambda x,y: euclidean(x,y)):
     """search to find the path from start to goal, under tiles satisfying pred
     placing new tiles into the queue by sorting them over the metric dist."""
     
@@ -166,15 +177,16 @@ def map_search(start, goal, pred=lambda x: True, dist=lambda x,y: euclidean(x,y)
         if pos == goal:
             return offers, finished
         for a in pos.neighbors():
-            if a not in finished and pred(a):
+            if a not in finished and reach_pred(a):
                 heapq.heappush(h, (dist(a, goal), a))
                 finished.add(a)
                 offers[a] = pos
     # not found
     return None
 
-def map_bfs(start, goal, pred=lambda x: True):
-    """bfs over nodes satisfying pred. If goal is None, just returns all there was to see."""
+def map_bfs(start, goal_pred, reach_pred=lambda x: True):
+    """bfs over nodes satisfying reach_pred. If goal_pred is None, just returns all there was to see.
+    If goal_pred is not none, searches for a node satisfying goal_pred."""
     #TODO: what to do if there's no pred and no goal?
     q = collections.deque([start])
     finished = set()
@@ -182,11 +194,11 @@ def map_bfs(start, goal, pred=lambda x: True):
     finished.add(start)
     while len(q) > 0:
         pos = q.popleft()
-        if goal is not None and pos == goal:
+        if goal_pred is not None and goal_pred(pos):
             return offers, finished
         n = pos.neighbors()
         for a in n:
-            if a not in finished and pred(a):
+            if a not in finished and reach_pred(a):
                 q.append(a)
                 finished.add(a)
                 offers[a] = pos
@@ -219,7 +231,8 @@ def elide_walls(cmap):
         n = xy.neighbors()
         for a in n:
             if a not in cmap:
-                cmap[xy].walls.add(a)
+                # cmap[xy].walls.add(a)
+                cmap[xy].walls.add(xy.wall_relate(a))
 
 #lambda x: 0 means BFS in a heapq (first element first)
 # can use random to alter the pattern of vertices grabbed by
@@ -262,7 +275,8 @@ def room_walls(rcmap, room):
     for xy in room:
         for n in xy.neighbors():
             if n not in room:
-                rcmap[xy].walls.add(n)
+                # rcmap[xy].walls.add(n)
+                rcmap[xy].walls.add(xy.wall_relate(n))
 
 ###
 # SPECIFY MAP TILES
@@ -275,6 +289,7 @@ def is_above(xy1, xy2):
 def is_below(xy1, xy2):
     return xy1.x == xy2.x and xy1.y > xy2.y
 
+#TODO: with fold or any...
 def is_p_list(xy1, xys, p):
     """does xy1 satisfy p with any element of xys?"""
     for xy2 in xys:

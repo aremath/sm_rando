@@ -19,7 +19,6 @@ import sys
 #TODO: make the RNG seed work -> random dictionary word?
 #TODO: is it possible to go back through bowling alley?
 #   make the create filename with the seed
-#TODO: figure out what's going on with multiple item copies
 #TODO: get rid of Drain?
 #TODO: Old Mother Brain badness before zebes awake + other things with zebes waking up (last missiles)
 #TODO: fix brinstar elevator stupid things?
@@ -33,7 +32,6 @@ import sys
 def rom_setup(rom, time):
     """edits rom to skip ceres, etc."""
     # skip ceres
-    # TODO: this doesn't work when the rooms are randomized...?
     write_raw_bytes(rom, "0x0016ebb", "\x05")
 
     # make sand easier to jump out of without gravity

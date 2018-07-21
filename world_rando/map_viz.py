@@ -49,35 +49,35 @@ def find_image(walls, xy):
     if nwalls == 0:
         return "0w", 0
     elif nwalls == 1:
-        if has(walls, is_left, xy): 
+        if "L" in walls:
             return "1w", 0
-        if has(walls, is_above, xy):
+        if "U" in walls:
             return "1w", 270
-        if has(walls, is_right, xy):
+        if "R" in walls:
             return "1w", 180
-        if has(walls, is_below, xy):
+        if "D" in walls:
             return "1w", 90
     elif nwalls == 2:
-        if has(walls, is_below, xy) and has(walls, is_above, xy):
+        if "D" in walls and "U" in walls:
             return "2wp", 90
-        if has(walls, is_left, xy) and has(walls, is_right, xy):
+        if "L" in walls and "R" in walls:
             return "2wp", 0
-        if has(walls, is_left, xy) and has(walls, is_above, xy):
+        if "L" in walls and "U" in walls:
             return "2w", 0
-        if has(walls, is_above, xy) and has(walls, is_right, xy):
+        if "U" in walls and "R" in walls:
             return "2w", 270
-        if has(walls, is_right, xy) and has(walls, is_below, xy):
+        if "R" in walls and "D" in walls:
             return "2w", 180
-        if has(walls, is_below, xy) and has(walls, is_left, xy):
+        if "D" in walls and "L" in walls:
             return "2w", 90
     elif nwalls == 3:
-        if not has(walls, is_right, xy):
+        if "R" not in walls:
             return "3w", 0
-        if not has(walls, is_below, xy):
+        if "D" not in walls:
             return "3w", 270
-        if not has(walls, is_left, xy):
+        if "L" not in walls:
             return "3w", 180
-        if not has(walls, is_above, xy):
+        if "U" not in walls:
             return "3w", 90
     elif nwalls == 4:
         return "4w", 0
@@ -173,10 +173,10 @@ def cmap_to_tuples(cmap, tile_mapping):
         is_e_up    = tile.is_e_up
         is_save    = tile.is_save
         is_item    = tile.is_item
-        l          = mc.left() in tile.walls
-        u          = mc.up() in tile.walls
-        r          = mc.right() in tile.walls
-        d          = mc.down() in tile.walls
+        l          = "L" in tile.walls
+        u          = "U" in tile.walls
+        r          = "R" in tile.walls
+        d          = "D" in tile.walls
         t = (is_e_arrow, is_e_shaft, is_e_main, is_e_up, is_save, is_item, l, u, r, d)
         if tile_mapping[t] is not None:
             cmap_tuples[xy] = tile_mapping[t]
