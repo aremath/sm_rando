@@ -6,6 +6,7 @@
 import collections
 import heapq
 import random
+from enum import Enum
 
 class MCoords(object):
     
@@ -82,27 +83,34 @@ class MCoords(object):
         """Is this MCoords inside the rectangle described by lower, upper?"""
         return (self.x >= lower.x) and (self.y >= lower.y) and (self.x <= upper.x) and (self.y <= upper.y)
 
+# Enum for what things a tile can be
+class TileType(Enum):
+    normal = 1         # Tile with some data - its image will be controlled by what walls it has
+    blank = 2          # Blank tiles that are still stored in the map (ex. introduced by elevators.)
+    up_arrow = 3       # The arrow above an elevator.
+    down_arrow = 4         #
+    elevator_shaft = 5     #
+    elevator_main_up = 6   #
+    elevator_main_down = 7 #
+
 class MapTile(object):
 
-    def __init__(self, mtype):
-        self.t = mtype
+    def __init__(self, _tile_type=TileType.normal, _fixed=False, _item=False, _save=False, _walls=None):
         # key - MCoords
         # value - itemset needed to reach
         self.d = collections.defaultdict(list)
         # set of ("L", "R", "U", "D") indicating which walls this tile has.
-        self.walls = set() #TODO: what about sloped map tiles?
-        # is it part of an already-known room?
-        self.is_fixed = False
-
+        if _walls is None:
+            self.walls = set()
+        else:
+            self.walls = _walls
         # general tile info
-        self.is_item  = False
-        self.is_save  = False
-
+        self.is_item  = _item
+        self.is_save  = _save
         # elevator information
-        self.is_e_up    = False
-        self.is_e_arrow = False
-        self.is_e_shaft = False
-        self.is_e_main  = False
+        self.tile_type = _tile_type
+        # is it part of an already-constrained room?
+        self.is_fixed = _fixed
 
     def add_path(to_coords, with_items):
         self.d[to_coords].append(with_items)

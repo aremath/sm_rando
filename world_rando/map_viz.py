@@ -25,23 +25,6 @@ def load_map_tiles(map_dir):
                 }
     return wall_dict, ba, ia, ea
 
-def is_below(xy1, xy2):
-    """is xy2 directly below xy1?"""
-    return xy2 == xy1.down()
-
-def is_left(xy1, xy2):
-    return xy2 == xy1.left()
-
-def is_right(xy1, xy2):
-    return xy2 == xy1.right()
-
-def is_above(xy1, xy2):
-    return xy2 == xy1.up()
-
-def has(wall_list, f, xy):
-    """does wall_list have a wall satisfying property f?"""
-    return len([w for w in wall_list if f(xy, w)]) > 0
-
 def find_image(walls, xy):
     """returns which image to use, and how to rotate it"""
     nwalls = len(walls)
@@ -94,7 +77,7 @@ def map_viz(rcmap, filename, map_dir):
             xy = (x,y)
             if relxy in rcmap:
                 mtile = rcmap[relxy]
-                if mtile.is_e_shaft:
+                if mtile.tile_type == TileType.elevator_shaft:
                     image_name, rotation = "et", 0
                 else:
                     image_name, rotation = find_image(mtile.walls, relxy)
@@ -103,7 +86,8 @@ def map_viz(rcmap, filename, map_dir):
                 map_image.paste(imrotate, (x*16,y*16), imrotate)
                 if mtile.is_item:
                     map_image.paste(item, (x*16,y*16), item)
-                if mtile.is_e_main:
+                if (mtile.tile_type == TileType.elevator_main_up or
+                    mtile.tile_type == TileType.elevator_main_down):
                     map_image.paste(elevator, (x*16,y*16), elevator)
             else:
                 # it's a blank
@@ -162,15 +146,17 @@ def tiles_parse(tile_file):
                 out[k] = val
     return out
 
+#TODO: use tile_type more effectively!
 def cmap_to_tuples(cmap, tile_mapping):
     """ create an dict of key - xy, value - (hflip, vflip, index) from a cmap for that area"""
     cmap_tuples = {}
     for mc, tile in cmap.items():
         xy = (mc.x, mc.y)
-        is_e_arrow = tile.is_e_arrow
-        is_e_shaft = tile.is_e_shaft
-        is_e_main  = tile.is_e_main
-        is_e_up    = tile.is_e_up
+        is_e_arrow = (tile.tile_type == TileType.up_arrow or tile.tile_type == TileType.down_arrow)
+        is_e_shaft = (tile.tile_type == TileType.elevator_shaft)
+        is_e_main  = (tile.tile_type == TileType.elevator_main_up or
+            tile.tile_type == TileType.elevator_main_down)
+        is_e_up    = (tile.tile_type == TileType.up_arrow or tile.tile_type == TileType.elevator_main_up)
         is_save    = tile.is_save
         is_item    = tile.is_item
         l          = "L" in tile.walls

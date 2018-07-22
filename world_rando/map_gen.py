@@ -67,7 +67,7 @@ def naive_gen(dimensions, dist, graph, es):
             offers, finished = map_search(node_locs[node], node_locs[edge.terminal], dist=dist)
             path = get_path(offers, node_locs[node], node_locs[edge.terminal])
             for xy in path:
-                cmap[xy] = MapTile("")
+                cmap[xy] = MapTile()
 
     room_size = len(cmap) / 2
     cmap.random_rooms(room_size)
@@ -145,21 +145,19 @@ def less_naive_gen(dimensions, dist, graph, elevators):
             #TODO: respect the constraints on the edge
             if path is not None:
                 for xy in path:
-                    cmap[xy] = MapTile("")
+                    cmap[xy] = MapTile()
+            #TODO: if path is None: what?
 
     #TODO: elevators get is_elevator instead of item?
     # every 'interesting' node gets special info
     for node, loc in node_locs.items():
-        cmap[loc] = MapTile("")
+        cmap[loc] = MapTile()
         if node in up_es:
-            cmap[loc].is_e_main = True
-            cmap[loc].is_e_up     = True
-            cmap[loc.up()] = MapTile("")
-            cmap[loc.up()].is_e_shaft = True
+            cmap[loc].tile_type = TileType.elevator_main_up
+            cmap[loc.up()] = MapTile(_tile_type=TileType.elevator_shaft)
         elif node in down_es:
-            cmap[loc].is_e_main = True
-            cmap[loc.down()] = MapTile("")
-            cmap[loc.down()].is_e_shaft = True
+            cmap[loc].tile_type = TileType.elevator_main_down
+            cmap[loc.down()] = MapTile(_tile_type=TileType.elevator_shaft)
         else:
             cmap[loc].is_item = True
 
