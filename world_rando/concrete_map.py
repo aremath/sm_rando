@@ -78,6 +78,10 @@ class MCoords(object):
         else:
             assert False, "No wall_relate"
 
+    def in_bounds(self, lower, upper):
+        """Is this MCoords inside the rectangle described by lower, upper?"""
+        return (self.x >= lower.x) and (self.y >= lower.y) and (self.x <= upper.x) and (self.y <= upper.y)
+
 class MapTile(object):
 
     def __init__(self, mtype):
@@ -103,50 +107,7 @@ class MapTile(object):
     def add_path(to_coords, with_items):
         self.d[to_coords].append(with_items)
 
-def map_extent(rcmap):
-    """ returns the 'extent' of the cmap: two 
-    mcoords, which are the bounding box"""
-    mtiles = rcmap.keys()
-    if len(mtiles) == 0:
-        return None
-    minx = min(mtiles, key=lambda item: item.x).x
-    miny = min(mtiles, key=lambda item: item.y).y
-    maxx = max(mtiles, key=lambda item: item.x).x
-    maxy = max(mtiles, key=lambda item: item.y).y
-    return (MCoords(minx, miny), MCoords(maxx, maxy))
-
-def map_range(rcmap):
-    """Returns the actual ranges of the map, along with the placement of that range in x,y"""
-    mmin, mmax = map_extent(rcmap)
-    return mmax - mmin, mmin
-
-def map_offset(cmap, offset):
-    """Returns a new cmap which is the same as the old cmap at a different offset. Data may be shared."""
-    return {m + offset : mtile for m, mtile in cmap.items()}
-    # offset the walls
-    #for t in offset_map.values():
-    #    t.walls = set([i + offset for i in t.walls])
-    #return offset_map
-
-def add_cmaps(cmap1, cmap2, collision_policy):
-    """Puts cmap1 and cmap2 together. Data may be shared."""
-    new_cmap = {}
-    for c, t in cmap1.items():
-        new_cmap[c] = t
-    for c, t in cmap2.items():
-        if c in new_cmap:
-            if collision_policy == "f":
-                continue
-            elif collision_policy == "e":
-                assert False, "cmap collision: " + str(c)
-            elif collision_policy == "n":
-                return None
-            else:
-                assert False, "Bad collision policy"
-        else:
-            new_cmap[c] = t
-    return new_cmap
-
+# Various distance metrics for use as search heuristics
 def euclidean(p1, p2):
     """euclidean metric"""
     return p1.euclidean(p2)
@@ -157,52 +118,163 @@ def manhattan(p1, p2):
 def rand_d(p1, p2):
     return euclidean(p1, p2) + random.uniform(0,9)
 
-#TODO: some optimizations can be made
-# note that dist can be random, in which case this is kind of a random walk that
-# 'eventually' reaches q
-#TODO: optional "timeout" argument that makes sure that
-#   a. the random walk will terminate
-#   b. it won't just take forever when you don't give it a pred
-def map_search(start, goal, reach_pred=lambda x: True, dist=lambda x,y: euclidean(x,y)):
-    """search to find the path from start to goal, under tiles satisfying pred
-    placing new tiles into the queue by sorting them over the metric dist."""
-    
-    h = []
-    finished = set()
-    offers = {}
-    heapq.heappush(h, (0, start))
-    finished.add(start)
-    while len(h) > 0:
-        _, pos = heapq.heappop(h)
-        if pos == goal:
-            return offers, finished
-        for a in pos.neighbors():
-            if a not in finished and reach_pred(a):
-                heapq.heappush(h, (dist(a, goal), a))
-                finished.add(a)
-                offers[a] = pos
-    # not found
-    return None
+# Stores the information for a concrete map: What tiles are where.
+# Provides search abilities, etc.
+class ConcreteMap(object):
+   
+    # Avoid the infamous default value bug!
+    def __init__(self, _dimensions, _tiles=None):
+        # X, Y. The size of the ConcreteMap.
+        # MCoords in the cmap should be between (0,0) and _dimensions
+        self.dimensions = _dimensions
+        # MCoords -> Maptile dictionary.
+        if _tiles == None:
+            self.tiles = {}
+        else:
+            self.tiles = _tiles
 
-def map_bfs(start, goal_pred, reach_pred=lambda x: True):
-    """bfs over nodes satisfying reach_pred. If goal_pred is None, just returns all there was to see.
-    If goal_pred is not none, searches for a node satisfying goal_pred."""
-    #TODO: what to do if there's no pred and no goal?
-    q = collections.deque([start])
-    finished = set()
-    offers = {}
-    finished.add(start)
-    while len(q) > 0:
-        pos = q.popleft()
-        if goal_pred is not None and goal_pred(pos):
-            return offers, finished
-        n = pos.neighbors()
-        for a in n:
-            if a not in finished and reach_pred(a):
-                q.append(a)
-                finished.add(a)
-                offers[a] = pos
-    return offers, finished
+    def in_bounds(self, mcoord):
+        return mcoord.in_bounds(MCoords(0,0), self.dimensions)
+        
+    def assert_in_bounds(self, mcoord):
+        assert self.in_bounds(mcoord), "Out of bounds: " + str(mcoord)
+
+    def map_extent(self):
+        """ The extent of the cmap, two MCoords which specify the bounding box."""
+        mtiles = self.keys()
+        if len(mtiles) == 0:
+            return None
+        minx = min(mtiles, key=lambda item: item.x).x
+        miny = min(mtiles, key=lambda item: item.y).y
+        maxx = max(mtiles, key=lambda item: item.x).x
+        maxy = max(mtiles, key=lambda item: item.y).y
+        return (MCoords(minx, miny), MCoords(maxx, maxy))
+
+    def map_range(self):
+        """Returns the actual ranges of the map, along with the placement of that range in x,y"""
+        mmin, mmax = self.map_extent()
+        return mmax - mmin, mmin
+
+    def at_offset(self, offset):
+        """Returns a new cmap which is the old cmap with all tiles
+        at an offset. Data may be shared."""
+        new_tiles = {m + offset : mtile for m, mtile in self.items() }
+        #TODO: and has the same dimensions as before?
+        return ConcreteMap(self.dimensions, _tiles=new_tiles)
+
+    def compose(self, other, collision_policy="error"):
+        """Returns a new cmap which is a composition of self and other.
+        If self and other share a maptile, then the collision policy decides."""
+        new_tiles = {}
+        for c, t in self.items():
+            new_tiles[c] = t
+        for c, t in other.items():
+            self.assert_in_bounds(c)
+            if c in new_tiles:
+                # 'defer' means tiles from self are preferred over tiles from other
+                if collision_policy == "defer":
+                    continue
+                # 'error' means bomb out when there's a conflict
+                elif collision_policy == "error":
+                    assert False, "Collision in compose: " + str(c)
+                # 'none' means to not produce a composed cmap if there is a conflict
+                elif collision_policy == "none":
+                    return None
+                else:
+                    assert False, "Bad collision policy: " + collision_policy
+            else:
+                new_tiles[c] = t
+        #TODO: which dimensions does it get?
+        return ConcreteMap(self.dimensions, _tiles=new_tiles)
+
+    #TODO: some optimizations can be made
+    # note that dist can be random, in which case this is kind of a random walk that
+    # 'eventually' reaches q
+    def map_search(self, start, goal, reach_pred=lambda x: True, dist=lambda x,y: euclidean(x,y)):
+        """search to find the path from start to goal, under tiles satisfying pred
+        placing new tiles into the queue by sorting them over the metric dist. Does not
+        search tiles outside the bounds of the ConcreteMap, ensuring the search space is finite. """
+        self.assert_in_bounds(start)
+        self.assert_in_bounds(goal)
+        h = []
+        finished = set()
+        offers = {}
+        heapq.heappush(h, (0, start))
+        finished.add(start)
+        while len(h) > 0:
+            _, pos = heapq.heappop(h)
+            if pos == goal:
+                return offers, finished
+            for a in pos.neighbors():
+                if self.in_bounds(a) and a not in finished and reach_pred(a):
+                    heapq.heappush(h, (dist(a, goal), a))
+                    finished.add(a)
+                    offers[a] = pos
+        # not found
+        return None
+
+    def map_bfs(self, start, goal_pred, reach_pred=lambda x: True):
+        """bfs over nodes satisfying reach_pred. If goal_pred is None, just returns all there was to see.
+        If goal_pred is not none, searches for a node satisfying goal_pred."""
+        self.assert_in_bounds(start)
+        q = collections.deque([start])
+        finished = set()
+        offers = {}
+        finished.add(start)
+        while len(q) > 0:
+            pos = q.popleft()
+            if goal_pred is not None and goal_pred(pos):
+                return offers, finished
+            n = pos.neighbors()
+            for a in n:
+                if self.in_bounds(a) and a not in finished and reach_pred(a):
+                    q.append(a)
+                    finished.add(a)
+                    offers[a] = pos
+        return offers, finished
+
+    def elide_walls(self):
+        """ adds walls to cmap where the tile abuts empty space """
+        for xy in self.keys():
+            n = xy.neighbors()
+            for a in n:
+                if a not in self:
+                    self[xy].walls.add(xy.wall_relate(a))
+
+    def random_rooms(self, n):
+        # choose means
+        means = random.sample(self.keys(), n)
+        paths, partitions = bfs_partition(set(self.keys()), means)
+        for mean in means:
+            self.room_walls(partitions[mean])
+        return paths, partitions
+
+    def room_walls(self, room):
+        """ puts the walls into a room, given as a set of MCoords """
+        for xy in room:
+            for n in xy.neighbors():
+                if n not in room:
+                    self[xy].walls.add(xy.wall_relate(n))
+
+    # Behaves like a dictionary, interfacing to tiles
+    def __getitem__(self, key):
+        return self.tiles[key]
+    # Cannot set an item outside the bounds
+    def __setitem__(self, key, value):
+        if key.in_bounds(MCoords(0,0), self.dimensions):
+            self.tiles[key] = value
+        else:
+            assert False, "Index not in bounds: " + str(key)
+    def __len__(self):
+        return len(self.tiles)
+    def __contains__(self,item):
+        return item in self.tiles
+    def keys(self):
+        return self.tiles.keys()
+    def items(self):
+        return self.tiles.items()
+    def values(self):
+        return self.tiles.values()
 
 #TODO
 def map_lsearch(start, goal, pred=lambda x:True, dist=lambda x,y: euclidean(x,y)):
@@ -224,15 +296,6 @@ def get_path(offers, start, end):
             break
         pos = offers[pos]
     return path[::-1]
-
-def elide_walls(cmap):
-    """ adds walls to cmap where the tile abuts empty space """
-    for xy in cmap.keys():
-        n = xy.neighbors()
-        for a in n:
-            if a not in cmap:
-                # cmap[xy].walls.add(a)
-                cmap[xy].walls.add(xy.wall_relate(a))
 
 #lambda x: 0 means BFS in a heapq (first element first)
 # can use random to alter the pattern of vertices grabbed by
@@ -261,22 +324,6 @@ def bfs_partition(space, means, priority=lambda x: 0):
                     all_finished.add(n)
                     moffers[mean][n] = mpos[mean]
     return moffers, mfinished
-
-def random_rooms(n, rcmap):
-    # choose means
-    means = random.sample(rcmap.keys(), n)
-    paths, partitions = bfs_partition(set(rcmap.keys()), means)
-    for mean in means:
-        room_walls(rcmap, partitions[mean])
-    return paths, partitions
-
-def room_walls(rcmap, room):
-    """ puts the walls into a room, given as a set of MCoords """
-    for xy in room:
-        for n in xy.neighbors():
-            if n not in room:
-                # rcmap[xy].walls.add(n)
-                rcmap[xy].walls.add(xy.wall_relate(n))
 
 ###
 # SPECIFY MAP TILES

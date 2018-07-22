@@ -25,7 +25,8 @@ if __name__ == "__main__":
         graph.visualize("output/a_" + region)
         print("Generating map for " + region)
         # 64, 30 reserves one square in the y-direction for elevators to protrude up
-        cmap[region], rooms = map_gen.less_naive_gen((64, 30), less_rand_d, graph, es)
+        dimensions = concrete_map.MCoords(64, 30)
+        cmap[region], rooms = map_gen.less_naive_gen(dimensions, less_rand_d, graph, es)
         ntiles += len(cmap[region])
         for room in rooms.values():
             room_dims.append(len(room))

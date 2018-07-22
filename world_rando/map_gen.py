@@ -70,7 +70,7 @@ def naive_gen(dimensions, dist, graph, es):
                 cmap[xy] = MapTile("")
 
     room_size = len(cmap) / 2
-    random_rooms(room_size, cmap)
+    cmap.random_rooms(room_size)
     return cmap, len(cmap)
 
 #TODO: generalize this?
@@ -84,7 +84,7 @@ def less_naive_gen(dimensions, dist, graph, elevators):
     xys = xy_set(dimensions)
     up_es, down_es = elevators
 
-    cmap = {}
+    cmap = ConcreteMap(dimensions)
 
     locs = random.sample(xys, graph.nnodes)
     node_list = graph.nodes.keys()
@@ -117,6 +117,8 @@ def less_naive_gen(dimensions, dist, graph, elevators):
     # Run the spring model to lower the total "energy" of the graph:
     # make it smaller in a sensible way.
     # TODO: How to avoid collisions?
+    # TODO: Right now, the above_elevators predicate is created before this decides
+    # where the elevators will actually live.
     #print(node_locs)
     node_locs = spring_model(node_locs, graph, 5, 1, 3, 0.1)
     #print(node_locs)
@@ -127,7 +129,7 @@ def less_naive_gen(dimensions, dist, graph, elevators):
         for edge in graph.nodes[node].edges:
             # path from n1 to n2
             # first, find all nodes reachable from n1 that are already placed
-            o, f = map_bfs(node_locs[node], None, reach_pred = lambda x: x in cmap)
+            o, f = cmap.map_bfs(node_locs[node], None, reach_pred = lambda x: x in cmap)
             # find the closest.
             #TODO: euclidean?
             dists = [(p, euclidean(p, node_locs[edge.terminal])) for p in list(f)]
@@ -137,7 +139,7 @@ def less_naive_gen(dimensions, dist, graph, elevators):
             #TODO: if d == node_locs[edge.terminal] -> no need for a path
             # make a new path to that item from the closest reachable point
             # here, we respect the constraint that nodes along the path can't coincide with an elevator
-            offers, finished = map_search(d[0], node_locs[edge.terminal], dist=dist, reach_pred=lambda xy: avoids_elevators(xy, up_e_xy, down_e_xy))
+            offers, finished = cmap.map_search(d[0], node_locs[edge.terminal], dist=dist, reach_pred=lambda xy: avoids_elevators(xy, up_e_xy, down_e_xy))
             path = get_path(offers, d[0], node_locs[edge.terminal])
             # make the path into tiles
             #TODO: respect the constraints on the edge
@@ -164,13 +166,13 @@ def less_naive_gen(dimensions, dist, graph, elevators):
     # partition the map into random rooms
     #TODO: make sure that an elevator node and its 'is_elevator' are always paired...
     room_size = len(cmap) // 4
-    _, rooms = random_rooms(room_size, cmap)
+    _, rooms = cmap.random_rooms(room_size)
     return cmap, rooms
 
 def xy_set(dimensions):
     xys = set()
-    for x in range(dimensions[0]):
-        for y in range(dimensions[1]):
+    for x in range(dimensions.x):
+        for y in range(dimensions.y):
             xys.add(MCoords(x,y))
     return xys
 
@@ -220,7 +222,7 @@ def connecting_path(cmap, t1, t2, threshold):
     assert t2 in cmap, str(t1) + " not in cmap."
     assert not cmap[t1].is_fixed
     assert not cmap[t2].is_fixed
-    o, f = map_bfs(t1, lambda x: x == t2, reach_pred=lambda x: x in cmap and not cmap[x].is_fixed)
+    o, f = cmap.map_bfs(t1, lambda x: x == t2, reach_pred=lambda x: x in cmap and not cmap[x].is_fixed)
     p = get_path(o, t1, t2)
     ratio = len(p) / euclidean(t1, t2) + 1e-5 # epsilon for nonzero
 

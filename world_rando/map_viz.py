@@ -84,7 +84,7 @@ def find_image(walls, xy):
     assert False, "no matching walls! " + str(walls)
        
 def map_viz(rcmap, filename, map_dir):
-    mrange, mins = map_range(rcmap)
+    mrange, mins = rcmap.map_range()
     map_image = Image.new("RGBA", ((mrange.x+1)*16, (mrange.y+1)*16), "black")
     # bind the current region for easy re-use
     wmap, blank, item, elevator = load_map_tiles(map_dir)
