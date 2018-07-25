@@ -167,6 +167,7 @@ def less_naive_gen(dimensions, dist, graph, elevators):
     _, rooms = cmap.random_rooms(room_size)
     return cmap, rooms
 
+# Creates space of MCoords from 0 to dimensions not including the upper bound
 def xy_set(dimensions):
     xys = set()
     for x in range(dimensions.x):

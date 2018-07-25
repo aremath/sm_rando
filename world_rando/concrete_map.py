@@ -80,8 +80,9 @@ class MCoords(object):
             assert False, "No wall_relate"
 
     def in_bounds(self, lower, upper):
-        """Is this MCoords inside the rectangle described by lower, upper?"""
-        return (self.x >= lower.x) and (self.y >= lower.y) and (self.x <= upper.x) and (self.y <= upper.y)
+        """Is this MCoords inside the rectangle described by lower, upper?
+        Like range, this includes the lower bound but not the upper bound. """
+        return (self.x >= lower.x) and (self.y >= lower.y) and (self.x < upper.x) and (self.y < upper.y)
 
 # Enum for what things a tile can be
 class TileType(Enum):
@@ -123,6 +124,10 @@ def euclidean(p1, p2):
 def manhattan(p1, p2):
     return abs(p1.x - p2.x) + abs(p1.y - p2.y)
 
+# 9 chosen arbitrarily.
+#TODO: scale factor is a random multiple of the euclidean distance?
+# this tends to be more wiggly near the endpoint, and asymptotically straight
+# near the starting point.
 def rand_d(p1, p2):
     return euclidean(p1, p2) + random.uniform(0,9)
 
@@ -263,6 +268,15 @@ class ConcreteMap(object):
             for n in xy.neighbors():
                 if n not in room:
                     self[xy].walls.add(xy.wall_relate(n))
+
+    def bounded_put(self, pos, mtile):
+        """Puts mtile at pos if pos is in bounds, returns whether it succeeded."""
+        if self.in_bounds(pos):
+            self[pos] = mtile
+            return True
+        else:
+            print(pos)
+            return False
 
     # Behaves like a dictionary, interfacing to tiles
     def __getitem__(self, key):
