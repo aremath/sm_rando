@@ -155,3 +155,50 @@ def elevator_up_area(pos, dims):
         e_tiles.append(t)
     return e_tiles
 
+def save_point_area(pos, dims):
+    return [
+        (pos, MapTile(_save=True))
+    ]
+
+def item_area(pos, dims):
+    return [
+        (pos, MapTile(_item=True))
+    ]
+
+fixed_areas = {
+    "Kraid"         :   kraid_boss_area,
+    "Phantoon"      :   phantoon_boss_area,
+    "Draygon"       :   draygon_boss_area,
+    "Ridley"        :   ridley_boss_area,
+    "Bomb_Torizo"   :   bomb_torizo_boss_area,
+    "Spore_Spawn"   :   spore_spawn_boss_area,
+    "Botwoon"       :   botwoon_boss_area,
+    "Golden_Torizo" :   golden_torizo_boss_area,
+}
+
+# node -> (pos -> dimms -> cmap)
+def node_to_area(node, up_es, down_es):
+    if node in up_es:
+        return elevator_up_area
+    elif node in down_es:
+        return elevator_down_area
+    elif node == "Kraid":
+        return kraid_boss_area
+    elif node == "Phantoon":
+        return phantoon_boss_area
+    elif node == "Draygon":
+        return draygon_boss_area
+    elif node == "Ridley":
+        return ridley_boss_area
+    elif node == "Bomb_Torizo":
+        return bomb_torizo_boss_area
+    elif node == "Spore_Spawn":
+        return spore_spawn_boss_area
+    elif node == "Botwoon":
+        return botwoon_boss_area
+    elif node == "Golden_Torizo":
+        return golden_torizo_boss_area
+    #TODO - save points, reserves, etc?
+    else:
+        return item_area
+    

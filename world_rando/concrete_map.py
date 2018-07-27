@@ -84,6 +84,21 @@ class MCoords(object):
         Like range, this includes the lower bound but not the upper bound. """
         return (self.x >= lower.x) and (self.y >= lower.y) and (self.x < upper.x) and (self.y < upper.y)
 
+    def truncate(self, lower, upper):
+        """Returns the tile inside the (lower,upper) rectangle closest to
+        self."""
+        new_x = self.x
+        new_y = self.y
+        if self.x < lower.x:
+            new_x = lower.x
+        elif self.x >= upper.x:
+            new_x = upper.x - 1
+        if self.y < lower.y:
+            new_y = lower.y
+        elif self.y >= upper.y:
+            new_y = upper.y - 1
+        return MCoords(new_x, new_y)
+
 # Enum for what things a tile can be
 class TileType(Enum):
     normal = 1         # Tile with some data - its image will be controlled by what walls it has
@@ -237,14 +252,14 @@ class ConcreteMap(object):
         while len(q) > 0:
             pos = q.popleft()
             if goal_pred is not None and goal_pred(pos):
-                return offers, finished
+                return pos, offers, finished
             n = pos.neighbors()
             for a in n:
                 if self.in_bounds(a) and a not in finished and reach_pred(a):
                     q.append(a)
                     finished.add(a)
                     offers[a] = pos
-        return offers, finished
+        return None, offers, finished
 
     def elide_walls(self):
         """ adds walls to cmap where the tile abuts empty space """
@@ -275,7 +290,6 @@ class ConcreteMap(object):
             self[pos] = mtile
             return True
         else:
-            print(pos)
             return False
 
     # Behaves like a dictionary, interfacing to tiles

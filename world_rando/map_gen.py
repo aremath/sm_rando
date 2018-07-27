@@ -1,4 +1,5 @@
 from .concrete_map import *
+from . import fixed_cmaps
 
 #TODO: Bounds checking on the results of the spring model
 #TODO: A way to keep the model going until the average absolute spring force falls below a threshold?
@@ -13,8 +14,7 @@ def spring_model(node_locs, graph, n_iterations, spring_constant, spring_equilib
     spring_constant is the k in -kx.
     spring_equilibrium is the distance where the spring is at rest.
     dt is the time step.
-    Doesn't return anything, but changes node_locs to a (hopefully) 
-    lower-energy configuration."""
+    Returns a lower potential-energy node_locs."""
     # node locs is node_name -> node_position
     # node_name -> node_velocity
     # using mcoords as a vector
@@ -77,6 +77,9 @@ def naive_gen(dimensions, dist, graph, es):
 # take in node placement 'strategy'
 # take in line drawing 'strategy'
 #TODO: add save points!
+#TODO:
+# -> pick an item node later in the order than Draygon and put it past Draygon?
+# -> default to supers
 
 def less_naive_gen(dimensions, dist, graph, elevators):
     # first, make the graph
@@ -104,11 +107,6 @@ def less_naive_gen(dimensions, dist, graph, elevators):
     node_list = list(set(node_list) - up_es - down_es)
 
     random.shuffle(node_list)
-    #TODO: need to choose node locations that are not randomly above or below an elevator, or this breaks things
-    # -> make an arbitrary random location chooser that respects predicates?
-    #TODO: "fixed" boss nodes, and this is where we can make sure there is an item behind Draygon or some such?
-    # -> pick an item node later in the order than Draygon and put it past Draygon?
-    # -> default to supers
     for i in range(len(node_list)):
         if node_list[i] not in node_locs:
             node_locs[node_list[i]] = sorted_locs[i]
@@ -116,12 +114,9 @@ def less_naive_gen(dimensions, dist, graph, elevators):
     # TODO: fiddle with the constants
     # Run the spring model to lower the total "energy" of the graph:
     # make it smaller in a sensible way.
-    # TODO: How to avoid collisions?
-    # TODO: Right now, the above_elevators predicate is created before this decides
-    # where the elevators will actually live.
-    #print(node_locs)
     node_locs = spring_model(node_locs, graph, 5, 1, 3, 0.1)
-    #print(node_locs)
+
+    node_locs, cmap = node_place(graph, dimensions, up_es, down_es)
 
     rnodes = list(graph.nodes.keys())
     random.shuffle(rnodes)
@@ -129,7 +124,7 @@ def less_naive_gen(dimensions, dist, graph, elevators):
         for edge in graph.nodes[node].edges:
             # path from n1 to n2
             # first, find all nodes reachable from n1 that are already placed
-            o, f = cmap.map_bfs(node_locs[node], None, reach_pred = lambda x: x in cmap)
+            _, o, f = cmap.map_bfs(node_locs[node], None, reach_pred = lambda x: x in cmap)
             # find the closest.
             #TODO: euclidean?
             dists = [(p, euclidean(p, node_locs[edge.terminal])) for p in list(f)]
@@ -175,8 +170,8 @@ def xy_set(dimensions):
             xys.add(MCoords(x,y))
     return xys
 
-def place_nodes(nodes, dimensions, up_es, down_es):
-    """Returns a dictionary of node: location by choosing locations for the nodes
+def random_node_place(graph, dimensions, up_es, down_es):
+    """Returns a dictionary of node -> location by choosing locations for the nodes
      at random."""
     xys = xy_set(dimensions)
     locs = random.sample(xys, graph.nnodes)
@@ -185,28 +180,64 @@ def place_nodes(nodes, dimensions, up_es, down_es):
     # choose elevator locations: down elevators are the lowest locs, and up are the highest locs
     #TODO: seems like it doesn't always return the lowest n or highest n points
     sorted_locs = sorted(locs, key = lambda n: n.y)
-    up_e_xy = []
-    down_e_xy = []
     for node in node_list:
         if node in up_es:
             node_locs[node] = sorted_locs.pop(0) # highest y coordinate is further down
-            up_e_xy.append(node_locs[node])
-            node_list.remove(node)
         elif node in down_es:
             node_locs[node] = sorted_locs.pop()
-            down_e_xy.append(node_locs[node])
-            node_list.remove(node)
+    node_list = list(set(node_list) - up_es - down_es)
 
     random.shuffle(node_list)
-    #TODO: need to choose node locations that are not randomly above or below an elevator, or this breaks things
-    # -> make an arbitrary random location chooser that respects predicates?
-    #TODO: "fixed" boss nodes, and this is where we can make sure there is an item behind Draygon or some such?
+    #TODO: "fixed" boss nodes
+    #TODO: this is where we can make sure there is an item behind Draygon or some such??
     # -> pick an item node later in the order than Draygon and put it past Draygon?
     # -> default to supers
     for i in range(len(node_list)):
         if node_list[i] not in node_locs:
             node_locs[node_list[i]] = sorted_locs[i]
     return node_locs
+
+# Area_maker is position -> cmap (optional)
+# intended for use with fixed_cmaps.mk_area() where area, and dims are known.
+# True if the cmap generated by area_maker(pos) is valid, and can be composed with cmap.
+def can_place(area_maker, pos, cmap):
+    node_cmap = area_maker(pos)
+    if node_cmap is not None:
+        if cmap.compose(node_cmap, collision_policy="none") is not None:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+# Find a placement of the nodes that allows their concrete maps to co-exist within
+# the boundaries of cmap.
+# Initial is a node_locs: node : location. cmap is a ConcreteMap. areas is node : (pos -> cmap)
+def find_placement(initial, areas, cmap):
+    dimensions = cmap.dimensions
+    final_node_locs = {}
+    for node, init_pos in initial.items():
+        node_area_maker = lambda p: fixed_cmaps.mk_area(p, dimensions, areas(node))
+        g, _, _ = cmap.map_bfs(init_pos, lambda p: can_place(node_area_maker, p, cmap))
+        assert g is not None, "No valid place found."
+        final_node_locs[node] = g
+        # Actually place it into the map
+        cmap = cmap.compose(node_area_maker(g))
+    return final_node_locs, cmap
+
+# Find a placement for nodes where their respective areas do not violate
+# each other.
+#   Random initially, with elevators guaranteed to be at the top and bottom (initially)
+#   Subjected to a spring model which reduces the total potential energy (moves far nodes closer)
+#   Subject to a search so that nodes can be placed without violating each other's areas.
+def node_place(graph, dimensions, up_es, down_es):
+    initial = random_node_place(graph, dimensions, up_es, down_es)
+    spring = spring_model(initial, graph, 5, 1, 3, 0.1)
+    trunc_spring = {n : xy.truncate(MCoords(0,0), dimensions) for (n, xy) in spring.items()}
+    # Now do a search for a good placement for each nod.
+    cmap = ConcreteMap(dimensions)
+    areas = lambda n: fixed_cmaps.node_to_area(n, up_es, down_es)
+    return find_placement(trunc_spring, areas, cmap)
 
 def avoids_elevators(xy, up_es, down_es):
     """returns if the specified xy isn't above any up elevators
@@ -221,7 +252,7 @@ def connecting_path(cmap, t1, t2, threshold):
     assert t2 in cmap, str(t1) + " not in cmap."
     assert not cmap[t1].is_fixed
     assert not cmap[t2].is_fixed
-    o, f = cmap.map_bfs(t1, lambda x: x == t2, reach_pred=lambda x: x in cmap and not cmap[x].is_fixed)
+    _, o, f = cmap.map_bfs(t1, lambda x: x == t2, reach_pred=lambda x: x in cmap and not cmap[x].is_fixed)
     p = get_path(o, t1, t2)
     ratio = len(p) / euclidean(t1, t2) + 1e-5 # epsilon for nonzero
 

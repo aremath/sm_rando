@@ -21,7 +21,8 @@ def load_map_tiles(map_dir):
                  "2wp": i2wp,
                  "3w" : i3w,
                  "4w" : i4w,
-                 "et" : et
+                 "et" : et,
+                 "b"  : ba
                 }
     return wall_dict, ba, ia, ea
 
@@ -79,6 +80,8 @@ def map_viz(rcmap, filename, map_dir):
                 mtile = rcmap[relxy]
                 if mtile.tile_type == TileType.elevator_shaft:
                     image_name, rotation = "et", 0
+                elif mtile.tile_type == TileType.blank:
+                    image_name, rotation = "b", 0
                 else:
                     image_name, rotation = find_image(mtile.walls, relxy)
                 image = wmap[image_name]
