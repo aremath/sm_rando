@@ -261,6 +261,10 @@ class ConcreteMap(object):
                     offers[a] = pos
         return None, offers, finished
 
+    def non_fixed(self):
+        """Return the set of coordinates for non-fixed tiles."""
+        return set(filter(lambda p: not self.tiles[p].is_fixed, self.keys()))
+
     def elide_walls(self):
         """ adds walls to cmap where the tile abuts empty space """
         for xy in self.keys():
@@ -269,10 +273,15 @@ class ConcreteMap(object):
                 if a not in self:
                     self[xy].walls.add(xy.wall_relate(a))
 
+    #TODO: the space is only the non-fixed tiles!
+    # figure out why that hangs by printing the remaining tiles of set?
+    # might need to create an initial condition of fixed rooms?
     def random_rooms(self, n):
         # choose means
         means = random.sample(self.keys(), n)
-        paths, partitions = bfs_partition(set(self.keys()), means)
+        #tile_set = self.non_fixed()
+        tile_set = set(self.keys())
+        paths, partitions = bfs_partition(tile_set, means)
         for mean in means:
             self.room_walls(partitions[mean])
         return paths, partitions
@@ -289,6 +298,21 @@ class ConcreteMap(object):
         if self.in_bounds(pos):
             self[pos] = mtile
             return True
+        else:
+            return False
+
+    def can_place(self, pos):
+        """Can a tile be placed at pos?
+        tiles can be placed at non-fixed nodes, and at empty space"""
+        if pos in self.tiles:
+            return not self.tiles[pos].is_fixed
+        else:
+            return True
+
+    def step_on(self, pos):
+        """Predicate for finding a path within the given cmap"""
+        if pos in self.tiles:
+            return not self.tiles[pos].is_fixed
         else:
             return False
 
@@ -333,6 +357,7 @@ def get_path(offers, start, end):
         pos = offers[pos]
     return path[::-1]
 
+#TODO this needs to deal with pre-existing parts of the map!
 #lambda x: 0 means BFS in a heapq (first element first)
 # can use random to alter the pattern of vertices grabbed by
 # each mean

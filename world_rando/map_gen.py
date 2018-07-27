@@ -82,40 +82,9 @@ def naive_gen(dimensions, dist, graph, es):
 # -> default to supers
 
 def less_naive_gen(dimensions, dist, graph, elevators):
-    # first, make the graph
-            
     xys = xy_set(dimensions)
     up_es, down_es = elevators
-
-    cmap = ConcreteMap(dimensions)
-
-    locs = random.sample(xys, graph.nnodes)
-    node_list = graph.nodes.keys()
-    node_locs = {}
-    # choose elevator locations: down elevators are the lowest locs, and up are the highest locs
-    sorted_locs = sorted(locs, key=lambda n: n.y)
-    up_e_xy = []
-    down_e_xy = []
-    for node in node_list:
-        if node in up_es:
-            node_locs[node] = sorted_locs.pop(0) # highest y coordinate is further down
-            up_e_xy.append(node_locs[node])
-        elif node in down_es:
-            node_locs[node] = sorted_locs.pop()
-            down_e_xy.append(node_locs[node])
-    # remove the elevators from the list to choose locs for the rest of the nodes
-    node_list = list(set(node_list) - up_es - down_es)
-
-    random.shuffle(node_list)
-    for i in range(len(node_list)):
-        if node_list[i] not in node_locs:
-            node_locs[node_list[i]] = sorted_locs[i]
-
-    # TODO: fiddle with the constants
-    # Run the spring model to lower the total "energy" of the graph:
-    # make it smaller in a sensible way.
-    node_locs = spring_model(node_locs, graph, 5, 1, 3, 0.1)
-
+    # Find a placement for nodes, and initialize it with the areas for those nodes
     node_locs, cmap = node_place(graph, dimensions, up_es, down_es)
 
     rnodes = list(graph.nodes.keys())
@@ -124,7 +93,7 @@ def less_naive_gen(dimensions, dist, graph, elevators):
         for edge in graph.nodes[node].edges:
             # path from n1 to n2
             # first, find all nodes reachable from n1 that are already placed
-            _, o, f = cmap.map_bfs(node_locs[node], None, reach_pred = lambda x: x in cmap)
+            _, o, f = cmap.map_bfs(node_locs[node], None, reach_pred = lambda x: cmap.step_on(x))
             # find the closest.
             #TODO: euclidean?
             dists = [(p, euclidean(p, node_locs[edge.terminal])) for p in list(f)]
@@ -134,28 +103,15 @@ def less_naive_gen(dimensions, dist, graph, elevators):
             #TODO: if d == node_locs[edge.terminal] -> no need for a path
             # make a new path to that item from the closest reachable point
             # here, we respect the constraint that nodes along the path can't coincide with an elevator
-            offers, finished = cmap.map_search(d[0], node_locs[edge.terminal], dist=dist, reach_pred=lambda xy: avoids_elevators(xy, up_e_xy, down_e_xy))
+            offers, finished = cmap.map_search(d[0], node_locs[edge.terminal], dist=dist, reach_pred= lambda x: cmap.can_place(x))
             path = get_path(offers, d[0], node_locs[edge.terminal])
             # make the path into tiles
             #TODO: respect the constraints on the edge
             if path is not None:
                 for xy in path:
-                    cmap[xy] = MapTile()
+                    if xy not in cmap:
+                        cmap[xy] = MapTile()
             #TODO: if path is None: what?
-
-    #TODO: elevators get is_elevator instead of item?
-    # every 'interesting' node gets special info
-    for node, loc in node_locs.items():
-        cmap[loc] = MapTile()
-        if node in up_es:
-            cmap[loc].tile_type = TileType.elevator_main_up
-            cmap[loc.up()] = MapTile(_tile_type=TileType.elevator_shaft)
-        elif node in down_es:
-            cmap[loc].tile_type = TileType.elevator_main_down
-            cmap[loc.down()] = MapTile(_tile_type=TileType.elevator_shaft)
-        else:
-            cmap[loc].is_item = True
-
     # partition the map into random rooms
     #TODO: make sure that an elevator node and its 'is_elevator' are always paired...
     room_size = len(cmap) // 4
