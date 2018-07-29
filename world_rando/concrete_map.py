@@ -225,8 +225,8 @@ class ConcreteMap(object):
         self.assert_in_bounds(start)
         self.assert_in_bounds(goal)
         h = []
-        finished = set()
-        offers = {}
+        finished = set([start])
+        offers = {start: start}
         heapq.heappush(h, (0, start))
         finished.add(start)
         while len(h) > 0:
@@ -246,8 +246,8 @@ class ConcreteMap(object):
         If goal_pred is not none, searches for a node satisfying goal_pred."""
         self.assert_in_bounds(start)
         q = collections.deque([start])
-        finished = set()
-        offers = {}
+        finished = set([start])
+        offers = {start: start}
         finished.add(start)
         while len(q) > 0:
             pos = q.popleft()
@@ -277,10 +277,9 @@ class ConcreteMap(object):
     # figure out why that hangs by printing the remaining tiles of set?
     # might need to create an initial condition of fixed rooms?
     def random_rooms(self, n):
+        tile_set = self.non_fixed()
         # choose means
-        means = random.sample(self.keys(), n)
-        #tile_set = self.non_fixed()
-        tile_set = set(self.keys())
+        means = random.sample(self.non_fixed(), n)
         paths, partitions = bfs_partition(tile_set, means)
         for mean in means:
             self.room_walls(partitions[mean])
@@ -348,6 +347,8 @@ def map_lsearch(start, goal, pred=lambda x:True, dist=lambda x,y: euclidean(x,y)
 def get_path(offers, start, end):
     if end not in offers:
         return None
+    elif start == end:
+        return []
     pos = end
     path = []
     while True:

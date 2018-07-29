@@ -190,6 +190,9 @@ def node_to_area(node, up_es, down_es):
         return draygon_boss_area
     elif node == "Ridley":
         return ridley_boss_area
+    #TODO: How to connect up the back end?
+    elif node == "Mother_Brain":
+        return mother_brain_boss_area
     elif node == "Bomb_Torizo":
         return bomb_torizo_boss_area
     elif node == "Spore_Spawn":

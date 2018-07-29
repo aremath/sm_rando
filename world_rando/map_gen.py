@@ -44,35 +44,6 @@ def spring_model(node_locs, graph, n_iterations, spring_constant, spring_equilib
     node_locs = { n: node_locs[n].resolve_int() for n in node_locs }
     return node_locs
 
-# just try to re-create the graph
-def naive_gen(dimensions, dist, graph, es):
-
-    # build the set of xys
-    xys = xy_set(dimensions)
-
-    # make the cmap
-    cmap = {}
-
-    # generate a map!
-    # first, choose locations for each node
-    locs = random.sample(xys, graph.nnodes)
-    node_list = graph.nodes.keys()
-    node_locs = {}
-    for i in range(len(node_list)):
-        node_locs[node_list[i]] = locs[i]
-
-    # now put a path for each edge
-    for node in graph.nodes:
-        for edge in graph.nodes[node].edges:
-            offers, finished = map_search(node_locs[node], node_locs[edge.terminal], dist=dist)
-            path = get_path(offers, node_locs[node], node_locs[edge.terminal])
-            for xy in path:
-                cmap[xy] = MapTile()
-
-    room_size = len(cmap) / 2
-    cmap.random_rooms(room_size)
-    return cmap, len(cmap)
-
 #TODO: generalize this?
 # take in node placement 'strategy'
 # take in line drawing 'strategy'
@@ -89,34 +60,47 @@ def less_naive_gen(dimensions, dist, graph, elevators):
 
     rnodes = list(graph.nodes.keys())
     random.shuffle(rnodes)
+    # Holds all the paths, along with their constraints (TODO: the constraints)
+    paths = []
     for node in rnodes:
         for edge in graph.nodes[node].edges:
+            # Special case - edges from MB start from the escape point!
+            if node == "Mother_Brain":
+                start_point = node_locs[node] + MCoords(-5,0)
+            else:
+                start_point = node_locs[node]
+            end_point = node_locs[edge.terminal]
             # path from n1 to n2
             # first, find all nodes reachable from n1 that are already placed
-            _, o, f = cmap.map_bfs(node_locs[node], None, reach_pred = lambda x: cmap.step_on(x))
+            _, o, f = cmap.map_bfs(start_point, None, reach_pred = lambda x: cmap.step_on(x))
             # find the closest.
-            #TODO: euclidean?
             dists = [(p, euclidean(p, node_locs[edge.terminal])) for p in list(f)]
             dists = sorted(dists, key = lambda n: n[1])
             #TODO: probability distribution over dists?
-            d = dists[0]
-            #TODO: if d == node_locs[edge.terminal] -> no need for a path
+            closest, _ = dists[0]
+            # Find the path to closest
+            to_closest = get_path(o, start_point, closest)
             # make a new path to that item from the closest reachable point
-            # here, we respect the constraint that nodes along the path can't coincide with an elevator
-            offers, finished = cmap.map_search(d[0], node_locs[edge.terminal], dist=dist, reach_pred= lambda x: cmap.can_place(x))
-            path = get_path(offers, d[0], node_locs[edge.terminal])
+            offers, finished = cmap.map_search(closest, end_point,
+                dist=dist, reach_pred= lambda x: cmap.can_place(x))
+            to_end = get_path(offers, closest, node_locs[edge.terminal])
             # make the path into tiles
             #TODO: respect the constraints on the edge
-            if path is not None:
-                for xy in path:
+            if to_end is not None:
+                for xy in to_end:
                     if xy not in cmap:
                         cmap[xy] = MapTile()
-            #TODO: if path is None: what?
+            else:
+                assert False, "Cannot find path: " + str(closest) + ", " + str(node_locs[edge.terminal])
+            path = to_closest + to_end
+            paths.append(path)
     # partition the map into random rooms
-    #TODO: make sure that an elevator node and its 'is_elevator' are always paired...
     room_size = len(cmap) // 4
+    #TODO: currently this alg assumes that the non-fixed rooms are connected.
+    # This assumption can be broken with Mother Brain or if Maridia is split with Botwoon...
     _, rooms = cmap.random_rooms(room_size)
-    return cmap, rooms
+    #TODO: Each room grabs the map tiles that are inside its bounding box!
+    return cmap, rooms, paths
 
 # Creates space of MCoords from 0 to dimensions not including the upper bound
 def xy_set(dimensions):
@@ -188,7 +172,7 @@ def find_placement(initial, areas, cmap):
 #   Subject to a search so that nodes can be placed without violating each other's areas.
 def node_place(graph, dimensions, up_es, down_es):
     initial = random_node_place(graph, dimensions, up_es, down_es)
-    spring = spring_model(initial, graph, 5, 1, 3, 0.1)
+    spring = spring_model(initial, graph, 5, 2, 3, 0.1)
     trunc_spring = {n : xy.truncate(MCoords(0,0), dimensions) for (n, xy) in spring.items()}
     # Now do a search for a good placement for each nod.
     cmap = ConcreteMap(dimensions)
