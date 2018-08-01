@@ -51,6 +51,8 @@ def spring_model(node_locs, graph, n_iterations, spring_constant, spring_equilib
 #TODO:
 # -> pick an item node later in the order than Draygon and put it past Draygon?
 # -> default to supers
+#TODO: Possibly just add some extra edges to the regional graph to make it more "uniform"
+# through the spring model?
 
 def less_naive_gen(dimensions, dist, graph, elevators):
     xys = xy_set(dimensions)
@@ -98,6 +100,8 @@ def less_naive_gen(dimensions, dist, graph, elevators):
     room_size = len(cmap) // 4
     #TODO: currently this alg assumes that the non-fixed rooms are connected.
     # This assumption can be broken with Mother Brain or if Maridia is split with Botwoon...
+    # A fix would be to analyze connected components using bfs, then allocate each components a number
+    # of means based on its size, and run the current algorithm on each connected component.
     _, rooms = cmap.random_rooms(room_size)
     #TODO: Each room grabs the map tiles that are inside its bounding box!
     return cmap, rooms, paths
@@ -195,13 +199,4 @@ def connecting_path(cmap, t1, t2, threshold):
     _, o, f = cmap.map_bfs(t1, lambda x: x == t2, reach_pred=lambda x: x in cmap and not cmap[x].is_fixed)
     p = get_path(o, t1, t2)
     ratio = len(p) / euclidean(t1, t2) + 1e-5 # epsilon for nonzero
-
-# Want to search for a location that satisfies the properties:
-#   - In_Bounds - Within the bounded area allowed for the map
-#               And placing the pattern here respects the bounds
-#   - Can_Place - None of the fixed tiles in the submap we are placing overlap with any already-placed tiles
-#   - Avoids_Elevators - As above, but only respecting elevators that have already been placed
-# One way of achieving avoids_elevators is just to "fix" every square above or 
-# below an elevator when placing it. Then make elevators look for squares where they're not above
-# (or below) any already-placed square. (And for ease, perhaps place the elevators first)
 

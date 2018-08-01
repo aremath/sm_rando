@@ -169,14 +169,7 @@ class ConcreteMap(object):
 
     def map_extent(self):
         """ The extent of the cmap, two MCoords which specify the bounding box."""
-        mtiles = self.keys()
-        if len(mtiles) == 0:
-            return None
-        minx = min(mtiles, key=lambda item: item.x).x
-        miny = min(mtiles, key=lambda item: item.y).y
-        maxx = max(mtiles, key=lambda item: item.x).x
-        maxy = max(mtiles, key=lambda item: item.y).y
-        return (MCoords(minx, miny), MCoords(maxx, maxy))
+        return extent(self.keys())
 
     def map_range(self):
         """Returns the actual ranges of the map, along with the placement of that range in x,y"""
@@ -315,6 +308,16 @@ class ConcreteMap(object):
         else:
             return False
 
+    def sub(self, start, end):
+        """Returns a subcmap which is the cmap defined by the [start, end) rectangle."""
+        new_tiles = {}
+        for x in range(start.x, end.x):
+            for y in range(start.y, end.y):
+                xy = MCoords(x,y)
+                if xy in self:
+                    new_tiles[xy] = self[xy]
+        return ConcreteMap(self.dimensions, _tiles=new_tiles)
+
     # Behaves like a dictionary, interfacing to tiles
     def __getitem__(self, key):
         return self.tiles[key]
@@ -387,6 +390,16 @@ def bfs_partition(space, means, priority=lambda x: 0):
                     moffers[mean][n] = mpos[mean]
     return moffers, mfinished
 
+
+def extent(mcoords):
+    """Determines the extent of a list of MCoords"""
+    if len(mcoords) == 0:
+        return None
+    minx = min(mcoords, key=lambda item: item.x).x
+    miny = min(mcoords, key=lambda item: item.y).y
+    maxx = max(mcoords, key=lambda item: item.x).x
+    maxy = max(mcoords, key=lambda item: item.y).y
+    return (MCoords(minx, miny), MCoords(maxx, maxy))
 ###
 # SPECIFY MAP TILES
 # ways to specify a set of map tiles to search with map_search (using pred)
