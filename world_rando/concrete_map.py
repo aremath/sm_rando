@@ -38,6 +38,9 @@ class MCoords(object):
     def neighbors(self):
         return self.left(), self.up(), self.right(), self.down()
 
+    def adjacent(self, other):
+        return (other in self.neighbors())
+
     def to_tuple(self):
         return (self.x, self.y)
 
@@ -269,6 +272,10 @@ class ConcreteMap(object):
     #TODO: the space is only the non-fixed tiles!
     # figure out why that hangs by printing the remaining tiles of set?
     # might need to create an initial condition of fixed rooms?
+    #TODO: currently this alg assumes that the non-fixed rooms are connected.
+    # This assumption can be broken with Mother Brain or if Maridia is split with Botwoon...
+    # A fix would be to analyze connected components using bfs, then allocate each components a number
+    # of means based on its size, and run the current algorithm on each connected component.
     def random_rooms(self, n):
         tile_set = self.non_fixed()
         # choose means
@@ -277,6 +284,13 @@ class ConcreteMap(object):
         for mean in means:
             self.room_walls(partitions[mean])
         return paths, partitions
+
+    def random_rooms_alt(self, n):
+        tile_set = self.non_fixed()
+        rooms = merging_partition(tile_set, n, 24)
+        for s in rooms.values():
+            self.room_walls(s)
+        return rooms
 
     def room_walls(self, room):
         """ puts the walls into a room, given as a set of MCoords """
@@ -361,7 +375,6 @@ def get_path(offers, start, end):
         pos = offers[pos]
     return path[::-1]
 
-#TODO this needs to deal with pre-existing parts of the map!
 #lambda x: 0 means BFS in a heapq (first element first)
 # can use random to alter the pattern of vertices grabbed by
 # each mean
@@ -390,6 +403,92 @@ def bfs_partition(space, means, priority=lambda x: 0):
                     moffers[mean][n] = mpos[mean]
     return moffers, mfinished
 
+#TODO: Need to handle elevators, bosses, etc, as "implied bboxes"!
+#TODO: partition algorithm that makes rooms that do not overlap
+# A room overlaps with another room when they have screens that
+# are in the same map position.
+# In practical terms, a way to check this is that a tile designated to
+# not room 1 appears in the bounding box created for the tiles of room 1,
+# or more generally, if the bounding box for room 1 and any other room overlap.
+# The bounding box is via "extent".
+# A way to avoid this is with a "merging" partition. A map where
+# every room is one screen definitely does not have this problem.
+# So we start with that scenario, and merge rooms together maintaining
+# the invariant that every step in the process is a set of rooms which
+# do not overlap.
+# Pick a random room to merge, and a random of its neighbors.
+# Remove rooms for which none of their neighbors can be merged.
+def merging_partition(space, targetn, maxsize, priority = lambda x: 0):
+    """Partitions space into a set of "rooms" - tile sets. Targetn is the
+    desired number of rooms, and maxsize is the """
+    # Initially, every room has only itself.
+    rooms = {p: set([p]) for p in space}
+    # The rooms on which forward progress can be made
+    active_neighbors = collections.defaultdict(set)
+    for p1, ps1 in rooms.items():
+        for p2, ps2 in rooms.items():
+            if p1 != p2 and adjacent(ps1, ps2):
+                active_neighbors[p1].add(p2)
+                active_neighbors[p2].add(p1)
+    while len(rooms) > targetn:
+        if len(active_neighbors) == 0:
+            break
+        # Pick a random active room
+        r = random.choice(list(active_neighbors.keys()))
+        # Pick a random of its neighbors
+        n = random.choice(list(active_neighbors[r]))
+        # Try to merge them
+        if not can_merge(r, n, rooms, maxsize):
+            # If the merge didn't work out, then remove the neighbor
+            active_neighbors[r] -= set([n])
+            # If that was the last neighbor, r is no longer active.
+            if len(active_neighbors[r]) == 0:
+                del active_neighbors[r]
+            continue
+        # They can be merged...
+        new_neighbors = (active_neighbors[r] | active_neighbors[n]) - set([r, n])
+        # If the merged room has no active neighbors, it is no longer active
+        if len(new_neighbors) == 0:
+            del active_neighbors[r]
+        else:
+            active_neighbors[r] = new_neighbors
+        rooms[r] = rooms[r] | rooms[n]
+        active_neighbors = active_replace(active_neighbors, n, r)
+        del rooms[n]
+    return rooms
+
+# can tiles1 merge with tiles2?
+def can_merge(room1, room2, rooms, maxsize):
+    tiles1 = rooms[room1]
+    tiles2 = rooms[room2]
+    if len(tiles1) + len(tiles2) > maxsize:
+        return False
+    bbox = bounding_box(tiles1 | tiles2)
+    # Build the bounding box for each room
+    room_bboxes = {k: bounding_box(v) for k,v in rooms.items()}
+    # Don't care about room1 and room2, since the merge will replace them
+    del room_bboxes[room1]
+    del room_bboxes[room2]
+    # Make sure that the bbox of the merged room does not overlap with
+    # any of the existing rooms
+    return not any(map(lambda b: overlap(bbox, b), room_bboxes.values()))
+
+# When two rooms merge, their adjacencies merge
+# When r1 and r2 merge into r1, go through and replace r2 in adjacencies with r1
+# Replace tile1 with tile2 in active
+def active_replace(active, tile1, tile2):
+    new_active = collections.defaultdict(set)
+    for k, v in active.items():
+        if k != tile1:
+            if tile1 in active[k]:
+                new_active[k] = (active[k] - set([tile1])) | set([tile2])
+            else:
+                new_active[k] = active[k]
+    return new_active
+    
+# Remove tile from active
+def active_delete(active, tile):
+    return {key : value - set([tile]) for (key, value) in active if key != tile}
 
 def extent(mcoords):
     """Determines the extent of a list of MCoords"""
@@ -400,6 +499,30 @@ def extent(mcoords):
     maxx = max(mcoords, key=lambda item: item.x).x
     maxy = max(mcoords, key=lambda item: item.y).y
     return (MCoords(minx, miny), MCoords(maxx, maxy))
+
+def bounding_box(mcoords):
+    l, u = extent(mcoords)
+    return l, u + MCoords(1,1)
+
+# Is there a square in box1 that is in box2?
+# For a bounding box, the upper bound is not inclusive.
+def overlap(box1, box2):
+    l1, r1 = box1
+    l2, r2 = box2
+    if l1.x >= r2.x or l2.x >= r1.x or l1.y >= r2.y or l2.y >= r1.y:
+        return False
+    else:
+        return True
+
+# Simple inefficient test for room ajdacency
+# Adjacent rooms can be merged.
+def adjacent(room1, room2):
+    for p1 in room1:
+        for p2 in room2:
+            if p1.adjacent(p2):
+                return True
+    return False
+
 ###
 # SPECIFY MAP TILES
 # ways to specify a set of map tiles to search with map_search (using pred)

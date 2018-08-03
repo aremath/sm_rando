@@ -98,11 +98,8 @@ def less_naive_gen(dimensions, dist, graph, elevators):
             paths.append(path)
     # partition the map into random rooms
     room_size = len(cmap) // 4
-    #TODO: currently this alg assumes that the non-fixed rooms are connected.
-    # This assumption can be broken with Mother Brain or if Maridia is split with Botwoon...
-    # A fix would be to analyze connected components using bfs, then allocate each components a number
-    # of means based on its size, and run the current algorithm on each connected component.
-    _, rooms = cmap.random_rooms(room_size)
+    #_, rooms = cmap.random_rooms(room_size)
+    rooms = cmap.random_rooms_alt(room_size)
     #TODO: Each room grabs the map tiles that are inside its bounding box!
     return cmap, rooms, paths
 
