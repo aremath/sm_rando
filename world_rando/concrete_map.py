@@ -285,9 +285,9 @@ class ConcreteMap(object):
             self.room_walls(partitions[mean])
         return paths, partitions
 
-    def random_rooms_alt(self, n):
+    def random_rooms_alt(self, n, implicit_bboxes):
         tile_set = self.non_fixed()
-        rooms = merging_partition(tile_set, n, 24)
+        rooms = merging_partition(tile_set, n, 24, implicit_bboxes)
         for s in rooms.values():
             self.room_walls(s)
         return rooms
@@ -418,7 +418,7 @@ def bfs_partition(space, means, priority=lambda x: 0):
 # do not overlap.
 # Pick a random room to merge, and a random of its neighbors.
 # Remove rooms for which none of their neighbors can be merged.
-def merging_partition(space, targetn, maxsize, priority = lambda x: 0):
+def merging_partition(space, targetn, maxsize, implicit_bboxes):
     """Partitions space into a set of "rooms" - tile sets. Targetn is the
     desired number of rooms, and maxsize is the """
     # Initially, every room has only itself.
@@ -438,7 +438,7 @@ def merging_partition(space, targetn, maxsize, priority = lambda x: 0):
         # Pick a random of its neighbors
         n = random.choice(list(active_neighbors[r]))
         # Try to merge them
-        if not can_merge(r, n, rooms, maxsize):
+        if not can_merge(r, n, rooms, maxsize, implicit_bboxes):
             # If the merge didn't work out, then remove the neighbor
             active_neighbors[r] -= set([n])
             # If that was the last neighbor, r is no longer active.
@@ -458,12 +458,17 @@ def merging_partition(space, targetn, maxsize, priority = lambda x: 0):
     return rooms
 
 # can tiles1 merge with tiles2?
-def can_merge(room1, room2, rooms, maxsize):
+def can_merge(room1, room2, rooms, maxsize, implicit_bboxes):
     tiles1 = rooms[room1]
     tiles2 = rooms[room2]
+    # Check that the new room won't have more than maxsize tiles
     if len(tiles1) + len(tiles2) > maxsize:
         return False
     bbox = bounding_box(tiles1 | tiles2)
+    # Check that the actual number of screens that need to be loaded
+    # for the new room won't exceed maxsize.
+    if bound_size(bbox) > maxsize:
+        return False
     # Build the bounding box for each room
     room_bboxes = {k: bounding_box(v) for k,v in rooms.items()}
     # Don't care about room1 and room2, since the merge will replace them
@@ -471,7 +476,7 @@ def can_merge(room1, room2, rooms, maxsize):
     del room_bboxes[room2]
     # Make sure that the bbox of the merged room does not overlap with
     # any of the existing rooms
-    return not any(map(lambda b: overlap(bbox, b), room_bboxes.values()))
+    return not any(map(lambda b: overlap(bbox, b), list(room_bboxes.values()) + implicit_bboxes))
 
 # When two rooms merge, their adjacencies merge
 # When r1 and r2 merge into r1, go through and replace r2 in adjacencies with r1
@@ -504,6 +509,11 @@ def bounding_box(mcoords):
     l, u = extent(mcoords)
     return l, u + MCoords(1,1)
 
+def bound_size(bbox):
+    l, u = bbox
+    n = l - u
+    return n.x * n.y
+
 # Is there a square in box1 that is in box2?
 # For a bounding box, the upper bound is not inclusive.
 def overlap(box1, box2):
@@ -522,29 +532,4 @@ def adjacent(room1, room2):
             if p1.adjacent(p2):
                 return True
     return False
-
-###
-# SPECIFY MAP TILES
-# ways to specify a set of map tiles to search with map_search (using pred)
-###
-
-def is_above(xy1, xy2):
-    return xy1.x == xy2.x and xy1.y < xy2.y
-
-def is_below(xy1, xy2):
-    return xy1.x == xy2.x and xy1.y > xy2.y
-
-#TODO: with fold or any...
-def is_p_list(xy1, xys, p):
-    """does xy1 satisfy p with any element of xys?"""
-    for xy2 in xys:
-        if p(xy1, xy2):
-            return True
-    return False
-
-def is_below_l(xy1, xys):
-    return is_p_list(xy1, xys, is_below)
-
-def is_above_l(xy1, xys):
-    return is_p_list(xy1, xys, is_above)
 

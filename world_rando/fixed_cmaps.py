@@ -35,12 +35,21 @@ def kraid_boss_area(pos, dims):
         (pos, MapTile(_walls=set(["R"]))),
     ]
 
+def kraid_bboxes(pos, dims):
+    return [
+        (pos + MCoords(1,-1), pos + MCoords(3,1)),
+        (pos + MCoords(3,0), MCoords(4,1))
+    ]
+
 def phantoon_boss_area(pos, dims):
     """Returns the Phantoon Boss Area cmap."""
     return [
         (pos + MCoords(1,0), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
         (pos, MapTile(_walls=set(["R"]))),
     ]
+
+def phantoon_bboxes(pos, dims):
+    return [(pos + MCoords(1,0), pos + MCoords(2,1))]
 
 def draygon_boss_area(pos, dims):
     return [
@@ -53,6 +62,12 @@ def draygon_boss_area(pos, dims):
     ]
     return cmap
 
+def draygon_bboxes(pos, dims):
+    return [
+        (pos + MCoords(-2,0), pos + MCoords(0,2)),
+        (pos + MCoords(-3,1), MCoords(-2,2))
+    ]
+
 def ridley_boss_area(pos, dims):
     """Returns the Ridley Boss Area cmap."""
     return [
@@ -60,6 +75,12 @@ def ridley_boss_area(pos, dims):
         (pos + MCoords(-1,1), MapTile(_fixed=True,_walls=set(["L","R","D"]))),
         (pos + MCoords(-2,1), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
         (pos, MapTile(_walls=set(["L"]))),
+    ]
+
+def ridley_bboxes(pos, dims):
+    return [
+        (pos + MCoords(-1,0), pos + MCoords(0,2)),
+        (pos + MCoords(-2,1), MCoords(-1,2))
     ]
 
 #TODO: how to make sure that the other side is used?
@@ -74,10 +95,20 @@ def mother_brain_boss_area(pos, dims):
         (pos, MapTile(_walls=set(["L"]))),
     ]
 
+def mother_brain_bboxes(pos, dims):
+    return [
+        (pos + MCoords(-4,0), pos + MCoords(0,1)),
+    ]
+
 def bomb_torizo_boss_area(pos, dims):
     return [
         (pos + MCoords(1,0), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
         (pos, MapTile(_walls=set(["R"]))),
+    ]
+
+def bomb_torizo_bboxes(pos, dims):
+    return [
+        (pos + MCoords(1,0), pos + MCoords(2,1)),
     ]
 
 def spore_spawn_boss_area(pos, dims):
@@ -88,6 +119,12 @@ def spore_spawn_boss_area(pos, dims):
         (pos + MCoords(0,-3), MapTile(_fixed=True,_walls=set(["L","U","R"]))),
         (pos + MCoords(1,-3), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
         (pos, MapTile(_walls=set(["U"]))),
+    ]
+
+def spore_spawn_bboxes(pos, dims):
+    return [
+        (pos + MCoords(0,-3), pos + MCoords(1,0)),
+        (pos + MCoords(1,-3), MCoords(2,-2))
     ]
 
 def crocomire_boss_area(pos, dims):
@@ -105,6 +142,12 @@ def crocomire_boss_area(pos, dims):
         (pos, MapTile(_walls=set(["D"]))),
     ]
 
+def crocomire_bboxes(pos, dims):
+    return [
+        (pos + MCoords(-3,1), pos + MCoords(5,2)),
+        (pos + MCoords(-4,1), MCoords(-3,2))
+    ]
+
 def botwoon_boss_area(pos, dims):
     """Returns the Botwoon Boss Area cmap."""
     return [
@@ -112,6 +155,12 @@ def botwoon_boss_area(pos, dims):
         (pos + MCoords(2,0), MapTile(_fixed=True,_walls=set(["L","U","R","D"]))),
         (pos + MCoords(3,0), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
         (pos, MapTile(_walls=set(["R"]))),
+    ]
+
+def botwoon_bboxes(pos, dims):
+    return [
+        (pos + MCoords(1,0), pos + MCoords(3,1)),
+        (pos + MCoords(3,0), MCoords(4,1))
     ]
 
 def golden_torizo_boss_area(pos, dims):
@@ -123,6 +172,12 @@ def golden_torizo_boss_area(pos, dims):
         (pos + MCoords(2,1), MapTile(_fixed=True,_walls=set(["R","D"]))),
         (pos + MCoords(3,1), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
         (pos, MapTile(_walls=set(["R"]))),
+    ]
+
+def golden_torizo_bboxes(pos, dims):
+    return [
+        (pos + MCoords(1,0), pos + MCoords(3,2)),
+        (pos + MCoords(3,1), MCoords(4,2))
     ]
 
 def elevator_down_area(pos, dims):
@@ -141,6 +196,11 @@ def elevator_down_area(pos, dims):
         e_tiles.append(t)
     return e_tiles
 
+def elevator_down_bboxes(pos, dims):
+    return [
+        (pos + MCoords(0,1), pos + MCoords(1,4)),
+    ]
+
 def elevator_up_area(pos, dims):
     """Returns the cmap for an up elevator."""
     e_tiles = [
@@ -155,15 +215,26 @@ def elevator_up_area(pos, dims):
         e_tiles.append(t)
     return e_tiles
 
+def elevator_up_bboxes(pos, dims):
+    return [
+        (pos + MCoords(0,-3), pos + MCoords(1,0))
+    ]
+
 def save_point_area(pos, dims):
     return [
         (pos, MapTile(_save=True))
     ]
 
+def save_point_bboxes(pos, dims):
+    return []
+
 def item_area(pos, dims):
     return [
         (pos, MapTile(_item=True))
     ]
+
+def item_bboxes(pos, dims):
+    return []
 
 fixed_areas = {
     "Kraid"         :   kraid_boss_area,
@@ -176,7 +247,7 @@ fixed_areas = {
     "Golden_Torizo" :   golden_torizo_boss_area,
 }
 
-# node -> (pos -> dimms -> cmap)
+# node -> elevators -> (pos -> dims -> tile list)
 def node_to_area(node, up_es, down_es):
     if node in up_es:
         return elevator_up_area
@@ -204,4 +275,42 @@ def node_to_area(node, up_es, down_es):
     #TODO - save points, reserves, etc?
     else:
         return item_area
-    
+
+def node_to_info(node, pos, dims, up_es, down_es):
+    if node in up_es:
+        return (mk_area(pos, dims, elevator_up_area),
+            elevator_up_bboxes(pos, dims))
+    elif node in down_es:
+        return (mk_area(pos, dims, elevator_down_area),
+            elevator_down_bboxes(pos, dims))
+    elif node == "Kraid":
+        return (mk_area(pos, dims, kraid_boss_area),
+            kraid_bboxes(pos, dims))
+    elif node == "Phantoon":
+        return (mk_area(pos, dims, phantoon_boss_area),
+            phantoon_bboxes(pos, dims))
+    elif node == "Draygon":
+        return (mk_area(pos, dims, draygon_boss_area),
+            draygon_bboxes(pos, dims))
+    elif node == "Ridley":
+        return (mk_area(pos, dims, ridley_boss_area),
+            ridley_bboxes(pos, dims))
+    elif node == "Mother_Brain":
+        return (mk_area(pos, dims, mother_brain_boss_area),
+            mother_brain_bboxes(pos, dims))
+    elif node == "Bomb_Torizo":
+        return (mk_area(pos, dims, bomb_torizo_boss_area),
+        bomb_torizo_bboxes(pos, dims))
+    elif node == "Spore_Spawn":
+        return (mk_area(pos, dims, spore_spawn_boss_area),
+            spore_spawn_bboxes(pos, dims))
+    elif node == "Botwoon":
+        return (mk_area(pos, dims, botwoon_boss_area),
+            botwoon_bboxes(pos, dims))
+    elif node == "Golden_Torizo":
+        return (mk_area(pos, dims, golden_torizo_boss_area),
+            golden_torizo_bboxes(pos, dims))
+    #TODO - save points, reserves, etc?
+    else:
+        return (mk_area(pos, dims, item_area),
+            item_bboxes(pos, dims))
