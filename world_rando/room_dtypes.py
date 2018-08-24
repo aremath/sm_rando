@@ -1,12 +1,16 @@
 from .concrete_map import *
 from .map_viz import *
+from data_types import basicgraph
 
 class Room(object):
 
     def __init__(self, cmap, size, room_id, graph=None):
         self.enemies = []
         self.plms = []
-        self.graph = graph
+        if graph is None:
+            self.graph = basicgraph.BasicGraph()
+        else:
+            self.graph = graph
         self.cmap = cmap
         self.size = size
         self.room_id = room_id
@@ -73,14 +77,11 @@ def room_setup(room_tiles, cmap):
 #TODO: work in progress
 # Tile rooms is MCoords -> room#,
 # paths is [(start_node, end_node, [MCoord])]
-def make_rooms(tile_rooms, paths):
-    #TODO: build the rooms first!
-    # room_id -> Room
-    rooms = {}
+# rooms is room_id -> room
+def room_graphs(rooms, tile_rooms, paths):
     #TODO: node_locs for each node and each door node.
     # room_node_locs: room_id -> node -> MCoords
     for (start, end, path) in paths:
-        #TODO: assumes that path starts at start and ends at end
         room_start = tile_rooms[path[0]]
         room_end = tile_rooms[path[-1]]
         gstart = rooms[room_start].graph
@@ -91,12 +92,37 @@ def make_rooms(tile_rooms, paths):
             gend.add_node(end)
         current_room = room_start
         current_node = start
-        for p in path:
-            if tile_rooms[p] != current_room:
-                # create a door
-                # link the current node with the door
+        current_pos = path[0]
+        for new_pos in path:
+            new_room = tile_rooms[new_pos]
+            if new_room != current_room:
+                gcurrent = rooms[current_room].graph
+                gnew = rooms[new_room].graph
+                # Create a door
+                # Node in the old room
+                current_wr = current_pos.wall_relate(new_pos)
+                current_door = str(current_room) + "_" + str(current_pos) + "_" + current_wr
+                if current_door not in gcurrent.nodes:
+                    gcurrent.add_node(current_door)
+                # Link the current node with the door
+                gcurrent.update_edge(current_node, current_door)
+                # Node in the new room
+                new_wr = new_pos.wall_relate(current_pos)
+                new_door = str(new_room) + "_" + str(new_pos) + "_" + new_wr
+                if new_door not in gnew.nodes:
+                    gnew.add_node(new_door)
                 # set the new current room
-                current_room = tile_rooms[p]
+                current_room = tile_rooms[new_pos]
+                # the new current node is the door we came into the new room by
+                current_node = new_door
+            current_pos = new_pos
         # link the final current node with end
+        gend.update_edge(current_node, end)
+
+def make_rooms(room_tiles, cmap, paths):
+    rooms = room_setup(room_tiles, cmap)
+    tile_rooms = reverse_list_dict(room_tiles)
+    room_graphs(rooms, tile_rooms, paths)
+    # ... generate map data etc ...
     return rooms
 

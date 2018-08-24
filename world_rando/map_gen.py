@@ -94,8 +94,8 @@ def less_naive_gen(dimensions, dist, graph, elevators):
                         cmap[xy] = MapTile()
             else:
                 assert False, "Cannot find path: " + str(closest) + ", " + str(node_locs[edge.terminal])
-            path = to_closest + to_end
-            paths.append(path)
+            path = path_concat(to_closest, to_end)
+            paths.append((node, edge.terminal, path))
     # partition the map into random rooms
     room_size = len(cmap) // 4
     #_, rooms = cmap.random_rooms(room_size)

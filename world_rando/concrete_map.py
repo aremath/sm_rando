@@ -361,11 +361,15 @@ def map_lsearch(start, goal, pred=lambda x:True, dist=lambda x,y: euclidean(x,y)
     diff = goal - start
     pass
 
+# Uses the offers from a bfs to construct a path
+# a path is a list of consecutive states where
+#   1. if state a is before state b in the list, then b is reachable from a
+#   2. start is the first element of the list
+#   3. end is is the last element of the list
+# Iff start and end are the same node, this returns a list of length 1
 def get_path(offers, start, end):
     if end not in offers:
         return None
-    elif start == end:
-        return []
     pos = end
     path = []
     while True:
@@ -373,7 +377,16 @@ def get_path(offers, start, end):
         if pos == start:
             break
         pos = offers[pos]
+    # Reverse it for a path from start to end
     return path[::-1]
+
+# Concatenate two paths made from get_path to form a longer path
+# preserves the path properties from above
+# If path1 is from start1 to end1 and path2 is from end1 to end2, then
+# the new path will be from start1 to end2.
+def path_concat(path1, path2):
+    assert path1[-1] == path2[0], "Incompatible paths"
+    return path1[:-1] + path2
 
 #lambda x: 0 means BFS in a heapq (first element first)
 # can use random to alter the pattern of vertices grabbed by
