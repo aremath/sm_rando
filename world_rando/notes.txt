@@ -100,7 +100,7 @@ Art
 Regions:
 Crateria
 	- Upper Crateria (West Ocean + Landing Site)
-		- Crateria Caves (sub-region)
+		- Crat eria Caves (sub-region)
 		- Wrecked Ship Transition
 	- Old Mother Brain
 	- Blue Tiles
@@ -151,7 +151,7 @@ Cell Automaton -> Generate cave walls
 3-square jump height underwater no gravity
 
 TODO:
-Add item sets to the abstract graph
+Add item sets  to the abstract graph
 Add fixed areas to the cmap instead of just nodes
 Adding other item nodes to the abstract map
 use (bfs_dist / euclidean dist) to create new paths
