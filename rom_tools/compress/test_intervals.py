@@ -1,12 +1,26 @@
 from intervals import *
+from compress import *
 
-src1 = b"\x01\x01\x01\x01"
-bf1 = find_bytefills(src1)
-print(bf1)
-assert len(bf1) == 1
+src = b"\x01\x01\x01\x01"
+bf = find_bytefills(src)
+assert len(bf) == 1
 
-src2 = b"\x01" * 34
-bf2 = find_bytefills(src2)
-print(bf2)
-print(bf2[0].b)
-print(bin_bytes(bf2[0].b))
+src = b"\x01" * 34
+bf = find_bytefills(src)
+assert bf[0].rep == 3
+
+src = b"\x01" * 32
+bf = find_bytefills(src)
+assert bf[0].rep == 2
+
+src = b"\x01\x02\x03\x04\x01\x02\x03\x04"
+sf = find_sigmafills(src)
+assert len(sf) == 2
+
+src = b"\x02\x03\x02\x03\x02\x03"
+wf = find_wordfills(src)
+assert len(wf) == 1
+
+src = b"\x01\x02\x02\x02\x03" * 2
+bf = find_bytefills(src)
+print(compress(src))

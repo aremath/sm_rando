@@ -8,7 +8,7 @@ class BasicGraph(object):
 
     def add_node(self, name, data=None):
         if name is None:
-                name = str(self.nodes)
+                name = str(self.nnodes)
         assert name not in self.nodes, "A node with this name already exists: " + name
         self.nnodes += 1
         self.nodes[name] = Node(data)

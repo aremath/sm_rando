@@ -41,18 +41,25 @@ extended_max = 1023
 class Interval(object):
     code = None
 
-    def __init__(self, start, end, code, command_arg):
+    def __init__(self, start, end, code, command_arg, factor=1):
         self.start = start
         self.end = end
         self.code = code
         # The number of bytes the interval represents from the uncompressed data
         self.n = end - start
         assert self.n > 0
+        # n must be divisble by factor since an interval that takes up n bytes with a factor
+        # of two will have an input variable of n/2.
+        assert self.n % factor == 0
+        # Command(x) copies x + 1 bytes. So to copy n bytes, use command(n-1)
+        # Factor takes care of the wordfill special case, where one of n
+        # corresponds to two bytes filled
+        n_adj = (self.n // factor) - 1
         # Compute the bytes for self
-        if count_bits(self.n) <= 5:
-            self.b = cmd_to_bytes(self.code, self.n) + command_arg
-        elif count_bits(self.n) <= 10:
-            self.b = extended_cmd_to_bytes(self.code, self.n) + command_arg
+        if count_bits(n_adj) <= 5:
+            self.b = cmd_to_bytes(self.code, n_adj) + command_arg
+        elif count_bits(n_adj) <= 10:
+            self.b = extended_cmd_to_bytes(self.code, n_adj) + command_arg
         else:
             #TODO: multiple extended commands when the region is very large!
             assert False, "TODO"
@@ -62,6 +69,14 @@ class Interval(object):
     def to_str(self):
         return str(self.start) + "->" + str(self.end)
 
+    # Hashing for graph-as-dictionary implementation.
+    def __hash__(self):
+        return hash(self.b)
+
+    # Comparison for heapq
+    def __lt__(self, other):
+        return self.b < other.b
+
 # Directly copy the next n bytes
 class DirectCopyInterval(Interval):
     code = 0
@@ -69,7 +84,7 @@ class DirectCopyInterval(Interval):
     def __init__(self, start, end, cpy_bytes):
         super().__init__(start, end, DirectCopyInterval.code, cpy_bytes)
         self.cpy_bytes = cpy_bytes
-        assert len(cpy_bytes) == self.n
+        assert len(cpy_bytes) == self.n, str(len(cpy_bytes)) + ", " + str(self.n)
 
     def __repr__(self):
        return "DirectCopy" + super().to_str() 
@@ -87,11 +102,14 @@ class ByteFillInterval(Interval):
        return "ByteFill" + super().to_str() 
 
 # Copy the following 2-byte word n times
+#TODO: a wordfill can capture 64 bytes of input when n is 32: discrepancy between n and
+# start-end
+# TODO: n is 0<n<33 not -1<n<31...
 class WordFillInterval(Interval):
     code = 2 << 5
 
     def __init__(self, start, end, word):
-        super().__init__(start, end, WordFillInterval.code, word)
+        super().__init__(start, end, WordFillInterval.code, word, factor=2)
         self.word = word
         assert len(word) == 2
 
@@ -146,33 +164,97 @@ class RelativeAddressCopyInterval(Interval):
     def __repr__(self):
        return "RelAddressCopy" + super().to_str()
 
+# A placeholder interval used to make start and end nodes in the graph
+class FakeInterval(Interval):
+    
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+        self.rep = 0
+        self.b = b""
+
+    def __repr__(self):
+        return "FAKE" + super().to_str()
+
 # true if i1 is a subinterval of i2
 #   starts later than i2 and ends earlier than i2.
 def is_subinterval(i1, i2):
     return (i1.start >= i2.start) and (i1.end <= i2.end)
 
 # i1 is worse than i2 if it takes up a smaller region and is represented with
-# strictly more bytes
+# strictly more bytes.
+# Note: use strictly because we don't want to eliminate i1 < i2 then eliminate i2 < i1
+# if they are the same. (Or eliminate i1 < i1)
 def is_worse(i1, i2):
     return is_subinterval(i1, i2) and i1.rep > i2.rep
 
-# Look through src to find bytefill intervals
-def find_bytefills(src):
+def filter_worse(intervals):
+    new_intervals = []
+    for i1 in intervals:
+        irrelevant = False
+        for i2 in intervals:
+            if is_worse(i1,i2):
+                irrelevant = True
+        if not irrelevant:
+            new_intervals.append(i1)
+    return new_intervals
+
+# Look through src to find intervals
+# pattern is src -> i1 -> i2 -> bool
+# constructor is src -> i1 -> i2 -> Interval
+# Constructs intervals using constructor based on runs of true pattern evaluations
+def find_pattern(src, pattern, constructor, factor=1):
     intervals = []
-    i = 0
-    while i < len(src):
-        i2 = i
-        while (i2 < len(src)) and (src[i] == src[i2]):
-            i2 += 1
-        interval_len = i2 - i
-        # Only worth it if the same byte is repeated more than once
+    i1 = 0
+    while i1 < len(src):
+        i2 = i1
+        # Count the length of the bytes matching pattern after i
+        while (i2 < len(src)) and pattern(src, i1, i2):
+            i2 += factor
+        interval_len = i2 - i1
+        # Only worth it if the pattern is true more than once
         # since the code takes up two bytes, but a direct copy will
         # take up three.
         if interval_len > 1:
-            interval = ByteFillInterval(i, i2, src[i:i+1])
+            interval = constructor(src, i1, i2)
             intervals.append(interval)
-        # We only need to consider the longest bytefill - shorter ones
+        # We only need to consider the longest pattern - shorter ones
         # will be generated later during the shortening step.
-        i = i2
+        i1 = i2
     return intervals
+
+# Byte Fills
+def bytefill_pattern(src, i1, i2):
+    return src[i1] == src[i2]
+
+def bytefill_constructor(src, i1, i2):
+    return ByteFillInterval(i1,  i2, src[i1:i1+1])
+
+def find_bytefills(src):
+    return find_pattern(src, bytefill_pattern, bytefill_constructor)
+
+# Word Fills
+def wordfill_pattern(src, i1, i2):
+    # If i2 is the index of the last byte, the second matching byte does not exist
+    if i2 + 1 < len(src):
+       return src[i1] == src[i2] and src[i1 + 1] == src[i2 + 1] 
+    else:
+        return False
+
+def wordfill_constructor(src, i1, i2):
+    return WordFillInterval(i1, i2, src[i1:i1+2])
+
+def find_wordfills(src):
+    return find_pattern(src, wordfill_pattern, wordfill_constructor, factor=2)
+
+# Sigma Fills
+def sigmafill_pattern(src, i1, i2):
+    n = i2 - i1
+    return src[i2] == (src[i1] + n) % 256
+
+def sigmafill_constructor(src, i1, i2):
+    return SigmaFillInterval(i1, i2, src[i1:i1+1])
+
+def find_sigmafills(src):
+    return find_pattern(src, sigmafill_pattern, sigmafill_constructor)
 
