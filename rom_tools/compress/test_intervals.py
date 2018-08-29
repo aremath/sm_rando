@@ -20,7 +20,12 @@ assert len(sf) == 2
 src = b"\x02\x03\x02\x03\x02\x03"
 wf = find_wordfills(src)
 assert len(wf) == 1
-
-src = b"\x01\x02\x02\x02\x03" * 2
-bf = find_bytefills(src)
+"""
+src = b"\x01\x02\x02\x02\x02\x03" * 2
+assert len(compress(src)) == 11
+src = b"\x02\x02\x02\x05\x01\x02\x03\x04"
+assert len(compress(src)) == 6
+"""
+# test overlaps
+src = b"\x01\x01\x01\x01\x02\x03\x04\x05"
 print(compress(src))

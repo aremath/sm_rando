@@ -31,7 +31,9 @@ def bin_bytes(b):
         b_str += "{0:08b}".format(b[i]) #bin(b[i])
         b_str += " "
     return b_str
-    
+
+def shorten_check(start, end, new_end):
+    assert new_end < end and new_end > start
 
 normal_max = 31
 extended_max = 1023
@@ -69,6 +71,10 @@ class Interval(object):
     def to_str(self):
         return str(self.start) + "->" + str(self.end)
 
+    def shorten(self, new_end):
+        assert new_end < end and new_end > start
+        return None
+
     # Hashing for graph-as-dictionary implementation.
     def __hash__(self):
         return hash(self.b)
@@ -87,7 +93,11 @@ class DirectCopyInterval(Interval):
         assert len(cpy_bytes) == self.n, str(len(cpy_bytes)) + ", " + str(self.n)
 
     def __repr__(self):
-       return "DirectCopy" + super().to_str() 
+       return "DirectCopy" + super().to_str()
+
+    def shorten(self, new_end):
+        shorten_check(self.start, self.end, new_end)
+        return DirectCopyInterval(self.start, new_end, cpy_bytes[:(new_end - self.start)])
 
 # Copy the following byte n times
 class ByteFillInterval(Interval):
@@ -99,7 +109,11 @@ class ByteFillInterval(Interval):
         assert len(byte) == 1
 
     def __repr__(self):
-       return "ByteFill" + super().to_str() 
+       return "ByteFill" + super().to_str()
+
+    def shorten(self, new_end):
+        shorten_check(self.start, self.end, new_end)
+        return ByteFillInterval(self.start, new_end, self.byte)
 
 # Copy the following 2-byte word n times
 #TODO: a wordfill can capture 64 bytes of input when n is 32: discrepancy between n and
@@ -116,6 +130,12 @@ class WordFillInterval(Interval):
     def __repr__(self):
        return "WordFill" + super().to_str()
 
+    def shorten(self, new_end):
+        # n must be a multiple of two
+        adj_end = self.end // 2
+        shorten_check(self.start, self.end, adj_end)
+        return WordFillInterval(self.start, adj_end, self.word)
+
 # Fill n bytes with b, b+1, b+2, ...
 class SigmaFillInterval(Interval):
     code = 3 << 5
@@ -126,7 +146,11 @@ class SigmaFillInterval(Interval):
         assert len(byte) == 1
 
     def __repr__(self):
-       return "SigmaFill" + super().to_str() 
+       return "SigmaFill" + super().to_str()
+
+    def shorten(self, new_end):
+        shorten_check(self.start, self.end, new_end)
+        return SigmaFillInterval(self.start, new_end, self.byte)
 
 # Copy n bytes starting at the 2-byte address provided
 class AddressCopyInterval(Interval):
@@ -140,6 +164,10 @@ class AddressCopyInterval(Interval):
     def __repr__(self):
        return "AddressCopy" + super().to_str()
 
+    def shorten(self, new_end):
+        shorten_check(self.start, self.end, new_end)
+        return AddressCopyInterval(self.start, new_end, self.addr)
+
 # Copy n bytes as above, but XOR each with 0xFF first
 class AddressCopyXORInterval(Interval):
     code = 5 << 5
@@ -151,6 +179,10 @@ class AddressCopyXORInterval(Interval):
 
     def __repr__(self):
        return "AddressCopyXOR" + super().to_str()
+
+    def shorten(self, new_end):
+        shorten_check(self.start, self.end, new_end)
+        return AddressCopyXORInterval(self.start, new_end, self.addr)
 
 # Copy n bytes from the current offset minus the provided address
 class RelativeAddressCopyInterval(Interval):
@@ -164,6 +196,10 @@ class RelativeAddressCopyInterval(Interval):
     def __repr__(self):
        return "RelAddressCopy" + super().to_str()
 
+    def shorten(self, new_end):
+        shorten_check(self.start, self.end, new_end)
+        return RelativeAddressCopyInterval(self.start, new_end, self.rel_addr)
+
 # A placeholder interval used to make start and end nodes in the graph
 class FakeInterval(Interval):
     
@@ -175,6 +211,9 @@ class FakeInterval(Interval):
 
     def __repr__(self):
         return "FAKE" + super().to_str()
+
+    def shorten(self, new_end):
+        assert False, "No Shorten for fake intervals!"
 
 # true if i1 is a subinterval of i2
 #   starts later than i2 and ends earlier than i2.
@@ -220,7 +259,12 @@ def find_pattern(src, pattern, constructor, factor=1):
             intervals.append(interval)
         # We only need to consider the longest pattern - shorter ones
         # will be generated later during the shortening step.
-        i1 = i2
+        # This if is here because src[i1] doesn't necessarily match pattern
+        # If it doesn't we still need to make forward progress.
+        if i1 == i2:
+            i1 += 1
+        else:
+            i1 = i2
     return intervals
 
 # Byte Fills

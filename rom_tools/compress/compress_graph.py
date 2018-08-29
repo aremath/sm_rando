@@ -14,6 +14,8 @@ class CompressGraph(object):
         # Add all largest intervals to the graph
         for i in intervals:
             self.add_node(i)
+        #  list of node1, node1_s for fixing shorten connectivity
+        shorts = []
         # Now consider shortenings and add edges
         for i1 in intervals:
             for i2 in intervals:
@@ -21,15 +23,23 @@ class CompressGraph(object):
                 if i1.start < i2.start:
                     # i1 must be shortened if i2 is to start
                     if i2.start < i1.end:
-                        #TODO
                         # Shorten i1 and add it
-                        # chain i1_s and i2
-                        pass
+                        #TODO: This will sometimes use an extra DirectCopy
+                        # on WordFill boundaries...
+                        #TODO: nodes connecting to i1 should also connect to  i2_s
+                        i1_s = i1.shorten(i2.start)
+                        self.add_node(i1_s)
+                        self.chain(i1_s, i2, src)
+                        shorts.append((i1, i1_s))
+                        print(i1, i2)
+                        print(i1_s)
                     # They may both be used as-is - direct-copy the information in between.
                     # TODO: building the dci here is innefficient if it goes unused
                     else:
                         self.chain(i1, i2, src)
-        #TODO: add nodes start and end!
+        # Fix up shortenings
+        for i1, i2 in shorts:
+            self.same_connectivity(i1, i2)
 
     def add_node(self, i):
         assert i not in self.adj
@@ -64,6 +74,14 @@ class CompressGraph(object):
         assert i2 in self.adj[i1]
         return i2.rep
 
+    # Nodes with an edge to i1 also gain an edge to i2
+    def same_connectivity(self, i1, i2):
+        assert i1 in self.adj
+        assert i2 in self.adj
+        for i in self.adj:
+            if i1 in self.adj[i]:
+                self.adj[i].add(i2)
+
     # Dijkstra's algorithm for finding the optimal compression
     #TODO: note that this is not actually dijkstra's algorithm!
     # It uses a heap, but does not update the entries :(
@@ -71,11 +89,14 @@ class CompressGraph(object):
     def fake_dijkstra(self, start, end):
         # key - interval
         # value - the previous interval in the search
-        offers = {} 
+        offers = {}
+        # key - interval
+        # value - the current shortest distance from start to that interval
+        current_dists = {}
         # The intervals we have processed so far
         finished = set()
         h = []
-        heapq.heappush(h, (0, start))
+        heapq.heappush(h, (start.rep, start))
         while len(h) > 0:
             dist, pos = heapq.heappop(h)
             if pos in finished:
@@ -84,16 +105,19 @@ class CompressGraph(object):
             if pos == end:
                 return dist, get_path(offers, start, end)
             for e in self.adj[pos]:
-                if e not in finished:
-                    heapq.heappush(h, (dist + e.rep, e))
+                new_dist = dist + e.rep
+                # Don't bother pushing if the current offer is worse than the best known distance
+                if e not in current_dists or new_dist < current_dists[e]:
+                    heapq.heappush(h, (new_dist, e))
                     offers[e] = pos
+                    current_dists[e] = new_dist
         # No path :(
         return None
 
     def __repr__(self):
         s = ""
         for i1 in self.adj:
-            s += str(i1) + "\n"
+            s += str(i1) + ":\t" + str(i1.rep) + "\n"
             for i2 in self.adj[i1]:
                 s += "\t" + str(i2) + "\n"
         return s
