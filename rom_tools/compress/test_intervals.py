@@ -28,4 +28,8 @@ assert len(compress(src)) == 6
 """
 # test overlaps
 src = b"\x01\x01\x01\x01\x02\x03\x04\x05"
-print(compress(src))
+out = compress(src)
+#f = open("dst.bin", "wb")
+#f.write(out)
+#f.close()
+

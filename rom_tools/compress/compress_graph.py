@@ -24,15 +24,12 @@ class CompressGraph(object):
                     # i1 must be shortened if i2 is to start
                     if i2.start < i1.end:
                         # Shorten i1 and add it
-                        #TODO: This will sometimes use an extra DirectCopy
+                        #TODO: This will sometimes cause an extra DirectCopy
                         # on WordFill boundaries...
-                        #TODO: nodes connecting to i1 should also connect to  i2_s
                         i1_s = i1.shorten(i2.start)
                         self.add_node(i1_s)
                         self.chain(i1_s, i2, src)
                         shorts.append((i1, i1_s))
-                        print(i1, i2)
-                        print(i1_s)
                     # They may both be used as-is - direct-copy the information in between.
                     # TODO: building the dci here is innefficient if it goes unused
                     else:

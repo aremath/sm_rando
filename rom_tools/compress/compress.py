@@ -14,7 +14,7 @@ def compress(src):
     intervals = filter_worse(intervals)
     # Construct the compression graph
     g = CompressGraph(intervals, src)
-    print(g)
+    #print(g)
     # Find the shortest path that encodes all the data
     d, p = g.fake_dijkstra(start, end)
     # Cut out the fake nodes
