@@ -35,9 +35,6 @@ def bin_bytes(b):
 def shorten_check(start, end, new_end):
     assert new_end < end and new_end > start
 
-normal_max = 31
-extended_max = 1023
-
 #TODO: abstract?
 #TODO: byte order??
 class Interval(object):
@@ -251,9 +248,9 @@ def find_pattern(src, pattern, constructor, factor=1):
         while (i2 < len(src)) and pattern(src, i1, i2):
             i2 += factor
         interval_len = i2 - i1
-        # Only worth it if the pattern is true more than once
+        # Worth it if the pattern is true more than once
         # since the code takes up two bytes, but a direct copy will
-        # take up three.
+        # take up at least three.
         if interval_len > 1:
             interval = constructor(src, i1, i2)
             intervals.append(interval)
@@ -301,4 +298,67 @@ def sigmafill_constructor(src, i1, i2):
 
 def find_sigmafills(src):
     return find_pattern(src, sigmafill_pattern, sigmafill_constructor)
+
+# How many bytes from i2 match i1?
+def match_length(src, i1, i2, operation):
+    n = 0
+    # While the bytes match and the indices are in bounds...
+    while i1 + n < len(src) and operation(src[i2 + n]) == src[i1 + n] and i2 + n < i1:
+        n += 1
+    return n
+
+# All match lengths over the given range
+def match_lens(src, i1, lower, upper, operation):
+    return map(lambda i2: match_length(src, i1, i2, operation), range(lower, upper))
+
+def find_copy(src, cpy_range, constructor, operation):
+    pass
+    intervals = []
+    i1 = 0
+    for i1 in range(len(src)):
+        lower, upper = cpy_range(i1)
+        # Compute the length of copy
+        m_lens = match_lens(src, i1, lower, upper, operation)
+        # The number of bytes to copy
+        best_n = max(m_lens)
+        # Where to copy them from
+        best_l = m_lens.index(best_n) + lower
+        # Copying 2 bytes costs 3 bytes, the same as direct-copy
+        if best_n > 2:
+            # Add one because the "end" of an interval is one past the actual last byte
+            interval = constructor(src, best_l, i1, i1 + best_n + 1)
+            intervals.append(interval)
+    return intervals
+
+# Address Copy
+def address_range(i1):
+    return (0, min(i1, (1 << 16) - 1))
+
+def address_constructor(src, loc, i1, i2):
+    addr_bytes = loc.to_bytes(2, byteorder='big')
+    
+    pass
+
+def find_address_copies(src):
+    pass
+
+# Address XOR Copy
+def address_xor_range(i1):
+    return address_range(i1)
+
+def address_xor_constructor(src, loc, i1, i2):
+    pass
+
+def find_address_xor_copies(src):
+    pass
+
+# Relative Copy
+def rel_address_range(i1):
+    
+
+def rel_address_constructor(src, loc, i1, i2):
+    pass
+
+def find_rel_address_copies(src):
+    pass
 
