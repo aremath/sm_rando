@@ -9,7 +9,10 @@ def compress(src):
     bf = find_bytefills(src)
     wf = find_wordfills(src)
     sf = find_sigmafills(src)
-    intervals = [start, end] + bf + wf + sf
+    ac = find_address_copies(src)
+    xc = find_address_xor_copies(src)
+    rc = find_rel_address_copies(src)
+    intervals = [start, end] + bf + wf + sf + ac + xc + rc
     # Filter out bad ones
     intervals = filter_worse(intervals)
     # Construct the compression graph

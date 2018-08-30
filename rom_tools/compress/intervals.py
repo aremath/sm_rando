@@ -154,7 +154,7 @@ class AddressCopyInterval(Interval):
     code = 4 << 5
 
     def __init__(self, start, end, addr):
-        addr_bytes = self.addr.to_bytes(2, byteorder='big')
+        addr_bytes = addr.to_bytes(2, byteorder='big')
         super().__init__(start, end, AddressCopyInterval.code, addr_bytes)
         self.addr = addr
 
@@ -186,7 +186,7 @@ class RelativeAddressCopyInterval(Interval):
     code = 6 << 5
 
     def __init__(self, start, end, rel_addr):
-        rel_addr_bytes = self.rel_addr.to_bytes(1, byteorder='big')
+        rel_addr_bytes = rel_addr.to_bytes(1, byteorder='big')
         super().__init__(start, end, RelativeAddressCopyInterval.code, rel_addr_bytes)
         self.rel_addr = rel_addr
 
@@ -311,19 +311,23 @@ def match_length(src, i1, i2, operation):
 def match_lens(src, i1, lower, upper, operation):
     return map(lambda i2: match_length(src, i1, i2, operation), range(lower, upper))
 
-def find_copy(src, cpy_range, constructor, operation):
+def find_copy(src, cpy_range, constructor, operation=lambda x: x):
     pass
     intervals = []
     i1 = 0
     for i1 in range(len(src)):
         lower, upper = cpy_range(i1)
-        # Compute the length of copy
-        m_lens = match_lens(src, i1, lower, upper, operation)
+        # Nothing to map
+        if lower == upper:
+            continue
+        # Compute the length of copy for each possible copy location
+        m_lens = list(match_lens(src, i1, lower, upper, operation))
         # The number of bytes to copy
         best_n = max(m_lens)
         # Where to copy them from
         best_l = m_lens.index(best_n) + lower
         # Copying 2 bytes costs 3 bytes, the same as direct-copy
+        #TODO: a relative copy of two bytes costs two bytes, better than a 3-byte direct copy
         if best_n > 2:
             # Add one because the "end" of an interval is one past the actual last byte
             interval = constructor(src, best_l, i1, i1 + best_n + 1)
@@ -335,30 +339,29 @@ def address_range(i1):
     return (0, min(i1, (1 << 16) - 1))
 
 def address_constructor(src, loc, i1, i2):
-    addr_bytes = loc.to_bytes(2, byteorder='big')
-    
-    pass
+    return AddressCopyInterval(i1, i2, loc)    
 
 def find_address_copies(src):
-    pass
+    return find_copy(src, address_range, address_constructor)
 
 # Address XOR Copy
 def address_xor_range(i1):
     return address_range(i1)
 
 def address_xor_constructor(src, loc, i1, i2):
-    pass
+    return AddressCopyXORInterval(i1, i2, loc)
 
 def find_address_xor_copies(src):
-    pass
+    return find_copy(src, address_xor_range, address_xor_constructor,
+        operation=lambda x: x ^ 0xff)
 
 # Relative Copy
 def rel_address_range(i1):
-    
+    return (max(0, i1 - 255), i1)
 
 def rel_address_constructor(src, loc, i1, i2):
-    pass
+    return RelativeAddressCopyInterval(i1, i2, loc)
 
 def find_rel_address_copies(src):
-    pass
+    return find_copy(src, rel_address_range, rel_address_constructor)
 
