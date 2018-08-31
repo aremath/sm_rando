@@ -27,10 +27,9 @@ class CompressGraph(object):
                         #TODO: This will sometimes cause an extra DirectCopy
                         # on WordFill boundaries...
                         i1_s = i1.shorten(i2.start)
-                        if i1_s is not None:
-                            self.add_node(i1_s)
-                            self.chain(i1_s, i2, src)
-                            shorts.append((i1, i1_s))
+                        self.add_node(i1_s)
+                        self.chain(i1_s, i2, src)
+                        shorts.append((i1, i1_s))
                     # They may both be used as-is - direct-copy the information in between.
                     else:
                         self.chain(i1, i2, src)

@@ -40,20 +40,15 @@ def shorten_check(start, end, new_end):
 class Interval(object):
     code = None
 
-    def __init__(self, start, end, code, command_arg, factor=1):
+    def __init__(self, start, end, code, command_arg):
         self.start = start
         self.end = end
         self.code = code
         # The number of bytes the interval represents from the uncompressed data
         self.n = end - start
         assert self.n > 0
-        # n must be divisble by factor since an interval that takes up n bytes with a factor
-        # of two will have an input variable of n/2.
-        assert self.n % factor == 0
         # Command(x) copies x + 1 bytes. So to copy n bytes, use command(n-1)
-        # Factor takes care of the wordfill special case, where one of n
-        # corresponds to two bytes filled
-        n_adj = (self.n // factor) - 1
+        n_adj = self.n - 1
         # Compute the bytes for self
         if count_bits(n_adj) <= 5:
             self.b = cmd_to_bytes(self.code, n_adj) + command_arg
@@ -66,7 +61,7 @@ class Interval(object):
         self.rep = len(self.b)
 
     def to_str(self):
-        return str(self.start) + "->" + str(self.end)
+        return ":" + str(self.start) + "->" + str(self.end)
 
     def shorten(self, new_end):
         assert new_end < end and new_end > start
@@ -125,12 +120,6 @@ class WordFillInterval(Interval):
        return "WordFill" + super().to_str()
 
     def shorten(self, new_end):
-        # n must be a multiple of two
-        # Round to the lowest factor of two
-        #adj_end = new_end - (new_end % 2)
-        # Shortening a two-byte wordfill is not possible
-        #if adj_end == self.start:
-        #    return None
         shorten_check(self.start, self.end, new_end)
         return WordFillInterval(self.start, new_end, self.word)
 
@@ -240,14 +229,14 @@ def filter_worse(intervals):
 # pattern is src -> i1 -> i2 -> bool
 # constructor is src -> i1 -> i2 -> Interval
 # Constructs intervals using constructor based on runs of true pattern evaluations
-def find_pattern(src, pattern, constructor, factor=1):
+def find_pattern(src, pattern, constructor, overlap=False):
     intervals = []
     i1 = 0
     while i1 < len(src):
         i2 = i1
         # Count the length of the bytes matching pattern after i
         while (i2 < len(src)) and pattern(src, i1, i2):
-            i2 += factor
+            i2 += 1
         interval_len = i2 - i1
         # Worth it if the pattern is true more than once
         # since the code takes up two bytes, but a direct copy will
@@ -257,10 +246,14 @@ def find_pattern(src, pattern, constructor, factor=1):
             intervals.append(interval)
         # We only need to consider the longest pattern - shorter ones
         # will be generated later during the shortening step.
-        # This if is here because src[i1] doesn't necessarily match pattern
-        # If it doesn't we still need to make forward progress.
-        if i1 == i2:
-            i1 += 1
+        if overlap:
+            # Overlap the ends by one byte in order to find overlapping word fills
+            if i2 - i1 == 1:
+                i1 += 1 # If we didn't find a word fill, advance normally
+            else:
+                i1 = i2 - 1 # If there was a possible word fill, advance to one /behind/ the end
+        # No overlap: when the pattern ends, the next one begins without a possibility of
+        # beginning within the original pattern
         else:
             i1 = i2
     return intervals
@@ -275,19 +268,17 @@ def bytefill_constructor(src, i1, i2):
 def find_bytefills(src):
     return find_pattern(src, bytefill_pattern, bytefill_constructor)
 
-# Word Fills
 def wordfill_pattern(src, i1, i2):
-    # If i2 is the index of the last byte, the second matching byte does not exist
-    if i2 + 1 < len(src):
-       return src[i1] == src[i2] and src[i1 + 1] == src[i2 + 1] 
+    if i1 %2 == i2 % 2:
+        return src[i1] == src[i2]
     else:
-        return False
+        return src[i1+1] == src[i2]
 
 def wordfill_constructor(src, i1, i2):
     return WordFillInterval(i1, i2, src[i1:i1+2])
 
 def find_wordfills(src):
-    return find_pattern(src, wordfill_pattern, wordfill_constructor, factor=2)
+    return find_pattern(src, wordfill_pattern, wordfill_constructor, overlap=True)
 
 # Sigma Fills
 def sigmafill_pattern(src, i1, i2):

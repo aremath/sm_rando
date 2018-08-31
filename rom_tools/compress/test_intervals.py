@@ -56,4 +56,7 @@ c = bytes_from_file("testing/press.b")
 dc = decompress(c)
 assert_same(src, dc)
 
+#src = b"\x01\x02\x03\x02\x03\x02\x03"
+#wf = find_wordfills(src)
+#print(wf)
 
