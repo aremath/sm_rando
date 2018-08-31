@@ -7,7 +7,10 @@ def compress(src):
     end = FakeInterval(len(src),len(src)+1)
     # Compute the real intervals
     bf = find_bytefills(src)
-    wf = find_wordfills(src)
+    #TODO: commented out until wordfill shorten bug is fixed.
+    #wf = find_wordfills(src)
+    wf = []
+    #
     sf = find_sigmafills(src)
     ac = find_address_copies(src)
     xc = find_address_xor_copies(src)

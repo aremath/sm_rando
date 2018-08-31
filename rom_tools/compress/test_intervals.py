@@ -1,5 +1,7 @@
 from intervals import *
 from compress import *
+from decompress import *
+from util import *
 
 src = b"\x01\x01\x01\x01"
 bf = find_bytefills(src)
@@ -17,6 +19,7 @@ src = b"\x01\x02\x03\x04\x01\x02\x03\x04"
 sf = find_sigmafills(src)
 assert len(sf) == 2
 
+"""
 src = b"\x02\x03\x02\x03\x02\x03"
 wf = find_wordfills(src)
 assert len(wf) == 1
@@ -32,4 +35,12 @@ out = compress(src)
 #f.close()
 src = b"\x01\x02\x01\x04"*2
 assert len(compress(src)) == 8
+"""
+
+src = random_r_bytes(256, 4)
+c = compress(src)
+print("Compression ratio: ", str(len(c) / len(src)))
+dc = decompress(c)
+d = differs(src, dc)
+assert len(d) == 0, str(d)
 

@@ -159,7 +159,7 @@ class AddressCopyInterval(Interval):
         self.addr = addr
 
     def __repr__(self):
-       return "AddressCopy" + super().to_str()
+       return "AddressCopy" + super().to_str() #+ ":" + str(self.addr)
 
     def shorten(self, new_end):
         shorten_check(self.start, self.end, new_end)
@@ -291,7 +291,7 @@ def find_wordfills(src):
 # Sigma Fills
 def sigmafill_pattern(src, i1, i2):
     n = i2 - i1
-    return src[i2] == (src[i1] + n) % 256
+    return src[i2] == (src[i1] + n) % 255
 
 def sigmafill_constructor(src, i1, i2):
     return SigmaFillInterval(i1, i2, src[i1:i1+1])
@@ -305,7 +305,8 @@ def match_length(src, i1, i2, operation):
     # While the bytes match and the indices are in bounds...
     while i1 + n < len(src) and operation(src[i2 + n]) == src[i1 + n] and i2 + n < i1:
         n += 1
-    return n
+    # Subtract 1 because the above adds 1 during the last iteration when the condition is false.
+    return n - 1
 
 # All match lengths over the given range
 def match_lens(src, i1, lower, upper, operation):
@@ -360,7 +361,7 @@ def rel_address_range(i1):
     return (max(0, i1 - 255), i1)
 
 def rel_address_constructor(src, loc, i1, i2):
-    return RelativeAddressCopyInterval(i1, i2, loc)
+    return RelativeAddressCopyInterval(i1, i2, i1 - loc)
 
 def find_rel_address_copies(src):
     return find_copy(src, rel_address_range, rel_address_constructor)
