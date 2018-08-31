@@ -68,11 +68,17 @@ def bytefill(n, index, src, dst, debug):
         print("BYTEFILL", len(dst), len(dst) + n)
     return (n * arg), index+1
 
+def n_bytes_of_word(n, word):
+    whole = n // 2
+    half = n % 2
+    out = whole * word + half * word[0:1]
+    return out
+
 def wordfill(n, index, src, dst, debug):
     arg = src[index:index+2]
     if debug:
         print("WORDFILL", len(dst), len(dst) + n)
-    return (n * arg), index+2
+    return n_bytes_of_word(n, arg), index+2
 
 def sigmafill(n, index, src, dst, debug):
     arg = src[index]
@@ -100,7 +106,6 @@ def map_bytes(op, byte):
         out += op(b_int).to_bytes(1, byteorder='big')
     return out
 
-#TODO: xor the copied bytes with 0xff
 def addr_xor_copy(n, index, src, dst, debug):
     arg_bytes = src[index:index+2]
     arg = int.from_bytes(arg_bytes, byteorder='big')

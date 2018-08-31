@@ -22,7 +22,7 @@ def compress(src):
     d, p = g.fake_dijkstra(start, end)
     # Cut out the fake nodes
     p = p[1:-1]
-    #print(p)
+    print(p)
     #print(d)
     return path_to_data(p) + b"\xff"
 

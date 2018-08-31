@@ -117,7 +117,7 @@ class WordFillInterval(Interval):
     code = 2 << 5
 
     def __init__(self, start, end, word):
-        super().__init__(start, end, WordFillInterval.code, word, factor=2)
+        super().__init__(start, end, WordFillInterval.code, word)
         self.word = word
         assert len(word) == 2
 
@@ -127,12 +127,12 @@ class WordFillInterval(Interval):
     def shorten(self, new_end):
         # n must be a multiple of two
         # Round to the lowest factor of two
-        adj_end = new_end - (new_end % 2)
+        #adj_end = new_end - (new_end % 2)
         # Shortening a two-byte wordfill is not possible
-        if adj_end == self.start:
-            return None
-        shorten_check(self.start, self.end, adj_end)
-        return WordFillInterval(self.start, adj_end, self.word)
+        #if adj_end == self.start:
+        #    return None
+        shorten_check(self.start, self.end, new_end)
+        return WordFillInterval(self.start, new_end, self.word)
 
 # Fill n bytes with b, b+1, b+2, ...
 class SigmaFillInterval(Interval):

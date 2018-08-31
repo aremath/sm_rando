@@ -49,10 +49,10 @@ def test(n_bytes, resolution):
 #    test(256, 16)
 
 src = random_r_bytes(256, 8)
-bytes_to_file("raw.b", src)
+bytes_to_file("testing/raw.b", src)
 c = compress(src)
-bytes_to_file("press.b", c)
-c = bytes_from_file("compress.b")
+bytes_to_file("testing/press.b", c)
+c = bytes_from_file("testing/press.b")
 dc = decompress(c)
 assert_same(src, dc)
 
