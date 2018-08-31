@@ -25,3 +25,16 @@ def differs(b1, b2):
         if b1[i] != b2[i]:
             differs.append((i, b1[i], b2[i]))
     return differs
+
+def bytes_to_file(filename, b):
+    f = open(filename, "wb")
+    f.write(b)
+    f.close()
+
+def bytes_from_file(filename):
+    f = open(filename, "rb")
+    r = f.read()
+    f.close()
+    return r
+
+

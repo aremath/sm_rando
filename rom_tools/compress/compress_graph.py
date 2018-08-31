@@ -26,13 +26,12 @@ class CompressGraph(object):
                         # Shorten i1 and add it
                         #TODO: This will sometimes cause an extra DirectCopy
                         # on WordFill boundaries...
-                        #TODO: This will sometimes shorten wordfills to zero
                         i1_s = i1.shorten(i2.start)
-                        self.add_node(i1_s)
-                        self.chain(i1_s, i2, src)
-                        shorts.append((i1, i1_s))
+                        if i1_s is not None:
+                            self.add_node(i1_s)
+                            self.chain(i1_s, i2, src)
+                            shorts.append((i1, i1_s))
                     # They may both be used as-is - direct-copy the information in between.
-                    # TODO: building the dci here is innefficient if it goes unused
                     else:
                         self.chain(i1, i2, src)
         # Fix up shortenings
@@ -62,6 +61,7 @@ class CompressGraph(object):
         if i1.end == i2.start:
             self.add_edge(i1, i2) 
         else:
+            #TODO: innefficient to build the dci if it was already in the graph.
             dci = DirectCopyInterval(i1.end, i2.start, src[i1.end:i2.start])
             if dci not in self.adj:
                 self.add_node(dci)
@@ -133,6 +133,7 @@ def get_path(offers, start, end):
         pos = offers[pos]
     return path[::-1]
 
+# Use a path to build a bytestring
 def path_to_data(intervals):
     b = b""
     for i in intervals:

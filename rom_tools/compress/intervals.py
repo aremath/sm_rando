@@ -33,7 +33,7 @@ def bin_bytes(b):
     return b_str
 
 def shorten_check(start, end, new_end):
-    assert new_end < end and new_end > start
+    assert new_end < end and new_end > start, str(start) + ", " + str(end) + ": " + str(new_end)
 
 #TODO: abstract?
 #TODO: byte order??
@@ -61,7 +61,7 @@ class Interval(object):
             self.b = extended_cmd_to_bytes(self.code, n_adj) + command_arg
         else:
             #TODO: multiple extended commands when the region is very large!
-            assert False, "TODO"
+            assert False, "TODO - Byte region too large!"
         # The number of bytes the compressed representation takes up
         self.rep = len(self.b)
 
@@ -113,9 +113,6 @@ class ByteFillInterval(Interval):
         return ByteFillInterval(self.start, new_end, self.byte)
 
 # Copy the following 2-byte word n times
-#TODO: a wordfill can capture 64 bytes of input when n is 32: discrepancy between n and
-# start-end
-# TODO: n is 0<n<33 not -1<n<31...
 class WordFillInterval(Interval):
     code = 2 << 5
 
@@ -129,7 +126,11 @@ class WordFillInterval(Interval):
 
     def shorten(self, new_end):
         # n must be a multiple of two
-        adj_end = self.end // 2
+        # Round to the lowest factor of two
+        adj_end = new_end - (new_end % 2)
+        # Shortening a two-byte wordfill is not possible
+        if adj_end == self.start:
+            return None
         shorten_check(self.start, self.end, adj_end)
         return WordFillInterval(self.start, adj_end, self.word)
 

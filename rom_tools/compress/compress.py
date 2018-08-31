@@ -7,10 +7,7 @@ def compress(src):
     end = FakeInterval(len(src),len(src)+1)
     # Compute the real intervals
     bf = find_bytefills(src)
-    #TODO: commented out until wordfill shorten bug is fixed.
-    #wf = find_wordfills(src)
-    wf = []
-    #
+    wf = find_wordfills(src)
     sf = find_sigmafills(src)
     ac = find_address_copies(src)
     xc = find_address_xor_copies(src)
@@ -25,7 +22,7 @@ def compress(src):
     d, p = g.fake_dijkstra(start, end)
     # Cut out the fake nodes
     p = p[1:-1]
-    print(p)
+    #print(p)
     #print(d)
     return path_to_data(p) + b"\xff"
 
