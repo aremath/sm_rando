@@ -319,9 +319,8 @@ def find_copy(src, cpy_range, constructor, operation=lambda x: x):
         best_n = max(m_lens)
         # Where to copy them from
         best_l = m_lens.index(best_n) + lower
-        # Copying 2 bytes costs 3 bytes, the same as direct-copy
-        #TODO: a relative copy of two bytes costs two bytes, better than a 3-byte direct copy
-        if best_n > 2:
+        # Copying a single byte costs at least two bytes...
+        if best_n > 1:
             # Add one because the "end" of an interval is one past the actual last byte
             interval = constructor(src, best_l, i1, i1 + best_n + 1)
             intervals.append(interval)

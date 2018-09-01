@@ -60,6 +60,7 @@ def direct_copy(n, index, src, dst, debug):
     arg = src[index:index+n]
     if debug:
         print("DIRECTCOPY", len(dst), len(dst) + n)
+        print(arg)
     return arg, index + n
 
 def bytefill(n, index, src, dst, debug):
@@ -88,6 +89,7 @@ def sigmafill(n, index, src, dst, debug):
         out += argi.to_bytes(1, byteorder='big')
     if debug:
         print("SIGMAFILL", len(dst), len(dst) + n)
+    assert len(out) == n
     return out, index+1
 
 def addr_copy(n, index, src, dst, debug):
@@ -97,6 +99,7 @@ def addr_copy(n, index, src, dst, debug):
     if debug:
         print("ADDRCPY", arg, len(dst), len(dst) + n)
         print(to_copy)
+    assert len(to_copy) == n
     return to_copy, index+2
 
 def map_bytes(op, byte):
@@ -114,15 +117,26 @@ def addr_xor_copy(n, index, src, dst, debug):
     if debug:
         print("ADDRXORCPY", arg, len(dst), len(dst) + n)
         print(to_copy)
+    assert len(to_copy) == n
     return to_copy, index+2
 
 def rel_addr_copy(n, index, src, dst, debug):
     # One byte
     arg = src[index]
     # Can't used negative indexing because n-arg can be zero
-    to_copy = dst[len(dst)-arg:len(dst) + n-arg]
+    index0 = len(dst) - arg
+    index1 = len(dst) + n - arg
+    # Allow copying starting from the first byte again if index1 exceed len(dst)
+    # TODO: does this need to wrap??
+    # TODO: Allow my own compression to use this feature...
+    extra = b""
+    if index1 > len(dst):
+        extra = dst[index0:index0 + (index1-len(dst))]
+        index1 = len(dst)
+    to_copy = dst[index0:index1] + extra
     if debug:
         print("ADDRRELCPY", arg, len(dst), len(dst) + n)
         print(to_copy)
+    assert len(to_copy) == n
     return to_copy, index+1
 

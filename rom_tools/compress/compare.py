@@ -14,3 +14,8 @@ dc = decompress(c)
 src = bytes_from_file("testing/raw.b")
 d = differs(src, dc)
 assert len(d) == 0, str(d)
+
+
+mc = bytes_from_file("testing/press.b")
+print("MINE: ", len(mc))
+print("LUNAR: ", len(c))

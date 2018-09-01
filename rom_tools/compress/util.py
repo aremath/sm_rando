@@ -40,5 +40,7 @@ def bytes_from_file(filename):
 def filediffs(fname1, fname2):
     f1 = bytes_from_file(fname1)
     f2 = bytes_from_file(fname2)
+    #print(f1)
+    #print(f2)
     return differs(f1, f2)
 
