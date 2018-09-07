@@ -230,25 +230,23 @@ def check_door_totals(rooms):
         assert door_totals[door] == door_totals[partner], door + ": " + str(door_totals[door]) + ", " + partner + ": " + str(door_totals[partner])
 
 # old map_items()
-"""
 def map_items():
     items_to_place = item_types + 45 * ["M"] + 9 * ["S"] + 9 * ["PB"] + 13 * ["E"] + 2 * ["RT"]
     # stupid special cases
     items_to_place.remove("Bombs")
     items_to_place.append("B")
     return items_to_place
-"""
 
-def map_items():
-    """get the items for the map - default behavior is just the normal numbers"""
-    items_to_place = (2 * item_types) + (20 * ["M"]) + (12 * ["S"]) + (10 * ["PB"]) + (14 * ["E"])
-    assert len(items_to_place) == 100, len(items_to_place)
-    # stupid special cases
-    items_to_place.remove("Bombs")
-    items_to_place.remove("Bombs")
-    items_to_place.append("B")
-    items_to_place.append("B")
-    return items_to_place
+#def map_items():
+#    """get the items for the map - default behavior is just the normal numbers"""
+#    items_to_place = (2 * item_types) + (20 * ["M"]) + (12 * ["S"]) + (10 * ["PB"]) + (14 * ["E"])
+#    assert len(items_to_place) == 100, len(items_to_place)
+#    # stupid special cases
+#    items_to_place.remove("Bombs")
+#    items_to_place.remove("Bombs")
+#    items_to_place.append("B")
+#    items_to_place.append("B")
+#    return items_to_place
 
 
 def get_fixed_items():
