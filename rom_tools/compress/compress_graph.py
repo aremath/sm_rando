@@ -1,4 +1,4 @@
-from intervals import *
+from .intervals import *
 
 import heapq
 

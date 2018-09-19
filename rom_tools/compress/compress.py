@@ -1,5 +1,5 @@
-from intervals import *
-from compress_graph import *
+from .intervals import *
+from .compress_graph import *
 
 def compress(src):
     # Start and end fake intervals

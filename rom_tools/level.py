@@ -4,6 +4,7 @@ from subprocess import Popen, PIPE, STDOUT
 from . import leveldatadefaults as datadefs
 from . import byte_ops
 from .address import Address
+from .compress import compress
 
 def __deleteIfExists(self, filename):
     try:
@@ -190,6 +191,9 @@ class LevelData(object):
                 comp.append(byte)
                 byte = f.read(1)
         return bytes(map(lambda x: int.from_bytes(x,'little'),comp))
+
+    def getCompressed2(self):
+        return compress.compress(self.dataToHex())
 
     def __genericSafeGet(self, data, leng):
         if len(data) != leng:

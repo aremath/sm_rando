@@ -85,7 +85,7 @@ def sigmafill(n, index, src, dst, debug):
     arg = src[index]
     out = b""
     for i in range(n):
-        argi = arg + i % 255
+        argi = arg + i % 256
         out += argi.to_bytes(1, byteorder='big')
     if debug:
         print("SIGMAFILL", len(dst), len(dst) + n)

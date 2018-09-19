@@ -283,7 +283,7 @@ def find_wordfills(src):
 # Sigma Fills
 def sigmafill_pattern(src, i1, i2):
     n = i2 - i1
-    return src[i2] == (src[i1] + n) % 255
+    return src[i2] == (src[i1] + n) % 256
 
 def sigmafill_constructor(src, i1, i2):
     return SigmaFillInterval(i1, i2, src[i1:i1+1])
