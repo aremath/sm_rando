@@ -2,7 +2,7 @@ from . import byte_ops
 
 class Address(object):
     """Address Class that handles conversions
-       this way we don't have to rememver which 'kind' of address we have
+       this way we don't have to remember which 'kind' of address we have
        just which kind we want to use"""
     def __init__(self, pc=None):
         if pc is not None:

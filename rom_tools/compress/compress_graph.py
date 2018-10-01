@@ -29,7 +29,9 @@ class CompressGraph(object):
                         self.chain(i1_s, i2, src)
                         shorts.append((i1, i1_s))
                     # They may both be used as-is - direct-copy the information in between.
-                    else:
+                    #else: #TODO
+                    # Avoid making chains that are too large...
+                    elif count_bits(i2.start-i1.end) <= 10:
                         self.chain(i1, i2, src)
         # Fix up shortenings
         for i1, i2 in shorts:

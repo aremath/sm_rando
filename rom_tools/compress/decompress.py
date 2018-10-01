@@ -12,7 +12,8 @@ def decompress(src, debug=False):
     dst = b""
     index = 0
     while True:
-        #print(index)
+        if debug:
+            print(index)
         next_cmd = src[index]
         if next_cmd == 0xff:
             break
@@ -61,13 +62,16 @@ def direct_copy(n, index, src, dst, debug):
     if debug:
         print("DIRECTCOPY", len(dst), len(dst) + n)
         print(arg)
+    assert len(arg) == n
     return arg, index + n
 
 def bytefill(n, index, src, dst, debug):
     arg = src[index:index+1]
     if debug:
         print("BYTEFILL", len(dst), len(dst) + n)
-    return (n * arg), index+1
+    out = n * arg
+    assert len(out) == n
+    return out, index+1
 
 def n_bytes_of_word(n, word):
     whole = n // 2
@@ -79,14 +83,16 @@ def wordfill(n, index, src, dst, debug):
     arg = src[index:index+2]
     if debug:
         print("WORDFILL", len(dst), len(dst) + n)
-    return n_bytes_of_word(n, arg), index+2
+    out = n_bytes_of_word(n, arg)
+    assert len(out) == n
+    return out, index+2
 
 def sigmafill(n, index, src, dst, debug):
     arg = src[index]
     out = b""
     for i in range(n):
         argi = arg + i % 256
-        out += argi.to_bytes(1, byteorder='big')
+        out += argi.to_bytes(1, byteorder='little')
     if debug:
         print("SIGMAFILL", len(dst), len(dst) + n)
     assert len(out) == n
@@ -94,24 +100,24 @@ def sigmafill(n, index, src, dst, debug):
 
 def addr_copy(n, index, src, dst, debug):
     arg_bytes = src[index:index+2]
-    arg = int.from_bytes(arg_bytes, byteorder='big')
+    arg = int.from_bytes(arg_bytes, byteorder='little')
     to_copy = dst[arg:arg+n]
     if debug:
         print("ADDRCPY", arg, len(dst), len(dst) + n)
         print(to_copy)
-    assert len(to_copy) == n
+    assert len(to_copy) == n #TODO
     return to_copy, index+2
 
 def map_bytes(op, byte):
     out = b""
     for b in byte:
-        b_int = int.from_bytes(b, byteorder='big')
-        out += op(b_int).to_bytes(1, byteorder='big')
+        b_int = int.from_bytes(b, byteorder='little')
+        out += op(b_int).to_bytes(1, byteorder='little')
     return out
 
 def addr_xor_copy(n, index, src, dst, debug):
     arg_bytes = src[index:index+2]
-    arg = int.from_bytes(arg_bytes, byteorder='big')
+    arg = int.from_bytes(arg_bytes, byteorder='little')
     to_copy = dst[arg:arg+n]
     to_copy = map_bytes(lambda x: x^0xff, to_copy)
     if debug:

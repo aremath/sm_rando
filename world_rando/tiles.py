@@ -46,3 +46,32 @@ class Type(object):
         self.index = index
         self.bts = bts
 
+# levelsize is the number of bytes in the decompressed level1 data
+# = 2 * the number of BTS bytes
+# = the number of level2 bytes
+# Translates the (uncompressed) leveldata bytes to a level dictionary.
+def level_from_bytes(levelbytes, levelsize, levelx, levely):
+    assert levelsize % 2 == 0
+    assert len(levelbytes) == int(2.5 * levelsize)
+    assert levelsize == levelx * levely * 2
+    index = 0
+    level = {}
+    for y in range(levely):
+        for x in range(levelx):
+            index = y * levely + x
+            level1index = index * 2
+            level1 = int.from_bytes(levelbytes[level1index:level1index+2], byteorder='big')
+            btsindex = index + levelsize
+            bts = int.from_bytes(levelbytes[btsindex:btsindex+1], byteorder='big')
+            level2index = index + (3*levelsize/2)
+            level2 = int.from_bytes(levelbytes[level2index:level2index+2], byteorder='big')
+            #TODO: level2 info dropped on the floor
+            
+            ttype = level1 >> 12
+            hflip = (level1 >> 10) & 1
+            vflip = (level1 >> 11) & 1
+            tindex = level1 & 0b1111111111
+            texture = Texture(tindex, (hflip, vflip))
+            tiletype = Type(ttype, bts)
+            level[(x, y)] = Tile(texture, tiletype)
+    return level

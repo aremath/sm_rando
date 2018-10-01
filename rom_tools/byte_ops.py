@@ -20,10 +20,14 @@ def PC_to_SNES(addr):
     b = addr & 0xFFFF
     return a|b
 
-
 def SNES_to_PC(addr):
     """Converts LORAM addresses to PC Addresses."""
     return ((addr & 0x7f0000) >> 1) | (addr & 0x7FFF)
+
+def SNES_to_PC2(addr):
+    bank = (addr & 0xff0000) >> 16
+    in_bank = addr & 0xffff
+    #TODO
 
 def int_split(n):
     """ Splits and Endians pointers for "ROM MODE" """

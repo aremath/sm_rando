@@ -56,6 +56,7 @@ class Interval(object):
             self.b = extended_cmd_to_bytes(self.code, n_adj) + command_arg
         else:
             #TODO: multiple extended commands when the region is very large!
+            # - difficult because on copy commands, it will change the argument
             assert False, "TODO - Byte region too large!"
         # The number of bytes the compressed representation takes up
         self.rep = len(self.b)
@@ -144,7 +145,7 @@ class AddressCopyInterval(Interval):
     code = 4 << 5
 
     def __init__(self, start, end, addr):
-        addr_bytes = addr.to_bytes(2, byteorder='big')
+        addr_bytes = addr.to_bytes(2, byteorder='little')
         super().__init__(start, end, AddressCopyInterval.code, addr_bytes)
         self.addr = addr
 
@@ -160,9 +161,9 @@ class AddressCopyXORInterval(Interval):
     code = 5 << 5
 
     def __init__(self, start, end, addr):
-        addr_bytes = self.addr.to_bytes(2, byteorder='big')
-        super().__init__(start, end, AddressCopyXORInterval, addr_bytes)
         self.addr = addr
+        addr_bytes = self.addr.to_bytes(2, byteorder='little')
+        super().__init__(start, end, AddressCopyXORInterval.code, addr_bytes)
 
     def __repr__(self):
        return "AddressCopyXOR" + super().to_str()
@@ -225,25 +226,42 @@ def filter_worse(intervals):
             new_intervals.append(i1)
     return new_intervals
 
+def choose_best_interval(intervals):
+    base = intervals[0]
+    saved = base.n - base.rep
+    for i in intervals:
+        i_saved = i.n - i.rep
+        if i_saved < saved:
+            base = i
+            saved = i_saved
+    return i
+
+def find_pattern_at(src, i1, pattern, constructor, min_size):
+    i2 = i1
+    # Count the length of the bytes matching pattern after i
+    while (i2 < len(src)) and pattern(src, i1, i2):
+        i2 += 1
+    interval_len = i2 - i1
+    # Worth it if the pattern is true more than once
+    # since the code takes up two bytes, but a direct copy will
+    # take up at least three.
+    if (interval_len > 1) and (interval_len >= min_size):
+        interval = [constructor(src, i1, i2)]
+    else:
+        interval = []
+    return interval, i2
+
 # Look through src to find intervals
 # pattern is src -> i1 -> i2 -> bool
 # constructor is src -> i1 -> i2 -> Interval
+# Size is the minimum size of intervals to find
 # Constructs intervals using constructor based on runs of true pattern evaluations
-def find_pattern(src, pattern, constructor, overlap=False):
+def find_pattern(src, pattern, constructor, min_size, overlap=False):
     intervals = []
     i1 = 0
     while i1 < len(src):
-        i2 = i1
-        # Count the length of the bytes matching pattern after i
-        while (i2 < len(src)) and pattern(src, i1, i2):
-            i2 += 1
-        interval_len = i2 - i1
-        # Worth it if the pattern is true more than once
-        # since the code takes up two bytes, but a direct copy will
-        # take up at least three.
-        if interval_len > 1:
-            interval = constructor(src, i1, i2)
-            intervals.append(interval)
+        interval, i2 = find_pattern_at(src, i1, pattern, constructor, min_size)
+        intervals.extend(interval)
         # We only need to consider the longest pattern - shorter ones
         # will be generated later during the shortening step.
         if overlap:
@@ -265,9 +283,13 @@ def bytefill_pattern(src, i1, i2):
 def bytefill_constructor(src, i1, i2):
     return ByteFillInterval(i1,  i2, src[i1:i1+1])
 
-def find_bytefills(src):
-    return find_pattern(src, bytefill_pattern, bytefill_constructor)
+def find_bytefill_at(src, i1, min_size):
+    return find_pattern_at(src, i1, bytefill_pattern, bytefill_constructor, min_size)
 
+def find_bytefills(src, min_size):
+    return find_pattern(src, bytefill_pattern, bytefill_constructor, min_size)
+
+# Word Fills
 def wordfill_pattern(src, i1, i2):
     if i1 %2 == i2 % 2:
         return src[i1] == src[i2]
@@ -277,8 +299,11 @@ def wordfill_pattern(src, i1, i2):
 def wordfill_constructor(src, i1, i2):
     return WordFillInterval(i1, i2, src[i1:i1+2])
 
-def find_wordfills(src):
-    return find_pattern(src, wordfill_pattern, wordfill_constructor, overlap=True)
+def find_wordfill_at(src, i1, min_size):
+    return find_pattern_at(src, i1, wordfill_pattern, wordfill_constructor, min_size)
+
+def find_wordfills(src, min_size):
+    return find_pattern(src, wordfill_pattern, wordfill_constructor, min_size, overlap=True)
 
 # Sigma Fills
 def sigmafill_pattern(src, i1, i2):
@@ -288,8 +313,11 @@ def sigmafill_pattern(src, i1, i2):
 def sigmafill_constructor(src, i1, i2):
     return SigmaFillInterval(i1, i2, src[i1:i1+1])
 
-def find_sigmafills(src):
-    return find_pattern(src, sigmafill_pattern, sigmafill_constructor)
+def find_sigmafill_at(src, i1, min_size):
+    return find_pattern_at(src, i1, sigmafill_pattern, sigmafill_constructor, min_size)
+
+def find_sigmafills(src, min_size):
+    return find_pattern(src, sigmafill_pattern, sigmafill_constructor, min_size)
 
 # How many bytes from i2 match i1?
 def match_length(src, i1, i2, operation):
@@ -304,26 +332,31 @@ def match_length(src, i1, i2, operation):
 def match_lens(src, i1, lower, upper, operation):
     return map(lambda i2: match_length(src, i1, i2, operation), range(lower, upper))
 
-def find_copy(src, cpy_range, constructor, operation=lambda x: x):
-    pass
+def find_copy_at(src, i1, cpy_range, constructor, min_size, operation=lambda x: x):
+    lower, upper = cpy_range(i1)
+    # Nothing to map
+    if lower == upper:
+        return []
+    # Compute the length of copy for each possible copy location
+    m_lens = list(match_lens(src, i1, lower, upper, operation))
+    # The number of bytes to copy
+    best_n = max(m_lens)
+    # Where to copy them from
+    best_l = m_lens.index(best_n) + lower
+    # Copying a single byte costs at least two bytes...
+    if (best_n > 1) and (best_n >= min_size):
+        # Add one because the "end" of an interval is one past the actual last byte
+        interval = [constructor(src, best_l, i1, i1 + best_n + 1)]
+    else:
+        interval = []
+    return interval
+
+def find_copy(src, cpy_range, constructor, min_size, operation=lambda x: x):
     intervals = []
     i1 = 0
     for i1 in range(len(src)):
-        lower, upper = cpy_range(i1)
-        # Nothing to map
-        if lower == upper:
-            continue
-        # Compute the length of copy for each possible copy location
-        m_lens = list(match_lens(src, i1, lower, upper, operation))
-        # The number of bytes to copy
-        best_n = max(m_lens)
-        # Where to copy them from
-        best_l = m_lens.index(best_n) + lower
-        # Copying a single byte costs at least two bytes...
-        if best_n > 1:
-            # Add one because the "end" of an interval is one past the actual last byte
-            interval = constructor(src, best_l, i1, i1 + best_n + 1)
-            intervals.append(interval)
+        interval = find_copy_at(src, i1, cpy_range, constructor, min_size, operation)
+        intervals.extend(interval)
     return intervals
 
 # Address Copy
@@ -331,10 +364,13 @@ def address_range(i1):
     return (0, min(i1, (1 << 16) - 1))
 
 def address_constructor(src, loc, i1, i2):
-    return AddressCopyInterval(i1, i2, loc)    
+    return AddressCopyInterval(i1, i2, loc)
 
-def find_address_copies(src):
-    return find_copy(src, address_range, address_constructor)
+def find_address_copy_at(src, i1, min_size):
+    return find_copy_at(src, i1, address_range, address_constructor, min_size)
+
+def find_address_copies(src, min_size):
+    return find_copy(src, address_range, address_constructor, min_size)
 
 # Address XOR Copy
 def address_xor_range(i1):
@@ -343,8 +379,12 @@ def address_xor_range(i1):
 def address_xor_constructor(src, loc, i1, i2):
     return AddressCopyXORInterval(i1, i2, loc)
 
-def find_address_xor_copies(src):
-    return find_copy(src, address_xor_range, address_xor_constructor,
+def find_address_xor_copy_at(src, i1, min_size):
+    return find_copy_at(src, i1, address_xor_range, address_xor_constructor, min_size,
+        operation=lambda x: x ^ 0xff)
+
+def find_address_xor_copies(src, min_size):
+    return find_copy(src, address_xor_range, address_xor_constructor, min_size,
         operation=lambda x: x ^ 0xff)
 
 # Relative Copy
@@ -354,6 +394,9 @@ def rel_address_range(i1):
 def rel_address_constructor(src, loc, i1, i2):
     return RelativeAddressCopyInterval(i1, i2, i1 - loc)
 
-def find_rel_address_copies(src):
-    return find_copy(src, rel_address_range, rel_address_constructor)
+def find_rel_address_copy_at(src, i1, min_size):
+    return find_copy_at(src, i1, rel_address_range, rel_address_constructor, min_size)
+
+def find_rel_address_copies(src, min_size):
+    return find_copy(src, rel_address_range, rel_address_constructor, min_size)
 
