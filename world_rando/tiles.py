@@ -50,21 +50,34 @@ class Type(object):
 # = 2 * the number of BTS bytes
 # = the number of level2 bytes
 # Translates the (uncompressed) leveldata bytes to a level dictionary.
-def level_from_bytes(levelbytes, levelsize, levelx, levely):
-    assert levelsize % 2 == 0
-    assert len(levelbytes) == int(2.5 * levelsize)
-    assert levelsize == levelx * levely * 2
-    index = 0
+def level_from_bytes(levelbytes, levelx, levely):
+    # First two bytes are the amount of level1 data
+    levelsize = int.from_bytes(levelbytes[0:2], byteorder='little')
+    # Cut off the size
+    levelbytes = levelbytes[2:]
+    # Make sure everything matches
+    assert levelsize % 2 == 0, "Purported level size is not even length"
+    assert levelsize == levelx * levely * 2, "Level data length does not match specified room dimensions"
+    # The level might not include level2 data
+    if len(levelbytes) == int(2.5 * levelsize):
+        has_level2 = True
+    elif len(levelbytes) == int(1.5 * levelsize):
+        has_level2 = False
+    else:
+        assert False, "Purported level size does not match actual level size"
     level = {}
     for y in range(levely):
         for x in range(levelx):
-            index = y * levely + x
+            index = y * levelx + x
             level1index = index * 2
-            level1 = int.from_bytes(levelbytes[level1index:level1index+2], byteorder='big')
+            level1 = int.from_bytes(levelbytes[level1index:level1index+2], byteorder='little')
             btsindex = index + levelsize
-            bts = int.from_bytes(levelbytes[btsindex:btsindex+1], byteorder='big')
-            level2index = index + (3*levelsize/2)
-            level2 = int.from_bytes(levelbytes[level2index:level2index+2], byteorder='big')
+            bts = int.from_bytes(levelbytes[btsindex:btsindex+1], byteorder='little')
+            if has_level2:
+                level2index = index + (3*levelsize/2)
+                level2 = int.from_bytes(levelbytes[level2index:level2index+2], byteorder='little')
+            else:
+                level2 = 0
             #TODO: level2 info dropped on the floor
             
             ttype = level1 >> 12
@@ -75,3 +88,5 @@ def level_from_bytes(levelbytes, levelsize, levelx, levely):
             tiletype = Type(ttype, bts)
             level[(x, y)] = Tile(texture, tiletype)
     return level
+
+

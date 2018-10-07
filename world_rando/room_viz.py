@@ -72,7 +72,7 @@ def find_image(tile, images, slopes):
         # top bit unused
         # Next two bits flips
         hflip = (bts >> 6) & 0b1
-        vflip = (bts >> 5) & 0b1
+        vflip = (bts >> 7) & 0b1
         # Then 5 bit index into the slope table
         index = bts & 0b11111
         img = slopes[index]
@@ -111,6 +111,26 @@ def find_image(tile, images, slopes):
     # Speed Booster #TODO
     elif tindex == 0xB and bts == 0xE:
         return images["speedbooster"]
+    # Power Bomb
+    elif tindex == 0xC and (bts == 0x8 or bts == 0x9):
+        return images["power_bomb"]
+    # Super Missile
+    elif tindex == 0xC and (bts == 0xA or bts == 0xB):
+        return images["super_missile"]
+    # Shot
+    elif tindex == 0xC:
+        return images["shot_block"]
+    # V-Copy
+    elif tindex == 0xD:
+        return images["v_copy"]
+    # Grapple
+    elif tindex == 0xE and bts == 0x0:
+        return images["grapple"]
+    elif tindex == 0xE and (bts == 0x1 or bts == 0x2):
+        return images["crumble_grapple"]
+    # Bomb
+    elif tindex == 0xF:
+        return images["bomb"]
     else:
         return images["error"]
        
