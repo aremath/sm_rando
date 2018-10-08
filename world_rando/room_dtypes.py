@@ -1,3 +1,4 @@
+from .coord import *
 from .concrete_map import *
 from .map_viz import *
 from data_types import basicgraph
@@ -45,76 +46,145 @@ class Door(object):
         #TODO: is this a valid equivalence relation?
         return hash(self.tiles)
 
-# Room Generation:
+# TODO: grand unified theory with ConcreteMap
+# Holds the level data for a room
+class Level(object):
+    
+    def __init__(self, dimensions, tiles=None):
+        self.dimensions = dimensions
+        if tiles is None:
+            self.tiles = {}
+        else:
+            self.tiles = tiles
 
-# takes d: a -> [b] to
-# b -> a, assuming distinct b
-def reverse_list_dict(d):
-    reverse = {}
-    for (k, vl) in d.items():
-        for v in vl:
-            reverse[v] = k
-    return reverse
+    def in_bounds(self, coord):
+        return coord.in_bounds(Coord(0,0), self.dimensions)
 
-# Room tiles is room_id -> [MCoord]
-def room_setup(room_tiles, cmap):
-    rooms = {}
-    for room_id, coord_set in room_tiles.items():
-        lower, upper = extent(coord_set)
-        room_cmap = cmap.sub(lower, upper + MCoords(1,1))
-        size = upper + MCoords(1,1) - lower
-        rooms[room_id] = Room(room_cmap, size, room_id)
-    return rooms
+    def assert_in_bounds(self, coord):
+        assert self.in_bounds(coord), "Out of bounds: " + str(coord)
 
-#TODO: work in progress
-# Tile rooms is MCoords -> room#,
-# paths is [(start_node, end_node, [MCoord])]
-# rooms is room_id -> room
-def room_graphs(rooms, tile_rooms, paths):
-    #TODO: node_locs for each node and each door node.
-    # room_node_locs: room_id -> node -> MCoords
-    for (start, end, path) in paths:
-        room_start = tile_rooms[path[0]]
-        room_end = tile_rooms[path[-1]]
-        gstart = rooms[room_start].graph
-        if start not in gstart.nodes:
-            gstart.add_node(start)
-        gend = rooms[room_end].graph
-        if end not in gend.nodes:
-            gend.add_node(end)
-        current_room = room_start
-        current_node = start
-        current_pos = path[0]
-        for new_pos in path:
-            new_room = tile_rooms[new_pos]
-            if new_room != current_room:
-                gcurrent = rooms[current_room].graph
-                gnew = rooms[new_room].graph
-                # Create a door
-                # Node in the old room
-                current_wr = current_pos.wall_relate(new_pos)
-                current_door = str(current_room) + "_" + str(current_pos) + "_" + current_wr
-                if current_door not in gcurrent.nodes:
-                    gcurrent.add_node(current_door)
-                # Link the current node with the door
-                gcurrent.update_edge(current_node, current_door)
-                # Node in the new room
-                new_wr = new_pos.wall_relate(current_pos)
-                new_door = str(new_room) + "_" + str(new_pos) + "_" + new_wr
-                if new_door not in gnew.nodes:
-                    gnew.add_node(new_door)
-                # set the new current room
-                current_room = tile_rooms[new_pos]
-                # the new current node is the door we came into the new room by
-                current_node = new_door
-            current_pos = new_pos
-        # link the final current node with end
-        gend.update_edge(current_node, end)
+    def compose(self, other, collision_policy="error"):
+        new_tiles = {}
+        for c, t in self.items():
+            new_tiles[c] = t
+        for c, t in other.items():
+            self.assert_in_bounds(c)
+            if c in new_tiles:
+                if collision_policy == "defer":
+                    continue
+                elif collision_policy == "error":
+                    assert False, "Collision in compose: " + str(c)
+                elif collision_policy == "overwrite":
+                    new_tiles[c] = t
+                else:
+                    assert False, "Bad collision policy: " + collision_policy
+            else:
+                new_tiles[c] = t
+        return Level(self.dimensions, tiles=new_tiles)
 
-def make_rooms(room_tiles, cmap, paths):
-    rooms = room_setup(room_tiles, cmap)
-    tile_rooms = reverse_list_dict(room_tiles)
-    room_graphs(rooms, tile_rooms, paths)
-    # ... generate map data etc ...
-    return rooms
+    def missing_defaults(self, mk_default):
+        """Add the missing tiles using mk_default as a tile constructor"""
+        for c in self.itercoords():
+            if c not in self:
+                self[c] = mk_default()
 
+    def to_bytes(self):
+        """Build the uncompressed level data. Errors if there is a tile missing"""
+        level1 = b""
+        bts = b""
+        level2 = b""
+        for c in self.itercoords():
+           t = self[c]
+           level1 += t.level1_bytes()
+           bts += t.bts_bytes()
+           #TODO l2
+        size_bytes = int.to_bytes(len(level1), byteorder="little")
+        assert len(size_bytes) == 2, "Level too large!"
+        return size_bytes + level1 + bts + level2
+                
+    def itercoords(self):
+        """Iterator over the Coord that are within self,
+        in x-minor order (or as the tiles would be laid out in the level data)"""
+        for y in range(0, self.dimensions.y):
+            for x in range(0, self.dimensions.x):
+                yield Coord(x, y)
+
+    # Behaves like a dictionary
+    def __getitem__(self, key):
+        return self.tiles[key]
+    def __setitem__(self, key, value):
+        if self.in_bounds(key):
+            self.tiles[key] = value
+        else:
+            assert False, "Index not in bounds: " + str(key)
+    def __len__(self):
+        return len(self.tiles)
+    def __contains__(self, item):
+        return item in self.tiles
+    def keys(self):
+        return self.tiles.keys()
+    def items(self):
+        return self.tiles.items()
+    def values(self):
+        return self.tiles.values()
+
+# The level data for a room is made up of Tiles
+class Tile(object):
+
+    def __init__(self, texture, tile_type):
+        """ texture is an index into the texture table
+            tflips is a (bool, bool) indicating horizontal and vertical flip
+            for the texture.
+            tile_type is a definition for the physical behavior of the tile, which
+            includes """
+        self.texture = texture
+        self.tile_type = tile_type
+
+    #TODO: safety assertions like hflip, vflip are one bit
+    def level1_bytes(self):
+        """The 2-byte part of the tile that is stored in the level1 foreground data."""
+        n_texture = self.texture.index
+        n_hflip = self.texture.flips[0] << 10
+        n_vflip = self.texture.flips[1] << 11
+        n_ttype = self.tile_type.index << 12
+        n_all = n_texture | n_hflip | n_vflip | n_ttype
+        return n_all.to_bytes(2, byteorder="little")
+
+    def bts_bytes(self):
+        """The 1-byte bts number."""
+        return self.tile_type.bts.to_bytes(1, byteorder='little')
+
+    #TODO...
+    def level2_bytes(self):
+        """The 2-byte part of the tile stored in the level2 background data."""
+        return b''
+
+# These are separate because for the purposes of waveform collapse, the type of a tile
+# can be known while the texture remains unknown and vice versa.
+
+# The visual properties of a tile
+class Texture(object):
+
+    def __init__(self, index, flips):
+        self.index = index
+        self.flips = flips
+
+# The physical properties of a tile
+class Type(object):
+    
+    def __init__(self, index, bts):
+        self.index = index
+        self.bts = bts
+
+### DEFAULT TILE TYPES ###
+
+def mk_default_solid():
+    tex = Texture(0x5f, (0, 0))
+    ty = Type(0x8, 0x0)
+    return Tile(tex, ty)
+
+def mk_default_air():
+    tex = Texture(0xff, (0,0))
+    ty = Type(0x0, 0x0)
+    return Tile(tex, ty)
+    

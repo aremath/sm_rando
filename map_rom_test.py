@@ -1,3 +1,4 @@
+from world_rando import coord
 from world_rando import concrete_map
 from world_rando import item_order_graph
 from world_rando import map_gen
@@ -35,7 +36,7 @@ if __name__ == "__main__":
         graph.visualize("output/a_" + region)
         print("Generating map for " + region)
         # Can be as large as 64/32
-        dimensions = concrete_map.MCoords(54,30)
+        dimensions = coord.Coord(54,30)
         cmap[region], rooms, paths = map_gen.less_naive_gen(dimensions, less_rand_d, graph, es)
         ntiles += len(cmap[region])
         for room in rooms.values():

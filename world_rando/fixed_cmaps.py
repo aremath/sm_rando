@@ -1,3 +1,4 @@
+from .coord import *
 from .concrete_map import *
 from functools import reduce
 
@@ -27,197 +28,197 @@ def mk_area(pos, dims, area):
 
 def kraid_boss_area(pos, dims):
     return [
-        (pos + MCoords(1,0), MapTile(_fixed=True,_walls=set(["L","D"]))),
-        (pos + MCoords(1,-1), MapTile(_fixed=True,_walls=set(["L","U"]))),
-        (pos + MCoords(2,0), MapTile(_fixed=True,_walls=set(["R","D"]))),
-        (pos + MCoords(2,-1), MapTile(_fixed=True,_walls=set(["R","U"]))),
-        (pos + MCoords(3,0), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
+        (pos + Coord(1,0), MapTile(_fixed=True,_walls=set(["L","D"]))),
+        (pos + Coord(1,-1), MapTile(_fixed=True,_walls=set(["L","U"]))),
+        (pos + Coord(2,0), MapTile(_fixed=True,_walls=set(["R","D"]))),
+        (pos + Coord(2,-1), MapTile(_fixed=True,_walls=set(["R","U"]))),
+        (pos + Coord(3,0), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
         (pos, MapTile(_walls=set(["R"]))),
     ]
 
 def kraid_bboxes(pos, dims):
     return [
-        (pos + MCoords(1,-1), pos + MCoords(3,1)),
-        (pos + MCoords(3,0), MCoords(4,1))
+        (pos + Coord(1,-1), pos + Coord(3,1)),
+        (pos + Coord(3,0), Coord(4,1))
     ]
 
 def phantoon_boss_area(pos, dims):
     """Returns the Phantoon Boss Area cmap."""
     return [
-        (pos + MCoords(1,0), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
+        (pos + Coord(1,0), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
         (pos, MapTile(_walls=set(["R"]))),
     ]
 
 def phantoon_bboxes(pos, dims):
-    return [(pos + MCoords(1,0), pos + MCoords(2,1))]
+    return [(pos + Coord(1,0), pos + Coord(2,1))]
 
 def draygon_boss_area(pos, dims):
     return [
-        (pos + MCoords(-1,0), MapTile(_fixed=True,_walls=set(["R","U"]))),
-        (pos + MCoords(-1,1), MapTile(_fixed=True,_walls=set(["R","D"]))),
-        (pos + MCoords(-2,0), MapTile(_fixed=True,_walls=set(["L","U"]))),
-        (pos + MCoords(-2,1), MapTile(_fixed=True,_walls=set(["L","D"]))),
-        (pos + MCoords(-3,1), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
+        (pos + Coord(-1,0), MapTile(_fixed=True,_walls=set(["R","U"]))),
+        (pos + Coord(-1,1), MapTile(_fixed=True,_walls=set(["R","D"]))),
+        (pos + Coord(-2,0), MapTile(_fixed=True,_walls=set(["L","U"]))),
+        (pos + Coord(-2,1), MapTile(_fixed=True,_walls=set(["L","D"]))),
+        (pos + Coord(-3,1), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
         (pos, MapTile(_walls=set(["L"]))),
     ]
     return cmap
 
 def draygon_bboxes(pos, dims):
     return [
-        (pos + MCoords(-2,0), pos + MCoords(0,2)),
-        (pos + MCoords(-3,1), MCoords(-2,2))
+        (pos + Coord(-2,0), pos + Coord(0,2)),
+        (pos + Coord(-3,1), Coord(-2,2))
     ]
 
 def ridley_boss_area(pos, dims):
     """Returns the Ridley Boss Area cmap."""
     return [
-        (pos + MCoords(-1,0), MapTile(_fixed=True,_walls=set(["L","U","R"]))),
-        (pos + MCoords(-1,1), MapTile(_fixed=True,_walls=set(["L","R","D"]))),
-        (pos + MCoords(-2,1), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
+        (pos + Coord(-1,0), MapTile(_fixed=True,_walls=set(["L","U","R"]))),
+        (pos + Coord(-1,1), MapTile(_fixed=True,_walls=set(["L","R","D"]))),
+        (pos + Coord(-2,1), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
         (pos, MapTile(_walls=set(["L"]))),
     ]
 
 def ridley_bboxes(pos, dims):
     return [
-        (pos + MCoords(-1,0), pos + MCoords(0,2)),
-        (pos + MCoords(-2,1), MCoords(-1,2))
+        (pos + Coord(-1,0), pos + Coord(0,2)),
+        (pos + Coord(-2,1), Coord(-1,2))
     ]
 
 #TODO: how to make sure that the other side is used?
 def mother_brain_boss_area(pos, dims):
     """Returns the Mother Brain Boss Area cmap."""
     return [
-        (pos + MCoords(-1,0), MapTile(_fixed=True,_walls=set(["U","R","D"]))),
-        (pos + MCoords(-2,0), MapTile(_fixed=True,_walls=set(["U","D"]))),
-        (pos + MCoords(-3,0), MapTile(_fixed=True,_walls=set(["U","D"]))),
-        (pos + MCoords(-4,0), MapTile(_fixed=True,_item=True,_walls=set(["L","U","D"]))),
-        (pos + MCoords(-5,0), MapTile(_walls=set(["R"]))),
+        (pos + Coord(-1,0), MapTile(_fixed=True,_walls=set(["U","R","D"]))),
+        (pos + Coord(-2,0), MapTile(_fixed=True,_walls=set(["U","D"]))),
+        (pos + Coord(-3,0), MapTile(_fixed=True,_walls=set(["U","D"]))),
+        (pos + Coord(-4,0), MapTile(_fixed=True,_item=True,_walls=set(["L","U","D"]))),
+        (pos + Coord(-5,0), MapTile(_walls=set(["R"]))),
         (pos, MapTile(_walls=set(["L"]))),
     ]
 
 def mother_brain_bboxes(pos, dims):
     return [
-        (pos + MCoords(-4,0), pos + MCoords(0,1)),
+        (pos + Coord(-4,0), pos + Coord(0,1)),
     ]
 
 def bomb_torizo_boss_area(pos, dims):
     return [
-        (pos + MCoords(1,0), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
+        (pos + Coord(1,0), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
         (pos, MapTile(_walls=set(["R"]))),
     ]
 
 def bomb_torizo_bboxes(pos, dims):
     return [
-        (pos + MCoords(1,0), pos + MCoords(2,1)),
+        (pos + Coord(1,0), pos + Coord(2,1)),
     ]
 
 def spore_spawn_boss_area(pos, dims):
     """Returns the Spore Spawn Boss Area cmap."""
     return [
-        (pos + MCoords(0,-1), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
-        (pos + MCoords(0,-2), MapTile(_fixed=True,_walls=set(["L","R","D"]))),
-        (pos + MCoords(0,-3), MapTile(_fixed=True,_walls=set(["L","U","R"]))),
-        (pos + MCoords(1,-3), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
+        (pos + Coord(0,-1), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
+        (pos + Coord(0,-2), MapTile(_fixed=True,_walls=set(["L","R","D"]))),
+        (pos + Coord(0,-3), MapTile(_fixed=True,_walls=set(["L","U","R"]))),
+        (pos + Coord(1,-3), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
         (pos, MapTile(_walls=set(["U"]))),
     ]
 
 def spore_spawn_bboxes(pos, dims):
     return [
-        (pos + MCoords(0,-3), pos + MCoords(1,0)),
-        (pos + MCoords(1,-3), MCoords(2,-2))
+        (pos + Coord(0,-3), pos + Coord(1,0)),
+        (pos + Coord(1,-3), Coord(2,-2))
     ]
 
 def crocomire_boss_area(pos, dims):
     """Returns the Crocomire Boss Area cmap."""
     return [
-        (pos + MCoords(-4, 1),MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
-        (pos + MCoords(-3, 1),MapTile(_fixed=True,_walls=set(["L","U","D"]))),
-        (pos + MCoords(-2, 1),MapTile(_fixed=True,_walls=set(["U","D"]))),
-        (pos + MCoords(-1, 1),MapTile(_fixed=True,_walls=set(["U","D"]))),
-        (pos + MCoords(0, 1),MapTile(_fixed=True,_walls=set(["U","D"]))),
-        (pos + MCoords(1, 1),MapTile(_fixed=True,_walls=set(["U","D"]))),
-        (pos + MCoords(2, 1),MapTile(_fixed=True,_item=True,_walls=set(["U","D"]))),
-        (pos + MCoords(3, 1),MapTile(_fixed=True,_walls=set(["U","D"]))),
-        (pos + MCoords(4, 1),MapTile(_fixed=True,_item=True,_walls=set(["U","R","D"]))),
+        (pos + Coord(-4, 1),MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
+        (pos + Coord(-3, 1),MapTile(_fixed=True,_walls=set(["L","U","D"]))),
+        (pos + Coord(-2, 1),MapTile(_fixed=True,_walls=set(["U","D"]))),
+        (pos + Coord(-1, 1),MapTile(_fixed=True,_walls=set(["U","D"]))),
+        (pos + Coord(0, 1),MapTile(_fixed=True,_walls=set(["U","D"]))),
+        (pos + Coord(1, 1),MapTile(_fixed=True,_walls=set(["U","D"]))),
+        (pos + Coord(2, 1),MapTile(_fixed=True,_item=True,_walls=set(["U","D"]))),
+        (pos + Coord(3, 1),MapTile(_fixed=True,_walls=set(["U","D"]))),
+        (pos + Coord(4, 1),MapTile(_fixed=True,_item=True,_walls=set(["U","R","D"]))),
         (pos, MapTile(_walls=set(["D"]))),
     ]
 
 def crocomire_bboxes(pos, dims):
     return [
-        (pos + MCoords(-3,1), pos + MCoords(5,2)),
-        (pos + MCoords(-4,1), MCoords(-3,2))
+        (pos + Coord(-3,1), pos + Coord(5,2)),
+        (pos + Coord(-4,1), Coord(-3,2))
     ]
 
 def botwoon_boss_area(pos, dims):
     """Returns the Botwoon Boss Area cmap."""
     return [
-        (pos + MCoords(1,0), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
-        (pos + MCoords(2,0), MapTile(_fixed=True,_walls=set(["L","U","R","D"]))),
-        (pos + MCoords(3,0), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
+        (pos + Coord(1,0), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
+        (pos + Coord(2,0), MapTile(_fixed=True,_walls=set(["L","U","R","D"]))),
+        (pos + Coord(3,0), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
         (pos, MapTile(_walls=set(["R"]))),
     ]
 
 def botwoon_bboxes(pos, dims):
     return [
-        (pos + MCoords(1,0), pos + MCoords(3,1)),
-        (pos + MCoords(3,0), MCoords(4,1))
+        (pos + Coord(1,0), pos + Coord(3,1)),
+        (pos + Coord(3,0), Coord(4,1))
     ]
 
 def golden_torizo_boss_area(pos, dims):
     """Returns the Golden Torizo Boss Area cmap."""
     return [
-        (pos + MCoords(1,0), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
-        (pos + MCoords(2,0), MapTile(_fixed=True,_item=True,_walls=set(["U","R"]))),
-        (pos + MCoords(1,1), MapTile(_fixed=True,_walls=set(["L","D"]))),
-        (pos + MCoords(2,1), MapTile(_fixed=True,_walls=set(["R","D"]))),
-        (pos + MCoords(3,1), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
+        (pos + Coord(1,0), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
+        (pos + Coord(2,0), MapTile(_fixed=True,_item=True,_walls=set(["U","R"]))),
+        (pos + Coord(1,1), MapTile(_fixed=True,_walls=set(["L","D"]))),
+        (pos + Coord(2,1), MapTile(_fixed=True,_walls=set(["R","D"]))),
+        (pos + Coord(3,1), MapTile(_fixed=True,_item=True,_walls=set(["L","U","R","D"]))),
         (pos, MapTile(_walls=set(["R"]))),
     ]
 
 def golden_torizo_bboxes(pos, dims):
     return [
-        (pos + MCoords(1,0), pos + MCoords(3,2)),
-        (pos + MCoords(3,1), MCoords(4,2))
+        (pos + Coord(1,0), pos + Coord(3,2)),
+        (pos + Coord(3,1), Coord(4,2))
     ]
 
 def elevator_down_area(pos, dims):
     """Returns the cmap for a down elevator."""
     e_tiles = [
         (pos, MapTile(_walls=set(["D"]))),
-        (pos + MCoords(0,1), MapTile(TileType.elevator_main_down,_fixed=True,_walls=set(["L","R","U"]))),
-        (pos + MCoords(0,2), MapTile(TileType.elevator_shaft,_fixed=True,_walls=set(["L","R"]))),
-        (pos + MCoords(0,3), MapTile(TileType.up_arrow,_fixed=True,_walls=set(["L","R","D"]))),
+        (pos + Coord(0,1), MapTile(TileType.elevator_main_down,_fixed=True,_walls=set(["L","R","U"]))),
+        (pos + Coord(0,2), MapTile(TileType.elevator_shaft,_fixed=True,_walls=set(["L","R"]))),
+        (pos + Coord(0,3), MapTile(TileType.up_arrow,_fixed=True,_walls=set(["L","R","D"]))),
     ]
     # Blank tiles down to the bottom of dims
     # Note: range(x,y) = [] when x>=y
     #TODO: dims.y + 1? is dims inclusive?
     for i in range(pos.y + 4, dims.y):
-        t = (MCoords(pos.x, i), MapTile(TileType.blank,_fixed=True))
+        t = (Coord(pos.x, i), MapTile(TileType.blank,_fixed=True))
         e_tiles.append(t)
     return e_tiles
 
 def elevator_down_bboxes(pos, dims):
     return [
-        (pos + MCoords(0,1), pos + MCoords(1,4)),
+        (pos + Coord(0,1), pos + Coord(1,4)),
     ]
 
 def elevator_up_area(pos, dims):
     """Returns the cmap for an up elevator."""
     e_tiles = [
         (pos, MapTile(_walls=set(["U"]))),
-        (pos + MCoords(0,-1), MapTile(TileType.elevator_main_down,_fixed=True,_walls=set(["L","R","D"]))),
-        (pos + MCoords(0,-2), MapTile(TileType.elevator_shaft,_fixed=True,_walls=set(["L","R"]))),
-        (pos + MCoords(0,-3), MapTile(TileType.up_arrow,_fixed=True,_walls=set(["L","R","U"]))),
+        (pos + Coord(0,-1), MapTile(TileType.elevator_main_down,_fixed=True,_walls=set(["L","R","D"]))),
+        (pos + Coord(0,-2), MapTile(TileType.elevator_shaft,_fixed=True,_walls=set(["L","R"]))),
+        (pos + Coord(0,-3), MapTile(TileType.up_arrow,_fixed=True,_walls=set(["L","R","U"]))),
     ]
     # Blank tiles up to the top of dims
     for i in range(0, pos.y - 3):
-        t = (MCoords(pos.x, i), MapTile(TileType.blank,_fixed=True))
+        t = (Coord(pos.x, i), MapTile(TileType.blank,_fixed=True))
         e_tiles.append(t)
     return e_tiles
 
 def elevator_up_bboxes(pos, dims):
     return [
-        (pos + MCoords(0,-3), pos + MCoords(1,0))
+        (pos + Coord(0,-3), pos + Coord(1,0))
     ]
 
 def save_point_area(pos, dims):

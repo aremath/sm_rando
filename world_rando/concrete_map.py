@@ -1,106 +1,9 @@
-# Creates a concrete map based on an abstract map
-# a map is a data structure:
-# key1 - area (ex. "Maridia")
-# key2 - (x,y) tuple
-# value - MapTile
+# Data types for concrete map creation
 import collections
 import heapq
 import random
 from enum import Enum
-
-class MCoords(object):
-    
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-    def __add__(self, other):
-        return MCoords(self.x + other.x, self.y + other.y)
-
-    def __sub__(self, other):
-        return MCoords(self.x - other.x, self.y - other.y)
-
-    def __mul__(self, other):
-        return MCoords(self.x * other.x, self.y * other.y)
-
-    def up(self):
-        return MCoords(self.x, self.y - 1)
-
-    def right(self):
-        return MCoords(self.x + 1, self.y)
-
-    def down(self):
-        return MCoords(self.x, self.y + 1)
-
-    def left(self):
-        return MCoords(self.x - 1, self.y)
-
-    def neighbors(self):
-        return self.left(), self.up(), self.right(), self.down()
-
-    def adjacent(self, other):
-        return (other in self.neighbors())
-
-    def to_tuple(self):
-        return (self.x, self.y)
-
-    def __eq__(self, other):
-        return self.x == other.x and self.y == other.y
-
-    def __hash__(self):
-        return hash(self.to_tuple())
-
-    def euclidean(self, other):
-        return ((self.x-other.x)**2 + (self.y-other.y)**2)**(0.5)
-
-    def __repr__(self):
-        return "(" + str(self.x) + "," + str(self.y) + ")"
-
-    # stupid way to break priority ties
-    def __lt__(self, other):
-        return self.x + self.y < other.x + other.y
-
-    def scale(self, scale_factor):
-        return MCoords(scale_factor*self.x, scale_factor*self.y)
-
-    def to_unit(self):
-        magnitude = self.euclidean(MCoords(0,0))
-        return self.scale(1/magnitude)
-
-    def resolve_int(self):
-        return MCoords(int(self.x), int(self.y))
-
-    def wall_relate(self, other):
-        if other == self.up():
-            return "U"
-        elif other == self.left():
-            return "L"
-        elif other == self.right():
-            return "R"
-        elif other == self.down():
-            return "D"
-        else:
-            assert False, "No wall_relate"
-
-    def in_bounds(self, lower, upper):
-        """Is this MCoords inside the rectangle described by lower, upper?
-        Like range, this includes the lower bound but not the upper bound. """
-        return (self.x >= lower.x) and (self.y >= lower.y) and (self.x < upper.x) and (self.y < upper.y)
-
-    def truncate(self, lower, upper):
-        """Returns the tile inside the (lower,upper) rectangle closest to
-        self."""
-        new_x = self.x
-        new_y = self.y
-        if self.x < lower.x:
-            new_x = lower.x
-        elif self.x >= upper.x:
-            new_x = upper.x - 1
-        if self.y < lower.y:
-            new_y = lower.y
-        elif self.y >= upper.y:
-            new_y = upper.y - 1
-        return MCoords(new_x, new_y)
+from .coord import *
 
 # Enum for what things a tile can be
 class TileType(Enum):
@@ -115,7 +18,7 @@ class TileType(Enum):
 class MapTile(object):
 
     def __init__(self, _tile_type=TileType.normal, _fixed=False, _item=False, _save=False, _walls=None):
-        # key - MCoords
+        # key - Coord
         # value - itemset needed to reach
         self.d = collections.defaultdict(list)
         # set of ("L", "R", "U", "D") indicating which walls this tile has.
@@ -156,22 +59,22 @@ class ConcreteMap(object):
     # Avoid the infamous default value bug!
     def __init__(self, _dimensions, _tiles=None):
         # X, Y. The size of the ConcreteMap.
-        # MCoords in the cmap should be between (0,0) and _dimensions
+        # Coord in the cmap should be between (0,0) and _dimensions
         self.dimensions = _dimensions
-        # MCoords -> Maptile dictionary.
+        # Coord -> Maptile dictionary.
         if _tiles == None:
             self.tiles = {}
         else:
             self.tiles = _tiles
 
-    def in_bounds(self, mcoord):
-        return mcoord.in_bounds(MCoords(0,0), self.dimensions)
+    def in_bounds(self, coord):
+        return coord.in_bounds(Coord(0,0), self.dimensions)
         
-    def assert_in_bounds(self, mcoord):
-        assert self.in_bounds(mcoord), "Out of bounds: " + str(mcoord)
+    def assert_in_bounds(self, coord):
+        assert self.in_bounds(coord), "Out of bounds: " + str(coord)
 
     def map_extent(self):
-        """ The extent of the cmap, two MCoords which specify the bounding box."""
+        """ The extent of the cmap, two Coord which specify the bounding box."""
         return extent(self.keys())
 
     def map_range(self):
@@ -293,7 +196,7 @@ class ConcreteMap(object):
         return rooms
 
     def room_walls(self, room):
-        """ puts the walls into a room, given as a set of MCoords """
+        """ puts the walls into a room, given as a set of Coord """
         for xy in room:
             for n in xy.neighbors():
                 if n not in room:
@@ -327,7 +230,7 @@ class ConcreteMap(object):
         new_tiles = {}
         for x in range(start.x, end.x):
             for y in range(start.y, end.y):
-                xy = MCoords(x,y)
+                xy = Coord(x,y)
                 if xy in self:
                     new_tiles[xy] = self[xy]
         return ConcreteMap(self.dimensions, _tiles=new_tiles)
@@ -337,7 +240,7 @@ class ConcreteMap(object):
         return self.tiles[key]
     # Cannot set an item outside the bounds
     def __setitem__(self, key, value):
-        if key.in_bounds(MCoords(0,0), self.dimensions):
+        if key.in_bounds(Coord(0,0), self.dimensions):
             self.tiles[key] = value
         else:
             assert False, "Index not in bounds: " + str(key)
@@ -508,19 +411,19 @@ def active_replace(active, tile1, tile2):
 def active_delete(active, tile):
     return {key : value - set([tile]) for (key, value) in active if key != tile}
 
-def extent(mcoords):
-    """Determines the extent of a list of MCoords"""
-    if len(mcoords) == 0:
+def extent(coords):
+    """Determines the extent of a list of Coord"""
+    if len(coords) == 0:
         return None
-    minx = min(mcoords, key=lambda item: item.x).x
-    miny = min(mcoords, key=lambda item: item.y).y
-    maxx = max(mcoords, key=lambda item: item.x).x
-    maxy = max(mcoords, key=lambda item: item.y).y
-    return (MCoords(minx, miny), MCoords(maxx, maxy))
+    minx = min(coords, key=lambda item: item.x).x
+    miny = min(coords, key=lambda item: item.y).y
+    maxx = max(coords, key=lambda item: item.x).x
+    maxy = max(coords, key=lambda item: item.y).y
+    return (Coord(minx, miny), Coord(maxx, maxy))
 
-def bounding_box(mcoords):
-    l, u = extent(mcoords)
-    return l, u + MCoords(1,1)
+def bounding_box(coords):
+    l, u = extent(coords)
+    return l, u + Coord(1,1)
 
 def bound_size(bbox):
     l, u = bbox

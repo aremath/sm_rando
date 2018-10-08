@@ -1,5 +1,6 @@
 # visualizes a concrete map of the form laid out in concrete_map.py
 import collections #defaultdict
+from .coord import *
 from .room_dtypes import *
 from PIL import Image
 from PIL import ImageOps
@@ -134,15 +135,14 @@ def find_image(tile, images, slopes):
     else:
         return images["error"]
        
-def room_viz(level_data, x_range, y_range, filename, room_dir):
-    room_image = Image.new("RGBA", ((x_range)*16, (y_range)*16), "white")
+def room_viz(level, filename, room_dir):
+    room_image = Image.new("RGBA", ((level.dimensions.x)*16, (level.dimensions.y)*16), "white")
     images, slopes = load_room_tiles(room_dir)
-    for x in range(x_range):
-        for y in range(y_range):
-            rtile = level_data[(x, y)]
-            img = find_image(rtile, images, slopes)
-            if img is not None:
-                room_image.paste(img, (x*16,y*16), img)
+    for c in level.itercoords():
+        rtile = level[c]
+        img = find_image(rtile, images, slopes)
+        if img is not None:
+            room_image.paste(img, (c.x*16,c.y*16), img)
     room_image.save(filename)
     return room_image
 

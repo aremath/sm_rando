@@ -1,3 +1,4 @@
+from .coord import *
 from .concrete_map import *
 from . import fixed_cmaps
 
@@ -18,9 +19,9 @@ def spring_model(node_locs, graph, n_iterations, spring_constant, spring_equilib
     # node locs is node_name -> node_position
     # node_name -> node_velocity
     # using mcoords as a vector
-    node_v = { n : MCoords(0,0) for n in node_locs }
+    node_v = { n : Coord(0,0) for n in node_locs }
     # node_name -> node_acceleration
-    node_a = { n : MCoords(0,0) for n in node_locs }
+    node_a = { n : Coord(0,0) for n in node_locs }
     iteration = 0
     while iteration < n_iterations:
         for n in node_locs:
@@ -68,7 +69,7 @@ def less_naive_gen(dimensions, dist, graph, elevators):
         for edge in graph.nodes[node].edges:
             # Special case - edges from MB start from the escape point!
             if node == "Mother_Brain":
-                start_point = node_locs[node] + MCoords(-5,0)
+                start_point = node_locs[node] + Coord(-5,0)
             else:
                 start_point = node_locs[node]
             end_point = node_locs[edge.terminal]
@@ -104,11 +105,11 @@ def less_naive_gen(dimensions, dist, graph, elevators):
     return cmap, rooms, paths
 
 def xy_set(dimensions):
-    """Creates space of MCoords from 0 to dimensions not including the upper bound."""
+    """Creates space of Coord from 0 to dimensions not including the upper bound."""
     xys = set()
     for x in range(dimensions.x):
         for y in range(dimensions.y):
-            xys.add(MCoords(x,y))
+            xys.add(Coord(x,y))
     return xys
 
 def random_node_place(graph, dimensions, up_es, down_es):
@@ -176,7 +177,7 @@ def find_placement(initial, areas, infos, cmap):
 def node_place(graph, dimensions, up_es, down_es):
     initial = random_node_place(graph, dimensions, up_es, down_es)
     spring = spring_model(initial, graph, 5, 2, 3, 0.1)
-    trunc_spring = {n : xy.truncate(MCoords(0,0), dimensions) for (n, xy) in spring.items()}
+    trunc_spring = {n : xy.truncate(Coord(0,0), dimensions) for (n, xy) in spring.items()}
     # Now do a search for a good placement for each nod.
     cmap = ConcreteMap(dimensions)
     areas = lambda n: fixed_cmaps.node_to_area(n, up_es, down_es)

@@ -2,7 +2,7 @@ from world_rando import concrete_map
 from world_rando import item_order_graph
 from world_rando import map_gen
 from world_rando import map_viz
-from world_rando import room_dtypes
+from world_rando import room_gen
 
 from rom_tools import romManager
 from encoding import sm_global
@@ -39,7 +39,7 @@ if __name__ == "__main__":
         dimensions = concrete_map.MCoords(54,30)
         cmap, rooms, paths = map_gen.less_naive_gen(dimensions, less_rand_d, graph, es)
         region_cmaps[region] = cmap
-        region_room_defs[region] = room_dtypes.make_rooms(rooms, cmap, paths)
+        region_room_defs[region] = room_gen.make_rooms(rooms, cmap, paths)
         # Various info
         ntiles += len(region_cmaps[region])
         for room in rooms.values():
