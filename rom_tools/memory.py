@@ -28,6 +28,7 @@ class Extent(object):
             self.start = self.start.copy_increment(size)
             self.size -= size
             return self
+
     def has_space(self, size):
         assert(size > 0)
         return (size <= self.size)

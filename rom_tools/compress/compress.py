@@ -45,17 +45,30 @@ def compress(src, min_size=0, debug=False):
     return path_to_data(p) + b"\xff"
 
 # Greedy_compress which just finds the best interval for the next bytes and is reasonably fast
-def greedy_compress(src, min_size=0):
+# TODO: buggy for min_size < 2?
+def greedy_compress(src, min_size=2, debug=False):
     i = 0
     last_end = 0
     interval_list = []
     while i < len(src):
         bf, _ = find_bytefill_at(src, i, min_size)
+        if debug and len(bf) > 0:
+            print(bf[0])
         wf, _ = find_wordfill_at(src, i, min_size)
+        if debug and len(wf) > 0:
+            print(wf[0])
         sf, _ = find_sigmafill_at(src, i, min_size)
+        if debug and len(sf) > 0:
+            print(sf[0])
         ac = find_address_copy_at(src, i, min_size)
+        if debug and len(ac) > 0:
+            print(ac[0])
         xc = find_address_xor_copy_at(src, i, min_size)
+        if debug and len(xc) > 0:
+            print(xc[0])
         rc = find_rel_address_copy_at(src, i, min_size)
+        if debug and len(rc) > 0:
+            print(rc[0])
         intervals = bf + wf + sf + ac + xc + rc
         # If there's an interval to choose, use the one that saves the most bytes
         if len(intervals) != 0:
@@ -63,7 +76,15 @@ def greedy_compress(src, min_size=0):
             # Directcopy the bytes before this interval starts
             if last_end < i:
                 dc = DirectCopyInterval(last_end, i, src[last_end:i])
+                if debug:
+                    print("Using: " + str(dc))
+                    print(src[dc.start:dc.end])
                 interval_list.append(dc)
+            # Add the interval that we decided to use to the list
+            if debug:
+                print("Using: " + str(interval))
+                print(interval.b)
+                print(src[interval.start:interval.end])
             # Add this interval to the list
             interval_list.append(interval)
             # Set the iterator to the end of the interval we just chose
@@ -73,6 +94,8 @@ def greedy_compress(src, min_size=0):
         # this byte will be part of a directcopy.
         else:
             i += 1
+        if debug:
+            print("")
     # In case the last thing to do is directcopy
     if last_end < i:
         dc = DirectCopyInterval(last_end, i, src[last_end:i])

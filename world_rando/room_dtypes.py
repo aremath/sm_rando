@@ -98,7 +98,7 @@ class Level(object):
            level1 += t.level1_bytes()
            bts += t.bts_bytes()
            #TODO l2
-        size_bytes = int.to_bytes(len(level1), byteorder="little")
+        size_bytes = int.to_bytes(len(level1), 2, byteorder="little")
         assert len(size_bytes) == 2, "Level too large!"
         return size_bytes + level1 + bts + level2
                 
@@ -163,6 +163,7 @@ class Tile(object):
 # can be known while the texture remains unknown and vice versa.
 
 # The visual properties of a tile
+# Flips are hflip, vflip
 class Texture(object):
 
     def __init__(self, index, flips):
@@ -179,7 +180,7 @@ class Type(object):
 ### DEFAULT TILE TYPES ###
 
 def mk_default_solid():
-    tex = Texture(0x5f, (0, 0))
+    tex = Texture(0x5f, (0,0))
     ty = Type(0x8, 0x0)
     return Tile(tex, ty)
 
@@ -188,3 +189,23 @@ def mk_default_air():
     ty = Type(0x0, 0x0)
     return Tile(tex, ty)
     
+def mk_external():
+    tex = Texture(0x6a, (0,0))
+    ty = Type(0x8, 0x0)
+    return Tile(tex, ty)
+
+#TODO!
+def mk_door(doorid, x, direction):
+    if direction == "R" or direction == "L":
+        pass
+    elif direction == "U" or direction == "D":
+        pass
+    tex = Texture(0x0, (0,0))
+    ty = Type(0x9, doorid)
+    return Tile(tex, ty)
+
+#TODO!
+def mk_door_level(pos, dims, direction, doorid):
+    lvl = Level(dims)
+    pass
+

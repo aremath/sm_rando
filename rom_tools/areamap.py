@@ -54,7 +54,7 @@ class MapTile(object):
         return self.__firstByte() + self.__secondByte()
 
     def isHidden(self):
-        """ porrly named, actually returns if it isn't hidden. this is because
+        """ poorly named, actually returns if it isn't hidden. this is because
             on the rom the data is stored as 0 for hidden, 1 for not """
         return not self.hidden
 

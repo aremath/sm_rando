@@ -91,7 +91,7 @@ def sigmafill(n, index, src, dst, debug):
     arg = src[index]
     out = b""
     for i in range(n):
-        argi = arg + i % 256
+        argi = (arg + i) % 256
         out += argi.to_bytes(1, byteorder='little')
     if debug:
         print("SIGMAFILL", len(dst), len(dst) + n)
@@ -111,8 +111,8 @@ def addr_copy(n, index, src, dst, debug):
 def map_bytes(op, byte):
     out = b""
     for b in byte:
-        b_int = int.from_bytes(b, byteorder='little')
-        out += op(b_int).to_bytes(1, byteorder='little')
+        #b_int = int.from_bytes(b, byteorder='little')
+        out += op(b).to_bytes(1, byteorder='little')
     return out
 
 def addr_xor_copy(n, index, src, dst, debug):

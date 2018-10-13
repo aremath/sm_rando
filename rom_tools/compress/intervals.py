@@ -57,7 +57,7 @@ class Interval(object):
         else:
             #TODO: multiple extended commands when the region is very large!
             # - difficult because on copy commands, it will change the argument
-            assert False, "TODO - Byte region too large!"
+            assert False, "TODO - Byte region too large: " + str(n_adj)
         # The number of bytes the compressed representation takes up
         self.rep = len(self.b)
 
@@ -231,15 +231,15 @@ def choose_best_interval(intervals):
     saved = base.n - base.rep
     for i in intervals:
         i_saved = i.n - i.rep
-        if i_saved < saved:
+        if i_saved > saved:
             base = i
             saved = i_saved
-    return i
+    return base
 
-def find_pattern_at(src, i1, pattern, constructor, min_size):
+def find_pattern_at(src, i1, pattern, constructor, min_size, max_size=1023):
     i2 = i1
     # Count the length of the bytes matching pattern after i
-    while (i2 < len(src)) and pattern(src, i1, i2):
+    while (i2 < len(src)) and pattern(src, i1, i2) and i2-i1 <= max_size:
         i2 += 1
     interval_len = i2 - i1
     # Worth it if the pattern is true more than once
@@ -319,26 +319,26 @@ def find_sigmafill_at(src, i1, min_size):
 def find_sigmafills(src, min_size):
     return find_pattern(src, sigmafill_pattern, sigmafill_constructor, min_size)
 
-# How many bytes from i2 match i1?
-def match_length(src, i1, i2, operation):
+# How many bytes starting at i2 match the bytes starting at i1 (under the operation)?
+def match_length(src, i1, i2, operation, max_n):
     n = 0
     # While the bytes match and the indices are in bounds...
-    while i1 + n < len(src) and operation(src[i2 + n]) == src[i1 + n] and i2 + n < i1:
+    while i1 + n < len(src) and operation(src[i2 + n]) == src[i1 + n] and i2 + n < i1 and n <= max_n:
         n += 1
     # Subtract 1 because the above adds 1 during the last iteration when the condition is false.
     return n - 1
 
 # All match lengths over the given range
-def match_lens(src, i1, lower, upper, operation):
-    return map(lambda i2: match_length(src, i1, i2, operation), range(lower, upper))
+def match_lens(src, i1, lower, upper, operation, max_n):
+    return map(lambda i2: match_length(src, i1, i2, operation, max_n), range(lower, upper))
 
-def find_copy_at(src, i1, cpy_range, constructor, min_size, operation=lambda x: x):
+def find_copy_at(src, i1, cpy_range, constructor, min_size, operation=lambda x: x, max_size=1023):
     lower, upper = cpy_range(i1)
     # Nothing to map
     if lower == upper:
         return []
     # Compute the length of copy for each possible copy location
-    m_lens = list(match_lens(src, i1, lower, upper, operation))
+    m_lens = list(match_lens(src, i1, lower, upper, operation, max_size))
     # The number of bytes to copy
     best_n = max(m_lens)
     # Where to copy them from
