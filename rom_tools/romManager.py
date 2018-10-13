@@ -3,19 +3,12 @@ import subprocess
 from . import areamap
 from .memory import Bank
 from .address import Address
-from shutil import copy2 as fileCopy
+from shutil import copy2 as copy_file
 from hashlib import md5
 from os import stat, remove, rename
 from . import byte_ops
 
-def _backupFile(filename):
-    """ Just tries to bakup the rom for easy re-use """
-    try:
-        fileCopy(filename, filename + ".bak")
-    except:
-        print("FILE DOESN'T EXIST")
-
-def _takeChecksum(filename):
+def _checksum(filename):
     """ md5sums a file """
     with open(filename, 'rb') as file:
         m = md5()
@@ -26,10 +19,9 @@ def _takeChecksum(filename):
             m.update(data)
     return m.hexdigest()
 
-def _fileLength(filename):
+def _file_length(filename):
     statinfo = stat(filename)
     return statinfo.st_size
-
 
 class RomManager(object):
     """The Rom Manager handles the actual byte facing aspects of the rom editing
@@ -38,50 +30,57 @@ class RomManager(object):
        Also *eventually* will be able to detect if your rom is `pure` and apply
        some necessary patches auto-magically"""
 
-    def __init__(self,romname = None):
+    def __init__(self,clean_name,new_name):
         #TODO all these values are rough estimate placeholders, replace eventually.
         self.freeBlock = 0x220000
         self.lastBlock = 0x277FFF
         self.freeHeader = 0x78000
         self.lastHeader = 0x7FFFF
+        self.load_rom(clean_name, new_name)
 
-        if romname != None:
-            self.loadRom(romname)
+    def load_rom(self, clean_name, new_name):
+        """Opens the files associated with the clean rom and the modded rom"""
 
-    def loadRom(self, filename):
-        """actually loads the rom by filename, also saves a backup of the rom
-           before any changes have been made"""
-        _backupFile(filename)
+        pure_rom_sum = '21f3e98df4780ee1c667b84e57d88675'
+        modded_rom_sum = 'idk'
+        pure_rom_size = 3145728
 
+        # First, make a copy of clean_name as new_name
+        copy_file(clean_name, new_name)
 
-        pureRomSum = '21f3e98df4780ee1c667b84e57d88675'
-        moddedRomSum = 'idk'
-        pureRomSize = 3145728
+        checksum = _checksum(new_name)
+        filesize = _file_length(new_name)
+        # TODO: Check and decapitate...
+        # But what to do with the clean one? If we are going to 
+        # copy data from the clean one, we need it to be unheadered,
+        # but we also want to keep it unchanged.
+        assert filesize == pure_rom_size, "Rom is headered!"
+        # if filesize != pure_rom_size:
+            # print("This is a headered rom, lets cut it off")
+            # self.decapitate_rom(new_name)
+            # checksum = _checksum(new_name)
 
-        checksum = _takeChecksum(filename)
-        filesize = _fileLength(filename)
-        if not filesize == pureRomSize:
-            print("This is a headered rom, lets cut it off")
-            self.decapitateRom(filename)
-            checksum = _takeChecksum(filename)
-
-
-        if checksum == pureRomSum:
+        self.clean_rom = open(clean_name, "r+b")
+        
+        # Mod the rom if necessary
+        if checksum == pure_rom_sum:
             print("Looks like a valid pure rom, we'll mod it first")
-            self.rom = open(filename, "r+b")
-            self.modRom()
-        elif checksum == moddedRomSum:
+            self.new_rom = open(new_name, "r+b")
+            self.mod_rom()
+        # Load it if it already has the right mods
+        # TODO: do we want this?
+        elif checksum == modded_rom_sum:
             print("This is already modded, we can just load it")
-            self.rom = open(filename, "r+b")
+            self.new_rom = open(new_name, "r+b")
         else: #TODO: restrict once we know what the checksums are supposed to be.
             print("Something is wrong with this rom")
-            self.rom = open(filename, "r+b")
+            self.new_rom = open(new_name, "r+b")
 
-    def modRom(self):
+    def mod_rom(self):
         """ *eventually* will modify a pure rom to have the mods we need """
         print("currently a stub")
 
-    def decapitateRom(self, filename):
+    def decapitate_rom(self, filename):
         """removes the header from the rom """
         tmpname = filename + ".tmp"
         with open(filename, 'rb') as src:
@@ -91,37 +90,45 @@ class RomManager(object):
         remove(filename)
         rename(tmpname, filename)
 
-    def saveRom(self):
+    def save_rom(self):
         """ Saves all changes to the rom, for now that just closes it"""
-        self.rom.close()
-        self.rom = None
+        self.clean_rom.close()
+        self.new_rom.close()
+        self.clean_rom = None
+        self.new_rom = None
 
-
-    def placeBlock(self, block):
+    def place_block(self, block):
         """ Given a block of compressed level data, places it in the next spot, returns PC address"""
         length = len(block)
         offset = self.freeBlock
         self.freeBlock += length
         print("Placing block of size: 0x%x at address: 0x%x\nnew freeBlock: 0x%x" % (length, offset, self.freeBlock))
-        self.writeToRom(offset, block)
+        self.write_to_rom(offset, block)
         print("Space left in levelData Banks: 0x%x" % (self.lastBlock - self.freeBlock))
         return offset
 
-    def writeToRom(self, offset, data):
-        """ With some bytes and an offset, we can write that to the rom"""
+    def write_to_new(self, offset, data):
+        """Write data to offset in the new rom"""
         if (isinstance(offset, Address)):
             offset = offset.as_PC()
-        self.rom.seek(offset)
-        self.rom.write(data)
+        self.new_rom.seek(offset)
+        self.new_rom.write(data)
 
-    def readFromRom(self, offset, numbytes):
-        """read a number of bytes from a certain offset"""
+    def read_from_new(self, offset, n_bytes):
+        """Read n bytes from the new rom at offset"""
         if (isinstance(offset, Address)):
             offset = offset.as_PC()
-        self.rom.seek(offset)
-        r = self.rom.read(numbytes)
+        self.new_rom.seek(offset)
+        r = self.new_rom.read(n_bytes)
         return r
 
+    def read_from_clean(self, offset, n_bytes):
+        """Read n bytes from the clean rom at offset"""
+        if (isinstance(offset, Address)):
+            offset = offset.as_PC()
+        self.clean_rom.seek(offset)
+        r = self.clean_rom.read(n_bytes)
+        return r
 
     def _init_banks(self):
         print("stub")
