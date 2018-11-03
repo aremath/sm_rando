@@ -2,8 +2,8 @@
 # each 2 bytes is one "tile" for what that means
 #
 
-defaultMapSize = 0x800
-defaultHiddenSize = 0x100
+default_map_size = 0x800
+default_hidden_size = 0x100
 
 areamapLocs = {
 #"area":(hiddenbitsAddrs, tilesAddrs) pc addresses
@@ -29,10 +29,10 @@ class MapTile(object):
         self.hidden = True
 
 
-    def __firstByte(self):
+    def __first_byte(self):
         return bytes([self.tile])
 
-    def __secondByte(self):
+    def __second_byte(self):
         i = (0x04) * self.color
         if self.vflip:
             i += 0x80
@@ -49,55 +49,55 @@ class MapTile(object):
             self.color = 3 #TODO good default stuff
             self.hidden = False
 
-    def toBytes(self):
+    def to_bytes(self):
         #TODO check two bytes?
-        return self.__firstByte() + self.__secondByte()
+        return self.__first_byte() + self.__second_byte()
 
-    def isHidden(self):
-        """ poorly named, actually returns if it isn't hidden. this is because
-            on the rom the data is stored as 0 for hidden, 1 for not """
+    def is_not_hidden(self):
         return not self.hidden
 
 class AreaMap(object):
     """ a set of map tiles is an area map, can generate the whole map data
         including the midden bitmap"""
     def __init__(self):
-        self.tileList = [MapTile()] * defaultMapSize
+        self.tile_list = [MapTile()] * default_map_size
 
-    def __rightSize(self):
-        if (len(self.tileList) == defaultMapSize):
+    def __right_size(self):
+        if (len(self.tile_list) == default_map_size):
             return True
         else:
             return False
 
-    def __isRightSize(self):
-        if not self.__rightSize():
-            print("Something is wrong")
-            #TODO actually error?
+    def __is_right_size(self):
+        if not self.__right_size():
+            assert False, "Wrong map size"
 
-    def mapToBytes(self):
-        self.__isRightSize()
+    def map_to_bytes(self):
+        self.__is_right_size()
         x = bytes()
-        for tile in self.tileList:
-            x += tile.toBytes()
+        for tile in self.tile_list:
+            x += tile.to_bytes()
         return x
 
-    def hiddenToBytes(self):
+    def hidden_to_bytes(self):
         l = []
         t = 0
-        self.__isRightSize()
-        for i in range(len(self.tileList)):
+        self.__is_right_size()
+        for i in range(len(self.tile_list)):
             if i > 0 and ((i % 8) == 0):
                 l.append(t)
                 t = 0
             t *= 2
-            t += self.tileList[i].hidden
+            t += self.tile_list[i].hidden
         l.append(t)
+        assert len(bytes(l)) == default_hidden_size
         return bytes(l)
 
+#TODO: hidden problems
 def tuples_to_amap(cmap_tuples):
     """takes a dict with key - xy, value - (hflip, vflip, index) and creates the appropriate amap"""
     amap = AreaMap()
+    # The map is represented on the ROM as two 32x32 arrays instead of one 64x64 array.
     for submap in range(2):
         for x in range(32):
             for y in range(32):
@@ -107,7 +107,7 @@ def tuples_to_amap(cmap_tuples):
                 #print(cmap_vs, submap)
                 if cmap_vs in cmap_tuples:
                     index = x + (y*32) + (submap * 0x400) #TODO: index out of range problems?
-                    newTile = MapTile()
-                    newTile.set(cmap_tuples[cmap_vs])
-                    amap.tileList[index] = newTile
+                    new_tile = MapTile()
+                    new_tile.set(cmap_tuples[cmap_vs])
+                    amap.tile_list[index] = new_tile
     return amap

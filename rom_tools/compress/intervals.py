@@ -1,7 +1,7 @@
 
 def assert_bits(i, n):
     """Asserts that i has only n bits"""
-    assert (n >= 0) and (n < (1 << n)), "n too large!"
+    assert (i >= 0) and (i < (1 << n)), "i too large!"
 
 # How many bits is the integer representation of i?
 def count_bits(n):

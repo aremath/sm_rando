@@ -4,47 +4,114 @@ class Address(object):
     """Address Class that handles conversions
        this way we don't have to remember which 'kind' of address we have
        just which kind we want to use"""
-    def __init__(self, pc=None):
-        if pc is not None:
-            self.from_PC(pc)
-        return
+    def __init__(self, pc):
+        self.from_pc(pc)
 
     def __repr__(self):
-        return hex(self.as_PC())
+        return hex(self.as_pc())
 
-    def __gt__(self, a2):
-        return self.as_PC() > a2.as_PC()
+    def __gt__(self, other):
+        return self.as_pc() > other.as_pc()
 
     def __eq__(self, other):
-        return self.as_PC() == other.as_PC()
+        return self.as_pc() == other.as_pc()
 
-    def from_SNES(self,addr):
-        byte_ops.assert_valid_SNES(addr)
-        self.pc_addr = byte_ops.SNES_to_PC(addr)
+    def __add__(self, other):
+        return Address(self.as_pc() + other.as_pc())
 
-    def from_PC(self,addr):
+    def from_snes(self,addr):
+        byte_ops.assert_valid_snes(addr)
+        self.pc_addr = byte_ops.snes_to_pc(addr)
+
+    def from_pc(self,addr):
         self.pc_addr = addr
 
-    def as_PC(self):
+    def as_pc(self):
         return self.pc_addr
 
-    def as_SNES(self):
-        sn = byte_ops.PC_to_SNES(self.pc_addr)
-        byte_ops.assert_valid_SNES(sn)
+    def as_snes(self):
+        sn = byte_ops.pc_to_snes(self.pc_addr)
+        byte_ops.assert_valid_snes(sn)
         return sn
-
-    def as_SNES_endian(self):
-        sn = self.as_SNES()
-        return byte_ops.int_split(sn)
-
-    def as_room_id(self):
-        return byte_ops.addr_to_room_id(self.as_SNES())
-
-    def as_room_id_endian(self):
-        return byte_ops.int_split(self.as_room_id())
+    
+    def as_snes_bytes(self, nbytes):
+        assert (nbytes == 2 or nbytes == 3), "Can't produce a " + str(nbytes) + "-byte pointer!"
+        sn = byte_ops.pc_to_snes(self.pc_addr)
+        b = int.to_bytes(sn, byteorder='little')
+        return b[:nbytes]
+    
+    def bank(self)
+        return byte_ops.pc_to_snes(self.pc_addr) & 0xff0000
 
     def copy_increment(self,inc):
-        ad = self.as_PC() + inc
+        ad = self.as_pc() + inc
         new = Address()
-        new.from_PC(ad)
+        new.from_pc(ad)
         return new
+
+#TODO: NullPointer class?
+
+class FutureAddress(object):
+    """Represents an address which is currently unknown."""
+    
+    def __init__(self, name="", real_addr=None):
+        self.name = name
+        self.real_addr = real_addr
+
+    def resolve(self, env):
+        if self.real_addr is None:
+            real_addr = env[self.name]
+            self.real_addr = real_addr
+        return self.real_addr
+
+    def __add__(self, other):
+        if isinstance(other, FutureAddress):
+            return FutureAddressOp(lambda x,y: x + y, self, other)
+        elif isinstance(other, Address):
+            ot = FutureAddress(real_addr=other)
+            return self + ot
+        else:
+            assert False
+
+class FutureAddressOp(object):
+    """Represents a binary expression tree for FutureAddresses."""
+    
+    def __init__(self, op=None, fa1, fa2=None):
+        self.op = op
+        self.fa1 = fa1
+        self.fa2 = fa2
+
+    def resolve(self, env):
+        if self.fa2 is None:
+            if op is None:
+                return self.fa1.resolve(env)
+            else:
+                return op(self.fa1.resolve(env))
+        else:
+            return op(self.fa1.resolve(env), self.fa2.resolve(env))
+
+    def __add__(self, other):
+        if isinstance(other, FutureAddressOp) or isinstance(other, FutureAddress):
+            return FutureAddressOp(lambda x, y: x+y, self, other)
+        elif isinstance(other, Address):
+            ot = FutureAddress(real_addr=other)
+            return self + ot
+        else:
+            assert False
+
+class FutureAddressWrite(object):
+    """Represents a place to fill an unknown pointer."""
+
+    def __init__(self, ptr, place, size, bank=None):
+        self.ptr = ptr
+        self.place = place
+        self.bank = bank
+        self.size = size
+        
+    def fill(rom, env):
+        place = self.place.resolve(env)
+        addr  = self.ptr.resolve(env)
+        assert self.bank is None or addr.bank() == self.bank,
+                "Pointer's bank ({}) does not match expected bank ({})".format(addr.bank(), self.bank)
+        rom.write_to_new(place, addr.as_snes_bytes())
+

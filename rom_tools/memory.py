@@ -63,7 +63,6 @@ class Bank(object):
                 ex.claim_space(size)
                 return ex.get_addr()
 
-
         for i in range(len(self.extent_list)):
             if self.extent_list[i].has_space(size):
                 ex = self.extent_list.pop(i)
@@ -74,3 +73,4 @@ class Bank(object):
                 return addr
         print("Unable to find enough space for your request")
         assert(False)
+
