@@ -99,6 +99,7 @@ class FutureAddressOp(object):
         else:
             assert False
 
+#TODO: also verify bank of where we're being written?
 class FutureAddressWrite(object):
     """Represents a place to fill an unknown pointer."""
 
