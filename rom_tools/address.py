@@ -40,8 +40,8 @@ class Address(object):
         b = int.to_bytes(sn, byteorder='little')
         return b[:nbytes]
     
-    def bank(self)
-        return byte_ops.pc_to_snes(self.pc_addr) & 0xff0000
+    def bank(self):
+        return (byte_ops.pc_to_snes(self.pc_addr) & 0xff0000) >> 16
 
     def copy_increment(self,inc):
         ad = self.as_pc() + inc
