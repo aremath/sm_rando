@@ -1,7 +1,7 @@
 from . import level
 import subprocess
 from . import areamap
-from .memory import Bank
+from .memory import *
 from .address import Address
 from shutil import copy2 as copy_file
 from hashlib import md5
@@ -31,15 +31,13 @@ class RomManager(object):
        some necessary patches auto-magically"""
 
     def __init__(self,clean_name,new_name):
-        #TODO all these values are rough estimate placeholders, replace eventually.
-        self.freeBlock = 0x220000
-        self.lastBlock = 0x277FFF
-        self.freeHeader = 0x78000
-        self.lastHeader = 0x7FFFF
         assert clean_name != new_name, "The new rom name cannot be the same as the clean rom name!"
         #TODO: assert that clean_name refers to an actual file,
         # and that new_name does not refer to an existing file
         self.load_rom(clean_name, new_name)
+        # Create a memory model for the new ROM
+        self.memory = Memory(self)
+        self.memory.setup()
 
     def load_rom(self, clean_name, new_name):
         """Opens the files associated with the clean rom and the modded rom"""
@@ -100,16 +98,6 @@ class RomManager(object):
         self.clean_rom = None
         self.new_rom = None
 
-    def place_block(self, block):
-        """ Given a block of compressed level data, places it in the next spot, returns PC address"""
-        length = len(block)
-        offset = self.freeBlock
-        self.freeBlock += length
-        print("Placing block of size: 0x%x at address: 0x%x\nnew freeBlock: 0x%x" % (length, offset, self.freeBlock))
-        self.write_to_new(offset, block)
-        print("Space left in levelData Banks: 0x%x" % (self.lastBlock - self.freeBlock))
-        return offset
-
     def write_to_new(self, offset, data):
         """Write data to offset in the new rom"""
         if (isinstance(offset, Address)):
@@ -132,80 +120,6 @@ class RomManager(object):
         self.clean_rom.seek(offset)
         r = self.clean_rom.read(n_bytes)
         return r
-
-    def _init_banks(self):
-        print("stub")
-        self.level_data_bank = Bank()
-        self.doors_bank = Bank()
-        self.headers_bank = Bank()
-        return
-
-    def place_levels(self, level_list):
-        """ Take a list of Level objects, insert all of these into the ROM """
-        ## compress all the data at the start
-        print("Compressing Data")
-        for level in level_list:
-            level.compress_data()
-        print("Compressed all the data!.... finally")
-
-        ## place level data and door data, updating headers along the way
-        for level in level_list:
-            level_addr = self.place_level_data(level.data_compressed)
-            level.set_data_addr(level_addr)
-            door_addrs = list(map(self.place_door_data, level.doors))
-            level.set_door_addrs(door_addrs)
-
-        ## place the headers in places (updating the door objects along the way)
-        for level in level_lists:
-            addr = self.place_header(level.header)
-            level.set_header_addr(addr)
-
-        ## update the doors
-        for level in level_list:
-            self.update_doors(level)
-
-        # order of oporations:
-        # 	(
-        # 		place level data
-        # 		place door data
-        #       *eventually plm data*
-        # 	)
-        # 	update header
-        # 	place header + door pointers
-        # 	- do this for every room
-        # 	update door data
-
-    def place_level_data(self, data):
-        size = len(data)
-        addr = self.level_data_bank.get_place(size)
-        assert(isinstance(addr, Address))
-        self.write_to_new(addr.as_pc(), data)
-        return addr
-
-    def place_door_data(self, door):
-        assert(isinstance(door, level.Door))
-        data = door.data_to_hex()
-        size = len(data)
-        addr = self.doors_bank.get_place(size)
-        assert(isinstance(addr, Address))
-        self.write_to_new(addr.as_pc(), data)
-        return addr
-
-    def place_header(self, header):
-        assert(isinstance(header, level.Header))
-        data = header.data_to_hex()
-        size = len(data)
-        addr = self.headers_bank.get_place(size)
-        assert(isinstance(addr, Address))
-        self.write_to_new(addr.as_pc(), data)
-        return addr
-
-    def update_doors(self, level):
-        assert(isinstance(level, Level))
-        for addr, door in zip(level.door_addrs, level.doors):
-            data = door.data_to_hex()
-            dest = addr.as_pc()
-            self.write_to_new(dest, data)
 
     def smart_place_map(self, am, area):
         """ uses the lookup dictionary in areamap.py to translate

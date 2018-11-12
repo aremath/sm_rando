@@ -1,4 +1,5 @@
 from .address import Address
+from encoding import free_space
 
 class AllocationError(Exception):
     pass
@@ -97,14 +98,23 @@ class Memory(object):
         self.rom = rom
         self.banks = {}
         # essentially a dictionary of banks!
+        #TODO: what if the ROM is extended?
         for n in range(0x80, 0xdf + 1)
             self.banks[n] = Bank(n)
+
+    def setup(self):
+        """Sets up the memory with the default free space"""
+        frees = free_space.find_free_space()
+        for place, size in frees:
+            addr = Address(place)
+            self.mark_free(addr, size)
 
     def allocate_and_write(self, data, banks):
         """Try to allocate <data> in one of the <banks>, then
         write that data to the <rom>."""
         size = len(data)
         address = None
+        assert len(banks) > 0
         for b in banks:
             bank = self.banks[bank]
             try:
@@ -117,7 +127,7 @@ class Memory(object):
             self.rom.write_to_new(address, data)
             return address
 
-    def mark_free(address, size):
+    def mark_free(self, address, size):
         """Marks a part of the rom as unallocated free space"""
         bank = address.bank()
         bank2 = (address + size).bank()
@@ -125,4 +135,16 @@ class Memory(object):
         assert bank == bank2
         extent = Extent(address, size)
         self.banks[bank].add_extent(extent)
+
+    def fixup_futures(self, futures, env):
+        for f in futures:
+            f.fill(self.rom, env)
+
+    def alloc_rooms(rooms):
+        #TODO: default env
+        env = {}
+        futures = []
+        for room in rooms:
+            futures.extend(room.allocate(self, env))
+        self.fixup_futures(futures, env)
 

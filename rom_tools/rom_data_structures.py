@@ -6,46 +6,6 @@ from . import byte_ops
 from .address import Address
 from .compress import compress
 
-def __delete_if_exists(self, filename):
-    try:
-        os.remove(filename)
-    except OSError:
-        pass
-
-class Room(object):
-
-    def __init__(self, size=(1,1), doors=1):
-
-        ### Level Header Information
-        self.header = RoomHeader(doors=doors)
-        self.header.setSize(size)
-        self.header_addr = None
-        ### Level Data Information
-        self.data = LevelData(size)
-        self.data_addr = None
-        self.doors = [Door()] * doors
-        self.door_addrs = [Address()] * doors
-
-    def set_header_addr(self,addr):
-        if not (isinstance(addr, Address)):
-            print("Please pass me an Address Object, not a number")
-        self.header_addr = addr
-        for door in self.doors:
-            door.room_id = addr.as_room_id()
-
-    def set_data_addr(self, addr):
-        self.levelpointer = addr
-        self.header.set_data_addr(addr)
-
-    def compress_data(self):
-        self.data_compressed = self.data.getCompressed()
-
-    def set_door_addrs(self, addrs):
-        assert(len(addrs) == len(self.door_addrs))
-        self.door_addrs = addrs
-        self.header.set_door_pointers(self.door_addrs)
-
-
 def convert_event(event_value, event_arg):
     events = [(0xe5e6, 0), (0xe5eb, 2), (0xe5ff, 0), (0xe612, 1), (0xe629, 1),
             (0xe640, 0), (0xe652, 0), (0xe669, 0), (0xe678, 0)]
@@ -157,8 +117,12 @@ class RoomState(object):
         assert len(tail) == 26
         return head, tail, futures
 
+def alloc_and_collect(a_list, memory, env):
+    f_list = map(lambda x: x.allocate(memory, env), a_list)
+    return reduce(lambda x, y: x.extend(y), f_list, [])
+
 class RoomHeader(object):
-    """Represents a room header."""
+    """Represents a room header (including any data that the header relies on)"""
 
     def __init__(self, room_id, room_index, room_area, map_xy, room_size_xy, up_scroll=0x90, down_scroll=0xa0,
             special_graphics=0, room_states, levels, fxs, enemies, enemy_sets,
@@ -221,9 +185,19 @@ class RoomHeader(object):
         # 26 extra bytes per event
         # 2 bytes per door
 
-        # Allocate levels, fxs, enemies, enemy_sets, scrolls, main_asms, plms, setup_asms, doors
-        # Generate to_bytes() using head_bytes, then room_states bytes, then FutureWrites for door ptrs
         futures = []
+        # Allocate levels, fxs, enemies, enemy_sets, scrolls, main_asms, plms, setup_asms, doors
+        futures.extend(alloc_and_collect(self.levels, memory, env))
+        futures.extend(alloc_and_collect(self.fxs, memory, env))
+        futures.extend(alloc_and_collect(self.enemies, memory, env))
+        futures.extend(alloc_and_collect(self.enemy_sets, memory, env))
+        futures.extend(alloc_and_collect(self.scrolls, memory, env))
+        futures.extend(alloc_and_collect(self.main_asms, memory, env))
+        futures.extend(alloc_and_collect(self.plms, memory, env))
+        futures.extend(alloc_and_collect(self.setup_asms, memory, env))
+        futures.extend(alloc_and_collect(self.doors, memory, env))
+        
+        # Generate to_bytes() using head_bytes, then room_states bytes, then FutureWrites for door ptrs
         out = b""
         b, f = self.head_bytes()
         futures.extend(f)
@@ -256,7 +230,9 @@ class RoomHeader(object):
             out += b"\x00\x00"
             pos = len(out)
         # Allocate self with size of to_bytes
-        return out, futures
+        addr = memory.allocate_and_write(out, [0x8f])
+        env[self.sym_ptr + "head"] = addr
+        return futures
 
 class LevelData(object):
     """ Contains all the level data (just a giant array of bytes) including
@@ -270,8 +246,12 @@ class LevelData(object):
         return compress.compress(self.dataToHex())
 
     def allocate(self, memory, env):
-        assert False, "TODO"
-        env[self.sym] = TODO
+        to_write = get_compressed(self)
+        #TODO: don't hardcode this - need a file here to keep
+        # rom-specific global-type things
+        addr = memory.allocate_and_write(self, range(0xc3,0xce))
+        env[self.sym] = addr
+        return []
 
 def direction_convert(close, s):
     if s == "L":
@@ -321,8 +301,10 @@ class Door(object):
         return out, futures
 
     def allocate(self, memory, env):
-        assert False, "TODO"
-        env[self.from_sym] = TODO
+        to_write, fs = self.to_bytes()
+        addr = memory.allocate_and_write(to_write, [0x83])
+        env[self.from_sym] = addr
+        return fs
 
 #TODO: a "classier" data structure for this
 class FX(object):
@@ -367,10 +349,13 @@ class FX(object):
         out += self.palette_bitflag
         out += self.tile_bitflag
         out += self.palette_blend
+        return out, futures
 
     def allocate(self, memory, env):
-        assert False, "TODO"
-        env[self.sym] = TODO
+        to_write, fs = self.to_bytes()
+        addr = memory.allocate_and_write(to_write, [0x83])
+        env[self.sym] = addr
+        return fs
 
 def list_to_bytes(l):
     return reduce(lambda x,y: x+y, map(lambda z: z.to_bytes(), l))
@@ -386,8 +371,10 @@ class PLMSet(object):
         return plm_bytes + b"\x00\x00"
         
     def allocate(self, memory, env):
-        assert False, "TODO"
-        env[self.sym] = TODO
+        to_write = self.to_bytes()
+        addr = memory.allocate_and_write(to_write, [0x8f])
+        env[self.sym] = addr
+        return []
 
 class PLM(object):
 
@@ -414,8 +401,10 @@ class Scrolls(object):
         self.scroll_data= scroll_data
 
     def allocate(self, memory, env):
-        assert False, "TODO"
-        env[self.sym] = TODO
+        to_write = self.scroll_data
+        addr = memory.allocate_and_write(to_write, [0x8f])
+        env[self.sym] = addr
+        return []
 
 class Enemies(object):
 
@@ -428,8 +417,10 @@ class Enemies(object):
         return enemy_bytes + "\xff\xff"
 
     def allocate(self, memory, env):
-        assert False, "TODO"
-        env[self.sym] = TODO
+        to_write = self.to_bytes()
+        addr = memory.allocate_and_write(to_write, [0xa1])
+        env[self.sym] = addr
+        return []
 
 class Enemy(object):
 
@@ -469,9 +460,13 @@ class EnemySet(object):
         palette_bytes = list_to_bytes(self.enemy_palettes)
         return out + "\xff\xff"
 
+    #TODO: this seems like a place where it would be useful to have a superclass
+    # for "types of things that get allocated"
     def allocate(self, memory, env):
-        assert False, "TODO"
-        env[self.sym] = TODO
+        to_write = self.to_bytes()
+        addr = memory.allocate_and_write(to_write, [0xb4])
+        env[self.sym] = addr
+        return []
 
 class EnemyPalette(object):
 

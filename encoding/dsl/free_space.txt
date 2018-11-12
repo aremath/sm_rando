@@ -1,0 +1,69 @@
+# Addresses are PC addresses
+# First number is the first byte of free space in an extent
+# Second number is the first byte of used space afterwards
+# Free space is a 'large' region of ff bytes
+# All Numbers are in hex
+# Numbers are "conservative" - might be off by a few bytes, but all this space should be free
+0x004f2c|0x007fc0
+0x00ef1a|0x00ff00
+# On the ROM here there's a special thanks to the debug staff <3
+00ff60|010000
+017710|018000
+01ad70|020000
+026fd4|028000
+0296ff|030000
+0374a6|038000
+03c964|040000
+046e32|048000
+04aefe|050000
+056980|058000
+05f760|060000
+0673ea|068000
+06fff0|070000
+076600|078000
+07e99a|080000
+08763a|088000
+08ffed|090000
+096df4|098000
+09f620|0a0000
+0a31a0|0a4800
+0a5c00|0a6000
+# Banks 95-98 fully used
+0cee20|0d0000
+0d7c20|0d8000
+0dcbfc|0de000
+0dfda0|0e0000
+0e7a80|0e8000
+0ef780|0f0000
+0f76c0|0f8000
+0ff740|100000
+1077d4|108000
+10ebd2|110000
+117498|118000
+11f312|120000
+1276c0|128000
+12f95a|130000
+137ebc|138000
+13ff82|140000
+1479be|148000
+14fb70|150000
+1577d4|158000
+15f800|160000
+166e00|168000
+16f444|170000
+177d20|178000
+17ec00|180000
+186e00|188000
+# Bank b1 fully used
+197eaa|198000
+19ed78|1a0000
+1a74b8|1a8000
+1af000|1b0000
+1b7200|1b8000
+1bfd00|1c0000
+1c0000|1c8000
+# Banks cf-dd fully used
+27322e|278000
+# Banks cf-dd fully used
+2f51c0|2f8000
+2fd4e0|300000
