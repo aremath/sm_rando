@@ -1,9 +1,7 @@
 from functools import reduce
 import os
-from subprocess import Popen, PIPE, STDOUT
-from . import leveldatadefaults as datadefs
 from . import byte_ops
-from .address import Address
+from .address import *
 from .compress import compress
 
 def convert_event(event_value, event_arg):
@@ -41,11 +39,12 @@ class RoomState(object):
     """A roomstate is a configuration for a room. Corresponds to 'event' in the SMILE guide.
     Every room needs at least one default roomstate, but various events can trigger more. """
     
-    def __init__(self, room_id, state_id, event_value=0xe5e6, event_arg=None, level_data, tileset, song,
+    def __init__(self, room_id, state_id, event_value, event_arg, level_data, tileset, song,
             fx, enemies, enemy_set, background_scroll_xy, scrolls, main_asm, plms, background, setup_asm):
+        self.state_id = state_id
         self.event_value = event_value
         # Data members that are read in as bytes
-        if self.event_value = 0xe5e6:
+        if self.event_value == 0xe5e6:
             self.default_event=True
         else:
             self.default_event=False
@@ -79,7 +78,7 @@ class RoomState(object):
 
     def to_bytes(self, pos):
         futures = []
-        if self.default_event = True:
+        if self.default_event == True:
             head = self.event_head
         # The extra two bytes will be used to store a pointer to the rest of the event data
         else:
@@ -100,10 +99,10 @@ class RoomState(object):
         tail += b"\x00\x00"
         if self.enemy_set_ptr is not None:
             futures.append(FutureAddressWrite(self.enemy_set_ptr, self.state_ptr + 0xa, 2, bank=0xb4)) # c
-        tail += background_scrolls # e
+        tail += self.background_scrolls # e
         tail += b"\x00\x00"
-        if self.scroll_ptr is not None:
-            futures.append(FutureAddressWrite(self.scroll_ptr, self.state_ptr + 0xe, 2, bank=0x8f)) # 10
+        if self.scrolls_ptr is not None:
+            futures.append(FutureAddressWrite(self.scrolls_ptr, self.state_ptr + 0xe, 2, bank=0x8f)) # 10
         tail += b"\x00\x00" # 12 - special xray stuff - I'm not using it for now
         tail += b"\x00\x00"
         if self.main_asm_ptr is not None:
@@ -111,21 +110,30 @@ class RoomState(object):
         tail += b"\x00\x00"
         if self.plms_ptr is not None:
             futures.append(FutureAddressWrite(self.plms_ptr, self.state_ptr + 0x14, 2, bank=0x8f)) # 16
+        tail += self.background # 18
         tail += b"\x00\x00"
         if self.setup_asm_ptr is not None:
-            futures.append(FutureAddressWrite(self.setup_asm_ptr, self.state_ptr + 0x16, 2, bank=0x8f)) # 18
-        assert len(tail) == 26
+            futures.append(FutureAddressWrite(self.setup_asm_ptr, self.state_ptr + 0x16, 2, bank=0x8f)) # 1a
+        assert len(tail) == 26, len(tail)
         return head, tail, futures
 
 def alloc_and_collect(a_list, memory, env):
     f_list = map(lambda x: x.allocate(memory, env), a_list)
+    # Apparently python behaves really really strangely when it reduces over an empty map
+    list(f_list)
     return reduce(lambda x, y: x.extend(y), f_list, [])
 
+# defaults:
+# up_scroll = 0x90
+# down_scroll = 0xa0
+# special graphics = 0
+#TODO: some way for door data to be shared
+# (for a door to be a symbolic pointer string instead of a Door
 class RoomHeader(object):
     """Represents a room header (including any data that the header relies on)"""
 
-    def __init__(self, room_id, room_index, room_area, map_xy, room_size_xy, up_scroll=0x90, down_scroll=0xa0,
-            special_graphics=0, room_states, levels, fxs, enemies, enemy_sets,
+    def __init__(self, room_id, room_index, room_area, map_xy, room_size_xy, up_scroll, down_scroll,
+            special_graphics, room_states, levels, fxs, enemies, enemy_sets,
             scrolls, main_asms, plms, setup_asms, doors):
         
         # Data members that are read in as bytes
@@ -209,10 +217,10 @@ class RoomHeader(object):
         for state in self.room_states:
             hb, tb, f = state.to_bytes(pos)
             futures.extend(f)
-            out += head
+            out += hb
             pos = len(out)
             # Use prepend so that the default events tail lines up properly
-            tails.prepend((state.state_id, tail))
+            tails.insert(0, (state.state_id, tb))
         # Need the last state to be the default state
         assert state.event_value == 0xe5e6, "Last state is not default"
         # Now add the state tails
@@ -232,7 +240,8 @@ class RoomHeader(object):
         # Allocate self with size of to_bytes
         addr = memory.allocate_and_write(out, [0x8f])
         env[self.sym_ptr + "head"] = addr
-        return futures
+        # Return the addr for room_mdb
+        return addr, futures
 
 class LevelData(object):
     """ Contains all the level data (just a giant array of bytes) including
@@ -311,7 +320,7 @@ class FX(object):
 
     def __init__(self, room_id, fx_id, door_select, liquid_start, liquid_new,
             liquid_speed, liquid_delay, fx_type, fx_a, fx_b, fx_c, palette_bitflag,
-            tile_bitflag, palette_blend)
+            tile_bitflag, palette_blend):
         self.sym = "room_{}_fx_{}".format(room_id, fx_id)
         self.sym_ptr = FutureAddress(self.sym)
         if door_select is not None:

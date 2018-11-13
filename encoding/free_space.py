@@ -11,7 +11,7 @@ def get_frees(filename):
         else:
             start, end = line.split("|")
             start = int(start, 16)
-            end = int(start, 16)
+            end = int(end, 16)
             size = end-start
             assert size > 0
             extents.append((start, size))

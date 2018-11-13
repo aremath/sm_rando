@@ -47,7 +47,7 @@ class Extent(object):
         return self.start
 
     def end(self):
-        return self.start + self.size
+        return self.start + (self.size-1)
 
 #TODO: maintain the invariant that extents are ordered by start address?
 # - makes it easy to check if there are overlapping extents
@@ -63,7 +63,8 @@ class Bank(object):
     def add_extent(self, extent):
         assert(isinstance(extent, Extent))
         assert extent.start.bank() == self.bank
-        assert extent.end().bank() == self.bank
+        bank2 = extent.end().bank()
+        assert bank2 == self.bank, "{} does not match {}".format(bank, bank2)
         self.extent_list.append(extent)
 
     def __repr__(self):
@@ -99,7 +100,7 @@ class Memory(object):
         self.banks = {}
         # essentially a dictionary of banks!
         #TODO: what if the ROM is extended?
-        for n in range(0x80, 0xdf + 1)
+        for n in range(0x80, 0xdf + 1):
             self.banks[n] = Bank(n)
 
     def setup(self):
@@ -115,7 +116,7 @@ class Memory(object):
         size = len(data)
         address = None
         assert len(banks) > 0
-        for b in banks:
+        for bank in banks:
             bank = self.banks[bank]
             try:
                 address = bank.get_place(size)
@@ -130,9 +131,9 @@ class Memory(object):
     def mark_free(self, address, size):
         """Marks a part of the rom as unallocated free space"""
         bank = address.bank()
-        bank2 = (address + size).bank()
-        #TODO: in the future, create multiple extents
-        assert bank == bank2
+        # size-1 because size includes the byte at address
+        # a 1-byte free space only refers to the byte at address
+        #TODO: in the future, create multiple extents broken over the bank
         extent = Extent(address, size)
         self.banks[bank].add_extent(extent)
 
@@ -140,11 +141,14 @@ class Memory(object):
         for f in futures:
             f.fill(self.rom, env)
 
-    def alloc_rooms(rooms):
-        #TODO: default env
-        env = {}
+    def alloc_rooms(self, rooms, env=None):
+        if env is None:
+            env = {}
         futures = []
+        addrs = []
         for room in rooms:
-            futures.extend(room.allocate(self, env))
+            addr, fs = room.allocate(self, env)
+            addrs.append(addr)
+            futures.extend(fs)
         self.fixup_futures(futures, env)
 
