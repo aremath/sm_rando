@@ -51,9 +51,6 @@ class Address(object):
         ad = self.as_pc() + inc
         return Address(ad)
 
-#TODO: NullPointer class?
-#TODO: get rid of all this damn isinstance bullcrap
-
 def mk_future(i):
     return FutureAddress(real_addr=Address(i))
 
@@ -75,7 +72,8 @@ class FutureAddress(object):
                 self.real_addr = addr
                 return addr
             else:
-                assert False
+                assert isinstance(addr, int)
+                return addr
         else:
             return self.real_addr
 
@@ -135,11 +133,17 @@ class FutureAddressWrite(object):
     def fill(self, rom, env):
         place = self.place.resolve(env)
         addr  = self.ptr.resolve(env)
-        #TODO: right now this does the format regardless of whether the assert fires. This is slow.
-        # Sad assert doesn't go over multiple lines :(
-        assertmsg = "Pointer's bank ({}) does not match expected bank ({})".format(addr.bank(), self.bank)
-        assert self.bank is None or addr.bank() == self.bank, assertmsg
-        rom.write_to_new(place, addr.as_snes_bytes(self.size))
+        if hasattr(addr, "as_snes_bytes"):
+            #TODO: right now this does the format regardless of whether the assert fires. This is slow.
+            # Sad assert doesn't go over multiple lines :(
+            assertmsg = "Pointer's bank ({}) does not match expected bank ({})".format(addr.bank(), self.bank)
+            assert self.bank is None or addr.bank() == self.bank, assertmsg
+            rom.write_to_new(place, addr.as_snes_bytes(self.size))
+        # If the address isn't an Address, then treat it as an int
+        # Hack for being able to use literal numbers like for the scrolls ptr.
+        else:
+            b = addr.to_bytes(self.size, byteorder='little')
+            rom.write_to_new(place, b)
 
     def __repr__(self):
         return "futurewrite({}, {})".format(self.ptr, self.place)

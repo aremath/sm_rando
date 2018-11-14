@@ -139,7 +139,7 @@ class Memory(object):
 
     def fixup_futures(self, futures, env):
         for f in futures:
-            print(f)
+            #print(f)
             f.fill(self.rom, env)
 
     def alloc_rooms(self, rooms, env=None):
@@ -151,6 +151,7 @@ class Memory(object):
             addr, fs = room.allocate(self, env)
             addrs.append(addr)
             futures.extend(fs)
-        print(env)
+        #print(env)
         self.fixup_futures(futures, env)
+        return addrs
 

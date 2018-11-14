@@ -53,7 +53,6 @@ class RoomState(object):
         self.song = song.to_bytes(2, byteorder='little')
         self.background_scrolls = background_scroll_xy[0].to_bytes(1, byteorder='little')
         self.background_scrolls += background_scroll_xy[1].to_bytes(1, byteorder='little')
-        self.background = background.to_bytes(2, byteorder='little')
        
         # Data members that will be allocated then become pointers
         sym_ptr = "room_{}_".format(room_id)
@@ -72,8 +71,9 @@ class RoomState(object):
         self.enemies_ptr = get_future_ptr(enemies, "enemies", sym_ptr) 
         self.enemy_set_ptr = get_future_ptr(enemy_set, "enemy_set", sym_ptr) 
         self.scrolls_ptr = get_future_ptr(scrolls, "scrolls", sym_ptr) 
-        self.main_asm_ptr = get_future_ptr(main_asm, "main_asm", sym_ptr) 
+        self.main_asm_ptr = get_future_ptr(main_asm, "main_asm", sym_ptr)
         self.plms_ptr = get_future_ptr(plms, "plms", sym_ptr)
+        self.background_ptr = get_future_ptr(background, "background", sym_ptr)
         self.setup_asm_ptr = get_future_ptr(setup_asm, "setup_asm", sym_ptr)
 
     def to_bytes(self, pos):
@@ -110,18 +110,18 @@ class RoomState(object):
         tail += b"\x00\x00"
         if self.plms_ptr is not None:
             futures.append(FutureAddressWrite(self.plms_ptr, self.state_ptr + mk_future(0x14), 2, bank=0x8f)) # 16
-        tail += self.background # 18
+        tail += b"\x00\x00"
+        if self.background_ptr is not None:
+            futures.append(FutureAddressWrite(self.background_ptr, self.state_ptr + mk_future(0x16), 2, bank=0x8f)) # 18
         tail += b"\x00\x00"
         if self.setup_asm_ptr is not None:
-            futures.append(FutureAddressWrite(self.setup_asm_ptr, self.state_ptr + mk_future(0x16), 2, bank=0x8f)) # 1a
+            futures.append(FutureAddressWrite(self.setup_asm_ptr, self.state_ptr + mk_future(0x18), 2, bank=0x8f)) # 1a
         assert len(tail) == 26, len(tail)
         return head, tail, futures
 
 def alloc_and_collect(a_list, memory, env):
     f_list = map(lambda x: x.allocate(memory, env), a_list)
-    # Apparently python behaves really really strangely when it reduces over an empty map
-    list(f_list)
-    return reduce(lambda x, y: x.extend(y), f_list, [])
+    return [future for fs in f_list for future in fs]
 
 # defaults:
 # up_scroll = 0x90
@@ -204,6 +204,7 @@ class RoomHeader(object):
         futures.extend(alloc_and_collect(self.plms, memory, env))
         futures.extend(alloc_and_collect(self.setup_asms, memory, env))
         futures.extend(alloc_and_collect(self.doors, memory, env))
+        print(futures)
         
         # Generate to_bytes() using head_bytes, then room_states bytes, then FutureWrites for door ptrs
         out = b""

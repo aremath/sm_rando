@@ -90,7 +90,7 @@ class RomManager(object):
         remove(filename)
         rename(tmpname, filename)
 
-    def save_rom(self):
+    def save_and_close(self):
         """ Saves all changes to the rom, for now that just closes it"""
         self.clean_rom.close()
         self.new_rom.close()
