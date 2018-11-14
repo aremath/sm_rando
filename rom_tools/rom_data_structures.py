@@ -83,7 +83,7 @@ class RoomState(object):
         # The extra two bytes will be used to store a pointer to the rest of the event data
         else:
             head = self.event_head + b"\x00\x00"
-            futures.append(FutureAddressWrite(self.state_ptr, self.room_head + pos, 2))
+            futures.append(FutureAddressWrite(self.state_ptr, self.room_head + mk_future(pos), 2))
         tail = b""
         tail += b"\x00\x00\x00"
         if self.level_data_ptr is not None:
@@ -92,28 +92,28 @@ class RoomState(object):
         tail += self.song       # 6
         tail += b"\x00\x00"
         if self.fx_ptr is not None:
-            futures.append(FutureAddressWrite(self.fx_ptr, self.state_ptr + 0x6, 2, bank=0x83)) # 8
+            futures.append(FutureAddressWrite(self.fx_ptr, self.state_ptr + mk_future(0x6), 2, bank=0x83)) # 8
         tail += b"\x00\x00"
         if self.enemies_ptr is not None:
-            futures.append(FutureAddressWrite(self.enemies_ptr, self.state_ptr + 0x8, 2, bank=0xa1)) # a
+            futures.append(FutureAddressWrite(self.enemies_ptr, self.state_ptr + mk_future(0x8), 2, bank=0xa1)) # a
         tail += b"\x00\x00"
         if self.enemy_set_ptr is not None:
-            futures.append(FutureAddressWrite(self.enemy_set_ptr, self.state_ptr + 0xa, 2, bank=0xb4)) # c
+            futures.append(FutureAddressWrite(self.enemy_set_ptr, self.state_ptr + mk_future(0xa), 2, bank=0xb4)) # c
         tail += self.background_scrolls # e
         tail += b"\x00\x00"
         if self.scrolls_ptr is not None:
-            futures.append(FutureAddressWrite(self.scrolls_ptr, self.state_ptr + 0xe, 2, bank=0x8f)) # 10
+            futures.append(FutureAddressWrite(self.scrolls_ptr, self.state_ptr + mk_future(0xe), 2, bank=0x8f)) # 10
         tail += b"\x00\x00" # 12 - special xray stuff - I'm not using it for now
         tail += b"\x00\x00"
         if self.main_asm_ptr is not None:
-            futures.append(FutureAddressWrite(self.main_asm_ptr, self.state_ptr + 0x12, 2, bank=0x8f)) # 14
+            futures.append(FutureAddressWrite(self.main_asm_ptr, self.state_ptr + mk_future(0x12), 2, bank=0x8f)) # 14
         tail += b"\x00\x00"
         if self.plms_ptr is not None:
-            futures.append(FutureAddressWrite(self.plms_ptr, self.state_ptr + 0x14, 2, bank=0x8f)) # 16
+            futures.append(FutureAddressWrite(self.plms_ptr, self.state_ptr + mk_future(0x14), 2, bank=0x8f)) # 16
         tail += self.background # 18
         tail += b"\x00\x00"
         if self.setup_asm_ptr is not None:
-            futures.append(FutureAddressWrite(self.setup_asm_ptr, self.state_ptr + 0x16, 2, bank=0x8f)) # 1a
+            futures.append(FutureAddressWrite(self.setup_asm_ptr, self.state_ptr + mk_future(0x16), 2, bank=0x8f)) # 1a
         assert len(tail) == 26, len(tail)
         return head, tail, futures
 
@@ -181,7 +181,7 @@ class RoomHeader(object):
         head += self.special_graphics   # 9
         head += b"\x00\x00"             # 11
         # Write at the end of the header a future pointer to where the doors are placed
-        futures.append(FutureAddressWrite(self.doors_ptr, self.header_ptr + 0x9, 2, bank=0x8f))
+        futures.append(FutureAddressWrite(self.doors_ptr, self.header_ptr + mk_future(0x9), 2, bank=0x8f))
         assert len(head) == 11
         return head, futures
 
@@ -227,14 +227,14 @@ class RoomHeader(object):
         for sid, tail in tails:
             # Now we know where each state is relative to the room header -- add that
             # info to env
-            env[get_future_ptr(sid, "state", self.sym_ptr)] = self.header_ptr + pos
+            env[self.sym_ptr + "state_{}".format(sid)] = self.header_ptr + mk_future(pos)
             out += tail
             pos = len(out)
         # Now we know where the doors start -- add that to env
-        env[self.sym_ptr + "doors"] = self.header_ptr + pos
+        env[self.sym_ptr + "doors"] = self.header_ptr + mk_future(pos)
         for door in self.doors:
             # Add a future write to each door
-            futures.append(FutureAddressWrite(door.from_sym_ptr, self.header_ptr + pos, 2, bank=0x83))
+            futures.append(FutureAddressWrite(door.from_sym_ptr, self.header_ptr + mk_future(pos), 2, bank=0x83))
             out += b"\x00\x00"
             pos = len(out)
         # Allocate self with size of to_bytes

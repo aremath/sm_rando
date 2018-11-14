@@ -17,10 +17,7 @@ class Address(object):
         return self.as_pc() == other.as_pc()
 
     def __add__(self, other):
-        if isinstance(other, Address):
-            return Address(self.as_pc() + other.as_pc())
-        else:
-            return Address(self.as_pc() + other)
+        return Address(self.as_pc() + other.as_pc())
 
     # Hashable as its actual address
     def __hash__(self):
@@ -44,7 +41,7 @@ class Address(object):
     def as_snes_bytes(self, nbytes):
         assert (nbytes == 2 or nbytes == 3), "Can't produce a " + str(nbytes) + "-byte pointer!"
         sn = byte_ops.pc_to_snes(self.pc_addr)
-        b = int.to_bytes(sn, byteorder='little')
+        b = sn.to_bytes(3, byteorder='little')
         return b[:nbytes]
     
     def bank(self):
@@ -57,6 +54,9 @@ class Address(object):
 #TODO: NullPointer class?
 #TODO: get rid of all this damn isinstance bullcrap
 
+def mk_future(i):
+    return FutureAddress(real_addr=Address(i))
+
 class FutureAddress(object):
     """Represents an address which is currently unknown."""
     
@@ -67,25 +67,29 @@ class FutureAddress(object):
     def resolve(self, env):
         if self.real_addr is None:
             addr = env[self.name]
-            if isinstance(addr, int):
+            if hasattr(addr, "as_pc"):
                 self.real_addr = addr
                 return addr
-            elif isinstance(addr, FutureAddress) or isinstance(addr, FutureAddressOp):
+            elif hasattr(addr, "resolve"):
                 addr = addr.resolve(env)
                 self.real_addr = addr
                 return addr
             else:
                 assert False
+        else:
+            return self.real_addr
 
     def __add__(self, other):
-        if isinstance(other, FutureAddress):
+        if hasattr(other, "resolve"):
             return FutureAddressOp(lambda x,y: x + y, self, other)
-        elif isinstance(other, Address):
-            ot = FutureAddress(real_addr=other)
-            return self + ot
         else:
-            ot = FutureAddress(real_addr=Address(other))
-            return self + ot
+            assert False
+
+    def __repr__(self):
+        if self.real_addr is not None:
+            return self.real_addr.__repr__()
+        else:
+            return "future({})".format(self.name)
 
 class FutureAddressOp(object):
     """Represents a binary expression tree for FutureAddresses."""
@@ -96,23 +100,27 @@ class FutureAddressOp(object):
         self.fa2 = fa2
 
     def resolve(self, env):
+        assert self.fa1 is not None
         if self.fa2 is None:
             if self.op is None:
                 return self.fa1.resolve(env)
             else:
                 return self.op(self.fa1.resolve(env))
         else:
-            return self.op(self.fa1.resolve(env), self.fa2.resolve(env))
+            a1 = self.fa1.resolve(env)
+            a2 = self.fa2.resolve(env)
+            return self.op(a1, a2)
 
     def __add__(self, other):
-        if isinstance(other, FutureAddressOp) or isinstance(other, FutureAddress):
+        if hasattr(other, "resolve"):
             return FutureAddressOp(lambda x, y: x+y, self, other)
-        elif isinstance(other, Address):
-            ot = FutureAddress(real_addr=other)
-            return self + ot
         else:
-            ot = FutureAddress(real_addr=Address(other))
-            return self + ot
+            assert False
+
+    def __repr__(self):
+        f1 = self.fa1.__repr__()
+        f2 = self.fa2.__repr__()
+        return "futureop({}, {})".format(f1, f2)
 
 #TODO: also verify bank of where we're being written?
 class FutureAddressWrite(object):
@@ -131,5 +139,8 @@ class FutureAddressWrite(object):
         # Sad assert doesn't go over multiple lines :(
         assertmsg = "Pointer's bank ({}) does not match expected bank ({})".format(addr.bank(), self.bank)
         assert self.bank is None or addr.bank() == self.bank, assertmsg
-        rom.write_to_new(place, addr.as_snes_bytes())
+        rom.write_to_new(place, addr.as_snes_bytes(self.size))
+
+    def __repr__(self):
+        return "futurewrite({}, {})".format(self.ptr, self.place)
 

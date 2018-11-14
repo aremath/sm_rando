@@ -47,7 +47,7 @@ class Extent(object):
         return self.start
 
     def end(self):
-        return self.start + (self.size-1)
+        return self.start + Address(self.size-1)
 
 #TODO: maintain the invariant that extents are ordered by start address?
 # - makes it easy to check if there are overlapping extents
@@ -139,6 +139,7 @@ class Memory(object):
 
     def fixup_futures(self, futures, env):
         for f in futures:
+            print(f)
             f.fill(self.rom, env)
 
     def alloc_rooms(self, rooms, env=None):
@@ -150,5 +151,6 @@ class Memory(object):
             addr, fs = room.allocate(self, env)
             addrs.append(addr)
             futures.extend(fs)
+        print(env)
         self.fixup_futures(futures, env)
 
