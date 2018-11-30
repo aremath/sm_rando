@@ -177,35 +177,3 @@ class Type(object):
         self.index = index
         self.bts = bts
 
-### DEFAULT TILE TYPES ###
-
-def mk_default_solid():
-    tex = Texture(0x5f, (0,0))
-    ty = Type(0x8, 0x0)
-    return Tile(tex, ty)
-
-def mk_default_air():
-    tex = Texture(0xff, (0,0))
-    ty = Type(0x0, 0x0)
-    return Tile(tex, ty)
-    
-def mk_external():
-    tex = Texture(0x6a, (0,0))
-    ty = Type(0x8, 0x0)
-    return Tile(tex, ty)
-
-#TODO!
-def mk_door(doorid, x, direction):
-    if direction == "R" or direction == "L":
-        pass
-    elif direction == "U" or direction == "D":
-        pass
-    tex = Texture(0x0, (0,0))
-    ty = Type(0x9, doorid)
-    return Tile(tex, ty)
-
-#TODO!
-def mk_door_level(pos, dims, direction, doorid):
-    lvl = Level(dims)
-    pass
-

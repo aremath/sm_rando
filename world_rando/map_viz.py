@@ -74,7 +74,7 @@ def map_viz(rcmap, filename, map_dir):
     wmap, blank, item, elevator = load_map_tiles(map_dir)
     for x in range(mrange.x+1):
         for y in range(mrange.y+1):
-            relxy = MCoords(x, y) + mins
+            relxy = Coord(x, y) + mins
             xy = (x,y)
             if relxy in rcmap:
                 mtile = rcmap[relxy]

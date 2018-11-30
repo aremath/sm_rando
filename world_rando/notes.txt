@@ -96,11 +96,10 @@ Art
 - Golden Statues Room as an aesthetic?
 - Statues Tunnel as an aesthetic?
 
-
 Regions:
 Crateria
 	- Upper Crateria (West Ocean + Landing Site)
-		- Crat eria Caves (sub-region)
+		- Crateria Caves (sub-region)
 		- Wrecked Ship Transition
 	- Old Mother Brain
 	- Blue Tiles
@@ -138,6 +137,9 @@ Maridia
 	- Purple Tiles and Pipes Maridia
 	
 - Tourian
+	- Metroid Tourian
+	- Sandy Tourian
+	- Escape Tourian
 
 Global:
 	- "Constructed" (Single Rooms though, probably (?))

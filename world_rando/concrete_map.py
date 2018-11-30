@@ -233,7 +233,8 @@ class ConcreteMap(object):
                 xy = Coord(x,y)
                 if xy in self:
                     new_tiles[xy] = self[xy]
-        return ConcreteMap(self.dimensions, _tiles=new_tiles)
+        # new cmap's dimensions are end-start
+        return ConcreteMap(end-start, _tiles=new_tiles)
 
     # Behaves like a dictionary, interfacing to tiles
     def __getitem__(self, key):

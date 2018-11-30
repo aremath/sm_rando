@@ -4,7 +4,7 @@ from world_rando import map_gen
 from world_rando import map_viz
 from world_rando import room_gen
 
-from rom_tools import romManager
+from rom_tools import rom_manager
 from encoding import sm_global
 import random
 import collections
@@ -36,7 +36,7 @@ if __name__ == "__main__":
         graph.visualize("output/" + region + "/graph")
         print("Generating map for " + region)
         # Can be as large as 64/32
-        dimensions = concrete_map.MCoords(54,30)
+        dimensions = concrete_map.Coord(54,30)
         cmap, rooms, paths = map_gen.less_naive_gen(dimensions, less_rand_d, graph, es)
         region_cmaps[region] = cmap
         region_room_defs[region] = room_gen.make_rooms(rooms, cmap, paths)
