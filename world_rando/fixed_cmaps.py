@@ -39,7 +39,7 @@ def kraid_boss_area(pos, dims):
 def kraid_bboxes(pos, dims):
     return [
         (pos + Coord(1,-1), pos + Coord(3,1)),
-        (pos + Coord(3,0), Coord(4,1))
+        (pos + Coord(3,0), pos + Coord(4,1))
     ]
 
 def phantoon_boss_area(pos, dims):
@@ -66,7 +66,7 @@ def draygon_boss_area(pos, dims):
 def draygon_bboxes(pos, dims):
     return [
         (pos + Coord(-2,0), pos + Coord(0,2)),
-        (pos + Coord(-3,1), Coord(-2,2))
+        (pos + Coord(-3,1), pos + Coord(-2,2))
     ]
 
 def ridley_boss_area(pos, dims):
@@ -81,7 +81,7 @@ def ridley_boss_area(pos, dims):
 def ridley_bboxes(pos, dims):
     return [
         (pos + Coord(-1,0), pos + Coord(0,2)),
-        (pos + Coord(-2,1), Coord(-1,2))
+        (pos + Coord(-2,1), pos + Coord(-1,2))
     ]
 
 #TODO: how to make sure that the other side is used?
@@ -125,7 +125,7 @@ def spore_spawn_boss_area(pos, dims):
 def spore_spawn_bboxes(pos, dims):
     return [
         (pos + Coord(0,-3), pos + Coord(1,0)),
-        (pos + Coord(1,-3), Coord(2,-2))
+        (pos + Coord(1,-3), pos + Coord(2,-2))
     ]
 
 def crocomire_boss_area(pos, dims):
@@ -146,7 +146,7 @@ def crocomire_boss_area(pos, dims):
 def crocomire_bboxes(pos, dims):
     return [
         (pos + Coord(-3,1), pos + Coord(5,2)),
-        (pos + Coord(-4,1), Coord(-3,2))
+        (pos + Coord(-4,1), pos + Coord(-3,2))
     ]
 
 def botwoon_boss_area(pos, dims):
@@ -161,7 +161,7 @@ def botwoon_boss_area(pos, dims):
 def botwoon_bboxes(pos, dims):
     return [
         (pos + Coord(1,0), pos + Coord(3,1)),
-        (pos + Coord(3,0), Coord(4,1))
+        (pos + Coord(3,0), pos + Coord(4,1))
     ]
 
 def golden_torizo_boss_area(pos, dims):
@@ -178,7 +178,7 @@ def golden_torizo_boss_area(pos, dims):
 def golden_torizo_bboxes(pos, dims):
     return [
         (pos + Coord(1,0), pos + Coord(3,2)),
-        (pos + Coord(3,1), Coord(4,2))
+        (pos + Coord(3,1), pos + Coord(4,2))
     ]
 
 def elevator_down_area(pos, dims):
