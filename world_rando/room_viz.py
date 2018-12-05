@@ -1,7 +1,7 @@
 # visualizes a concrete map of the form laid out in concrete_map.py
 import collections #defaultdict
 from .coord import *
-from .room_dtypes import *
+#from .room_dtypes import *
 from PIL import Image
 from PIL import ImageOps
 

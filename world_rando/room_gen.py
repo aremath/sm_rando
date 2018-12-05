@@ -1,4 +1,5 @@
 from .room_dtypes import *
+from .room_utils import *
 from .coord import *
 
 # Room Generation:
@@ -17,9 +18,9 @@ def room_setup(room_tiles, cmap):
     rooms = {}
     for room_id, coord_set in room_tiles.items():
         lower, upper = extent(coord_set)
-        room_cmap = cmap.sub(lower, upper + Coord(1,1))
+        room_cmap, room_pos = cmap.sub(lower, upper + Coord(1,1))
         size = upper + Coord(1,1) - lower
-        rooms[room_id] = Room(room_cmap, size, room_id)
+        rooms[room_id] = Room(room_cmap, size, room_id, room_pos)
     return rooms
 
 #TODO: work in progress
@@ -52,6 +53,9 @@ def room_graphs(rooms, tile_rooms, paths):
                 current_door = str(current_room) + "_" + str(current_pos) + "_" + current_wr
                 if current_door not in gcurrent.nodes:
                     gcurrent.add_node(current_door)
+                    # Create a new door for current -> new
+                    d = rooms[current_room].doors
+                    d.append(Door(current_pos, current_wr, current_room, new_room, len(d)))
                 # Link the current node with the door
                 gcurrent.update_edge(current_node, current_door)
                 # Node in the new room
@@ -59,6 +63,9 @@ def room_graphs(rooms, tile_rooms, paths):
                 new_door = str(new_room) + "_" + str(new_pos) + "_" + new_wr
                 if new_door not in gnew.nodes:
                     gnew.add_node(new_door)
+                    # Create a new door for the new -> current
+                    d = rooms[new_room].doors
+                    d.append(Door(new_pos, new_wr, new_room, current_room, len(d)))
                 # set the new current room
                 current_room = tile_rooms[new_pos]
                 # the new current node is the door we came into the new room by
@@ -72,6 +79,8 @@ def make_rooms(room_tiles, cmap, paths):
     tile_rooms = reverse_list_dict(room_tiles)
     room_graphs(rooms, tile_rooms, paths)
     # ... generate map data etc ...
+    for r in rooms.values():
+        r.level_data = level_of_cmap(r)
     return rooms
 
 #TODO

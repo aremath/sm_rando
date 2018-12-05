@@ -1,13 +1,15 @@
 from .coord import *
 from .concrete_map import *
 from .map_viz import *
+from .room_viz import *
 from data_types import basicgraph
 
 class Room(object):
 
-    def __init__(self, cmap, size, room_id, graph=None):
+    def __init__(self, cmap, size, room_id, pos, graph=None):
         self.enemies = []
         self.plms = []
+        self.doors = []
         if graph is None:
             self.graph = basicgraph.BasicGraph()
         else:
@@ -15,6 +17,7 @@ class Room(object):
         self.cmap = cmap
         self.size = size
         self.room_id = room_id
+        self.pos = pos
 
     def translate(self):
         #produce a Jake room from this
@@ -31,20 +34,22 @@ class Room(object):
     #TODO...
     def viz_level(self, directory):
         fname = directory + "/room" + str(self.room_id) + "_level.png"
-        self.level_data.visualize(fname)
+        room_viz(self.level_data, fname, "encoding/room_tiles")
 
 #TODO: Door needs to contain some info about what ROOMS it connects, not just what tiles...
 # or maybe the tiles on the cmap know what room they are in.
 class Door(object):
 
-    def __init__(self, tile1, tile2):
-        assert tile2 in tile1.neighbors(), "Tiles are not neighbors!"
-        self.direction = tile1.wall_relate(tile2)
-        self.tiles = (tile1, tile2)
+    def __init__(self, tile, direction, room1, room2, door_id):
+        self.pos = tile
+        self.direction = direction
+        self.origin = room1
+        self.destination = room2
+        self.id = door_id
 
-    def __hash__(self):
-        #TODO: is this a valid equivalence relation?
-        return hash(self.tiles)
+    #def __hash__(self):
+    #    #TODO: is this a valid equivalence relation?
+    #    return hash(self.tiles)
 
 # TODO: grand unified theory with ConcreteMap
 # Holds the level data for a room

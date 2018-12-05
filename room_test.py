@@ -57,4 +57,5 @@ if __name__ == "__main__":
         for room_def in room_defs.values():
             room_def.viz_cmap("output/" + region)
             room_def.viz_graph("output/" + region)
+            room_def.viz_level("output/" + region)
 
