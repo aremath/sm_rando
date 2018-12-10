@@ -27,7 +27,7 @@ def abstract_map():
     order, graph = order_graph()
     #TODO: add items before or after partition?
     # after is probably better...
-    add_items(graph, {"S": 10, "PB": 10, "M": 10, "E": 10})
+    add_items(graph, {"S": 10, "PB": 10, "M": 15, "E": 12})
     #region_order, region_finished = partition_order(graph, sm_global.regions)
     region_order, region_finished = weighted_partition_order(graph, sm_global.regions, default_weights)
     elevators = make_elevators(graph, region_finished)

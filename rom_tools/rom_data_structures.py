@@ -39,7 +39,7 @@ class RoomState(object):
     """A roomstate is a configuration for a room. Corresponds to 'event' in the SMILE guide.
     Every room needs at least one default roomstate, but various events can trigger more. """
     
-    def __init__(self, room_id, state_id, event_value, event_arg, level_data, tileset, song,
+    def __init__(self, room_id, state_id, event_value, event_arg, level, tileset, song,
             fx, enemies, enemy_set, background_scroll_xy, scrolls, main_asm, plms, background, setup_asm):
         self.state_id = state_id
         self.event_value = event_value
@@ -61,7 +61,7 @@ class RoomState(object):
         self.room_head = FutureAddress(sym_ptr + "head")
         # This is a future pointer to where the event's state will be within the room header
         self.state_ptr = get_future_ptr(state_id, "state", sym_ptr)
-        self.level_data_ptr = get_future_ptr(level_data, "leveldata", sym_ptr)
+        self.level_data_ptr = get_future_ptr(level, "level", sym_ptr)
         self.fx_ptr = get_future_ptr(fx, "fx", sym_ptr)
         # A note on enemies vs. enemy set: enemies refers to the actual enemies that
         # are present in the room. Enemy set refers to the types of enemies that can be

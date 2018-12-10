@@ -98,10 +98,11 @@ def less_naive_gen(dimensions, dist, graph, elevators):
             path = path_concat(to_closest, to_end)
             paths.append((node, edge.terminal, path))
     # partition the map into random rooms
-    room_size = len(cmap) // 4
+    room_size = len(cmap) // 5
     #_, rooms = cmap.random_rooms(room_size)
     rooms = cmap.random_rooms_alt(room_size, bboxes)
     #TODO: Each room grabs the map tiles that are inside its bounding box!
+    #TODO: Or could use a budgeted cellular automaton to fill in "corner" spaces with map tiles...
     return cmap, rooms, paths
 
 def xy_set(dimensions):

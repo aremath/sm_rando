@@ -1,5 +1,6 @@
 from .room_dtypes import *
 from .coord import *
+from rom_tools import rom_data_structures
 
 ### DEFAULT TILE TYPES ###
 
@@ -215,4 +216,15 @@ def level_of_cmap(room):
     level.missing_defaults(mk_default_air)
     return level
 
+#
+# Conversion to ROM data types
+#
+
+# Convert a room into a rom RoomHeader for allocation
+def convert_room(room):
+    level_bytes = room.level_data.to_bytes()
+    # Make a default room state for the room
+    # Good luck trying to remember what number goes with what argument!
+    s = RoomState(room.room_id, 0, 0xe5e6, 0, 0, room.tileset, room.song, 0, 0, room.bg_scroll, 0, 0, room.bg, 0)
+    #TODO
 

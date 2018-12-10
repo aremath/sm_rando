@@ -19,6 +19,9 @@ class Room(object):
         self.room_id = room_id
         self.pos = pos
 
+        self.up_scroll = 0x70
+        self.down_Scroll = 0xa0
+
     def translate(self):
         #produce a Jake room from this
         pass
