@@ -133,7 +133,7 @@ def rel_addr_copy(n, index, src, dst, debug):
     index0 = len(dst) - arg
     index1 = len(dst) + n - arg
     # Allow copying starting from the first byte again if index1 exceed len(dst)
-    # TODO: does this need to wrap??
+    # TODO: This needs to wrap... use a while loop!
     # TODO: Allow my own compression to use this feature...
     extra = b""
     if index1 > len(dst):
@@ -146,3 +146,4 @@ def rel_addr_copy(n, index, src, dst, debug):
     assert len(to_copy) == n
     return to_copy, index+1
 
+#TODO rel_addr_xor_copy: an extended command with cmd-code 7 is a relative address xor copy!

@@ -16,7 +16,10 @@ def rand_m(p1, p2):
     return concrete_map.manhattan(p1, p2) + random.uniform(0,6)
 
 def less_rand_d(p1, p2):
-    return concrete_map.euclidean(p1, p2) + random.uniform(0, 6)
+    return concrete_map.euclidean(p1, p2) + random.uniform(0,6)
+
+def rand_d(p1, p2):
+    return concrete_map.euclidean(p1, p2) + random.uniform(0,9)
 
 def get_path_info(paths):
     npaths = len(paths)
@@ -37,7 +40,7 @@ if __name__ == "__main__":
         print("Generating map for " + region)
         # Can be as large as 64/32
         dimensions = concrete_map.Coord(54,30)
-        cmap, rooms, paths = map_gen.less_naive_gen(dimensions, less_rand_d, graph, es)
+        cmap, rooms, paths = map_gen.less_naive_gen(dimensions, rand_d, graph, es)
         region_cmaps[region] = cmap
         region_room_defs[region] = room_gen.make_rooms(rooms, cmap, paths)
         # Various info
