@@ -85,11 +85,9 @@ def make_rooms(room_tiles, cmap, paths):
 
 #TODO
 #
-def miniroom_partition(room_def, max_parts):
-    """Creates a partition of the room into minirooms.
-    The partition is a list of sets of xy values that index
-    into the room dictionary."""
-    #TODO: a list of xys isn't that useful to know the min and the max...
+def miniroom_partition(room, max_parts):
+    """Creates a partition of the room into minirooms."""
+    # First, generate a greedy rectangularization of the concrete map for the room
     while True:
         # choose a partition to subdivide
         # choose an x or a y to subdivide it at
@@ -99,6 +97,78 @@ def miniroom_partition(room_def, max_parts):
         #   - creates a partition over the max
         break
     pass
+
+#TODO: parameterized by direction in both x and y
+def rectangularize(cmap):
+    subrooms = {}
+    roots = []
+    current_id = 0
+    # sorts topmost leftmost
+    positions = sorted(cmap.keys())
+    # Find rectangles until the entire cmap is covered
+    while len(positions) > 0:
+        pos = positions[0]
+        rect = find_rect(cmap, pos)
+        for x in range(pos.x, rect.x):
+            for y in range(pos.y, rect.y):
+                positions.remove(coord.y)
+        # Add it to the subroom tree, and convert its size and position into the level format
+        subrooms[current_id] = SubroomNode(pos * Coord(16, 16), rect * Coord(16, 16), [])
+        roots.append(current_id)
+        current_id += 1
+    # Find adjacencies between the rectangles
+    for r_1, r_2 in itertools.combinations(roots, 2):
+        # Since positions was sorted and the combinations function
+        # outputs tuples in sorted order, r_1 is above / to the left of r_2
+        pass 
+
+def find_adjacency(r1, r2):
+    # D R L U
+    directions = [Coords(0,1), Coords(1,0), Coords(-1,0), Coords(0,-1)]
+    for d in directions:
+        neighbors = sorted([p + d for p in r1 if p + d not in r1 and p + d in r2])
+        if len(neighbors > 0):
+            start = neighbors[0]
+            dist = 16 * len(neighbors)
+            border2_start = start * Coords(16,16)
+            if d < Coord(0,0):
+                border2_start += Coord(-15,-15) * d
+                border2_end = start + Coord(16,16)
+            else:
+                dist_coords = (Coords(1, 1) - d) * Coords(dist, dist)
+                border2_end = border2_start + dist_coords + d
+            border1_start = border2_start - d
+            border1_end = border2_end - d
+            # Horizontal
+            if d.y == 0:
+                return ([(border1_start, border1_end)], [(border2_start, border2_end)]), ([], [])
+            # Vertical
+            else:
+                return ([], []), ([(border1_start, border1_end)], [(border2_start, border2_end)])
+        # No borders
+        return ([], []), ([], [])
+
+def find_rect(cmap, pos):
+    """Find the largest rectangle that will fit into the given cmap at the given pos."""
+    assert pos in cmap
+    best_rect = pos + Coord(1,1)
+    max_area = 1
+    x = pos.x + 1
+    y = pos.y + 1
+    while True:
+        while True:
+            c = Coord(x, y)
+            if pos + c in cmap:
+                area = (c - pos).area()
+                if area > max_area:
+                    best_rect = c
+                    max_area = area
+            else:
+                break
+            x += 1
+        x = 0
+        y += 1
+    return best_rect
 
 # Translates the (uncompressed) leveldata bytes to a level dictionary.
 # levelsize is the number of bytes in the decompressed level1 data

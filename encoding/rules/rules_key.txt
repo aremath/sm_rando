@@ -9,6 +9,7 @@
 # Green - Final position (must be air)
 # Yellow - Air
 # Black - Solid
+# Blue - Water
 ## TODO: Slope down is "solid" technically, but some of these jumps are not possible when the height gets smaller...
 ## TODO: Differentiate between spin samus and springball samus...
 
@@ -44,12 +45,13 @@
 # one tuple which is a measure of vertical speed ex. (J, 2)
 # R4 indicates that samus has run 4 spaces and thus has max (speedboosterless) run speed. Higher number is faster.
 # possible values for horizontal speed are:
-# (W, R, G, SPB) -- G for grapple and I'm not really sure how it will work...
+# (W, R, G, SPB, UR) -- G for grapple and I'm not really sure how it will work... -- UR for underwater run (without gravity)
 # As well as the symmetrical lefthand versions.
 # Horizontal speed indicates which falling rule(s) to apply when you hit the ceiling or the top of a jump.
 # For vertical, J4 indicates that samus has jumped 4 vertical spaces using normal jump. Lower number is faster.
 # possible values for vertical speed are:
 # (J, HJ, SJ, SHJ, SPBJ, SPBHJ, WJ, WHJ, SBHJ, SBJ, G)
+#TODO: underwater versions of these too
 # Vertical speed indicates which (partial) jumping rule(s) may be applied for the rest of a jump
 #
 # We add an annotation to the rules, which indicates what direction samus will encounter a block during a jump.
@@ -57,8 +59,37 @@
 # blocks that will be encountered horizontally set the samus position to beside them (assume lower) and zero out her horizontal speed.
 # then, you trigger either the appropriate falling rule, or trigger the appropriate last half of a jump rule into a fall rule (ad hoc)
 
+# Jump Heights (for calculation with vertical speed):
+# HJ   : 11
+# wJ   : 6
+# WHJ  : 8
+# J    : 7
+# SPBJ : 6
+# SPBHJ: 10
+#TODO: speed booster affects jump height!
+#TODO: UNDERWATER affects jump height!
+
 # Rule cost should be determined pixel-by-pixel, with rules only paying for /introducing/ additional tiles. If a rule uses squares that were already there,
 # it doesn't incur costs for those tiles
+
+# Midair morph is handled by copying existing rules (and adding a little bit of cost)
+# Jumps that are more than X tiles high are eligible for midair morph.
+# A new rule is created with the same profile that puts samus at the ending point in morph ball
+# and no horizontal velocity.
+# Note that midair morph jumps CAN be partially applied, but only if the resulting partial application fulfills the height requirements.
+# Height requirements (measured from samus' feet at the bottom to the top of the jump):
+# - HJ :	4
+# - WJ :	2
+# - WHJ:	2
+# - J  :	3
+# TODO: Can also midair morph during a fall rule by losing 1 height...
+
+#TODO: have to assume that samus lands (and loses horizontal speed) when passing over a platform...
+
+#TODO: blocks that can only be used during the next rule ex. rippers, grippers, powamps as movement options that don't actually take up space in the room.
+# ex. can grapple off of powamp but not jump off of it.
+
+# Mount Everest - 7d0b9
 
 0,0 - vertical jump				|
 # Most of the time a mid-air morph will get higher. Including these for completeness
@@ -87,7 +118,54 @@
 7,1 - horizontal spin-jump		| R3 HJ
 8,1 - horizontal spin-jump		| R4 HJ
 
-1,3 - wall jump					|
-1,4 - recurved wall jump		|
-1,4 - wall jump					| HJ
-2,4 - recurved wall jump		| HJ
+5,2 - horizontal speed-jump		| SB SBR1
+6,2 - horizontal speed-jump		| SB SBR2
+# TODO: investigate comparison with R2
+7,2 - ""						| SB SBR3
+# apparently speed booster without HJ is a meme
+8,2 - horizontal speed-jump		| SB SBR4
+9,2 - ""						| SB SBR5
+
+
+1,4 - wall jump					|
+2,4 - recurved wall jump		|
+1,5 - wall jump					| HJ
+2,5 - recurved wall jump		| HJ
+
+0,6 - underwater vertical jump	|
+#TODO: currently this would be interpreted as only air: need to either interpret yellow as water based on the rule definition or something else.
+1,7 - underwater spring-jump	| SPB
+4,6 - underwater spin-jump		|
+5,6 - ""						| UR1
+6,6 - ""						| UR2
+7,6 - ""						| UR3
+8,6 - ""						| UR4
+9,6 - ""						| UR5
+#... apparently even though you gain ground speed by running in the water, you don't gain much air speed.
+
+0,7 - underwater vertical jump	| HJ
+1,7 - underwater spring-jump	| SPB HJ
+4,7 - underwater spin-jump		| UR1 HJ
+#TODO: eliminate some underwater spin-jump rules from the no-HJ scenario: ground momentum does not appear to affect underwater jumps very much!
+
+
+12,6 - Grapple Beam Circle distance
+13,5 - Grapple upwards jump
+#TODO: underwater without gravity can go MUCH higher
+#TODO: initial position of Samus doesn't matter....
+14,6 - Grapple Wall Jump
+#TODO: starting position of samus is underneath ending position... OR starting position is anywhere "near" grapple point...
+
+8-930pm grutoring		1/28
+6-10pm grading			1/31
+3-5pm grading			2/2
+
+4:30-6
+6-7 grading 			2/4
+8-9 grutoring
+
+6-9 grading 			2/7
+10:30-11				2/10
+
+8-9 grutoring			2/11
+6-8 grading				2/14

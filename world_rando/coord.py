@@ -48,8 +48,14 @@ class Coord(object):
         return "(" + str(self.x) + "," + str(self.y) + ")"
 
     # stupid way to break priority ties
+    # Uppermost leftmost tile is smallest
     def __lt__(self, other):
-        return self.x + self.y < other.x + other.y
+        if self.y < other.y:
+            return True
+        elif self.y == other.y:
+            return self.x < other.x
+        else:
+            return False
 
     def scale(self, scale_factor):
         return Coord(scale_factor*self.x, scale_factor*self.y)
@@ -92,3 +98,6 @@ class Coord(object):
         elif self.y >= upper.y:
             new_y = upper.y - 1
         return Coord(new_x, new_y)
+
+    def area(self):
+        return self.x * self.y
