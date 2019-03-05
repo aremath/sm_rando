@@ -56,7 +56,7 @@ def spring_model(node_locs, graph, n_iterations, spring_constant, spring_equilib
 # through the spring model?
 
 def less_naive_gen(dimensions, dist, graph, elevators):
-    xys = xy_set(dimensions)
+    xys = coord.xy_set(Coord(0,0), dimensions)
     up_es, down_es = elevators
     # Find a placement for nodes, and initialize it with the areas for those nodes
     node_locs, cmap, bboxes = node_place(graph, dimensions, up_es, down_es)
@@ -105,18 +105,10 @@ def less_naive_gen(dimensions, dist, graph, elevators):
     #TODO: Or could use a budgeted cellular automaton to fill in "corner" spaces with map tiles...
     return cmap, rooms, paths
 
-def xy_set(dimensions):
-    """Creates space of Coord from 0 to dimensions not including the upper bound."""
-    xys = set()
-    for x in range(dimensions.x):
-        for y in range(dimensions.y):
-            xys.add(Coord(x,y))
-    return xys
-
 def random_node_place(graph, dimensions, up_es, down_es):
     """Returns a dictionary of node -> location by choosing locations for the nodes
      at random."""
-    xys = xy_set(dimensions)
+    xys = xy_set(Coord(0,0), dimensions)
     locs = random.sample(xys, graph.nnodes)
     node_list = graph.nodes.keys()
     node_locs = {}

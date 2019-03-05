@@ -1,6 +1,7 @@
 from .room_dtypes import *
 from .room_utils import *
 from .coord import *
+from data_types import basicgraph
 
 # Room Generation:
 
@@ -83,24 +84,222 @@ def make_rooms(room_tiles, cmap, paths):
         r.level_data = level_of_cmap(r)
     return rooms
 
-#TODO
-#
-def miniroom_partition(room, max_parts):
+class SubroomNode(object):
+
+    def __init__(self, id, rect, adjacencies, obstacles):
+        self.id = id
+        self.rect = rect
+        self.adj = adjacencies
+        self.obstacles = obstacles
+        self.children = []
+
+    def subdivide(self, index, direction, id1, id2, subrooms):
+        """Divide a room at index in the given direction. Cutting a room in the x-direction
+        means that the horizontal axis of the room is divided by the cut. Coords of the room
+        /before/ index will belong to the first part, while coords of the room at or after index
+        will belong to the second part."""
+        self.check_inbounds(index, direction)
+        # Compute the rectangles that each child will take up
+        rect1, rect2 = coord.split_rect(self.rect, index, direction)
+        # Compute the adjacencies that each child will have
+        #TODO: might be able to get rid of the first ifelse since the left/top adjacencies will end
+        # before index
+        adj1 = []
+        adj2 = []
+        for a in self.adjacencies:
+            # The other SubroomNode implicated in this adjacency
+            other = subrooms[a[0]]
+            # child1 takes left/top adjacencies
+            if a[3] == direction.neg():
+                adj1.append(a)
+                # Reassign the old ajdancency for the neighbor
+                other.reassign_adj(self.id, id1)
+            # child2 takes right/bottom adjacencies
+            if a[3] == direction:
+                adj2.append(a)
+                other.reassign_adj(self.id, id2)
+            else:
+                # If it ends before the index, it belongs to child1
+                if a[2].index(direction) < index:
+                    adj1.append(a)
+                    other.reassign_adj(self.id, id1)
+                # If it starts after the index, it belongs to child2
+                elif a[1].index(direction) > index:
+                    adj1.append(a)
+                    other.reassign_adj(self.id, id2)
+                # If neither, it must be split
+                else:
+                    ar1, ar2 = coord.split_rect((a[1], a[2]), index, direction)
+                    a1 = (a[0], ar1[0], ar1[1], a[3])
+                    a2 = (a[0], ar2[0], ar2[1], a[3])
+                    adj1.append(a1)
+                    adj2.append(a2)
+                    # Also split the neighbor's adjacency
+                    other.split_adj(self.id, id1, id2, index, direction)
+        # Add an adjacency between the two children along the newly created edge
+        dp = self.div_point(index, direction)
+        op = self.obv_point(index, direction)
+        adj1.append((id2, dp - direction, op - direction, direction))
+        adj2.append((id1, dp, op, direction.scale(-1)))
+        # Assign obstacles the same way as adjacencies
+        obs1 = []
+        obs2 = []
+        for o in self.obstacles:
+            if o[2].index(direction) < index:
+                obs1.append(o)
+            elif o[1].index(direction) > index:
+                obs2.append(o)
+            else:
+                assert False, "Obstacle split by subdivide: " + str(o)
+        child1 = SubroomNode(id1, rect1, adj1, obs1)
+        child2 = SubroomNode(id2, rect2, adj2, obs2)
+        self.children = [child1, child2]
+
+    def is_leaf(self):
+        return len(self.children) == 0
+
+    def find_adj(self, id):
+        """Find the adjacency with the given id"""
+        the_adj = [i for i in self.adj if i[0] == id]
+        assert len(the_adj) == 1
+        return the_adj[0]
+
+    def reassign_adj(self, old_id, new_id):
+        new_adj = self.find_adj(old_id)
+        new_adj[0] = new_id
+        self.adj = [i for i in other.adj if i[0] != old_id] + [new_adj]
+
+    def split_adj(self, old_id, new_id1, new_id2, index, direction):
+        adj = self.find_adj(old_id)
+        new_r1, new_r2 = coord.split_rect((adj[0], adj[1]), index, direction)
+        new_1 = (id1, new_r1[0], new_r1[1], adj[3])
+        new_2 = (id2, new_r2[0], new_r2[1], adj[3])
+        self.adj = [i for i in other.adj if i[0] != old_id] + [new_1, new_2]
+
+    def div_point(self, index, direction):
+        return self.rect[0] + direction.scale(index)
+
+    def obv_point(self, index, direction):
+        return self.div_point() + (Coord(1,1) - d) * self.rect[1]
+
+    def size(self):
+        """Returns the total number of places a cut could be made in self."""
+        return self.range[1].x - self.range[0].x + self.range[1].y - self.range[1].y
+
+    def as_set(self):
+        return xy_set(self.rect[0], self.rect[1])
+
+    def check_inbounds(index, direction):
+        """Check that the proposed cut is in-bounds."""
+        div_point = self.div_point()
+        dp = div_point.index(direction)
+        startpoint = self.rect[0].index(direction)
+        endpoint = self.rect[1].index(direction)
+        assert dp < endpoint and dp >= startpoint
+
+    def check_valid(index, direction, min_size)
+        """Checks that a cut can be made at the given index in the given direction
+        if the smallest size of a subroom is min_size. Fails with assertion if the
+        cut is outside of range, returns False if the cut is within range but would
+        result in a room that is too small."""
+        self.check_inbounds(index, direction)
+        #TODO: kind of wasteful to compute these things again...
+        div_point = self.div_point(index, direction)
+        obv_point = self.obv_point(index, direction)
+        dp = div_point.index(direction)
+        startpoint = self.rect[0].index(direction)
+        endpoint = self.rect[1].index(direction)
+        if dp - startpoint < min_size:
+            return False
+        if endpoint - dp < min_size:
+            return False
+        # a 2xX rectangle indicating where the walls of the proposed cut will appear
+        cut_rect = (div_point - d, obv_point + d)
+        cut_set = coord.xy_set(cut_rect[0], cut_rect[1])
+        # Check obstacles:
+        for o in self.obstacles:
+            o_set = coord.xy_set(o[1], o[2])
+            # Slow but easy way to check rectangle intersection
+            if len(o_set & cut_set) > 0:
+                return False
+        return True
+
+    def choose_cut(self):
+        """Randomly choose a possible cut."""
+        directions = [Coords(1,0), Coords(0,1)]
+        # Get the horizontal and vertical size of the direction
+        sizes = [self.rect[1].index(d) - self.rect[0].index(d) for d in directions]
+        ds = zip(directions, sizes)
+        direction, size = random.choices(ds, sizes)[0]
+        index = random.randrange(size)
+        return index, direction
+
+def find_leaves(subrooms, roots):
+    # Note: will not terminate if there is a cycle in the subroom tree
+    # (hopefully there isn't because it's supposed to be a TREE)
+    leaves = []
+    new_roots = []
+    while len(roots) != 0:
+        for r in roots:
+            r_node = subrooms[r]
+            if r_node.is_leaf():
+                leaves.append(r_node)
+            else:
+                new_roots.extend(r_node.children)
+        roots = new_roots
+        new_roots = []
+    return leaves
+
+#TODO!
+def subroom_adjacency_graph(subroom_leaves):
+    g = basicgraph.BasicGraph()
+    for leaf in subroom_leaves:
+        g.add_node(leaf.id)
+        for o in leaf.obstacles:
+            g.add_node(o[0])
+    pass
+
+def make_subroom_walls(level, subroom_leaves):
+    for leaf in subroom_leaves:
+        for a in leaf.adj:
+            room_utils.mk_default_rect(level, a[1], a[2])
+
+def miniroom_partition(room, max_parts, min_partsize, obstacles):
     """Creates a partition of the room into minirooms."""
     # First, generate a greedy rectangularization of the concrete map for the room
+    current_id, roots, subrooms = rectangularize(room.cmap, obstacles)
     while True:
-        # choose a partition to subdivide
+        current_children = roots
+        # Choose a partition to subdivide
+        while len(current_children) != 0:
+            current_nodes = [subrooms[i] for i in current_children]
+            weights = [i.size() for i in current_nodes]
+            current_node = random.choices(current_nodes, weights)[0]
+            if current_node.is_leaf():
+                break
+            else:
+                current_children = current_node.children
         # choose an x or a y to subdivide it at
+        index, direction = current_node.choose_cut()
         # break if the xy is invalid
         #   - causes a partition area to be too small
         #   - goes through an obstacle like a door
+        #TODO: goes through an obstacle like a door
         #   - creates a partition over the max
-        break
-    pass
+        if current_node.check_valid(index, direction):
+            id1 = current_id
+            current_id += 1
+            id2 = current_id
+            current_id += 1
+            current_node.subdivide(index, direction, id1, id2)
+        else:
+            break
 
 #TODO: parameterized by direction in both x and y
-def rectangularize(cmap):
+def rectangularize(cmap, obstacles):
     subrooms = {}
+    # Stores the set of CMAP tiles for each subroom
+    subroom_sets = {}
     roots = []
     current_id = 0
     # sorts topmost leftmost
@@ -113,40 +312,50 @@ def rectangularize(cmap):
             for y in range(pos.y, rect.y):
                 positions.remove(coord.y)
         # Add it to the subroom tree, and convert its size and position into the level format
-        subrooms[current_id] = SubroomNode(pos * Coord(16, 16), rect * Coord(16, 16), [])
+        subrooms[current_id] = SubroomNode(current_id, (pos.scale(16), rect.scale(16)), [], [])
+        subroom_rects[current_id] = coord.xy_set(pos, rect)
         roots.append(current_id)
         current_id += 1
     # Find adjacencies between the rectangles
-    for r_1, r_2 in itertools.combinations(roots, 2):
+    for r1, r2 in itertools.combinations(roots, 2):
         # Since positions was sorted and the combinations function
         # outputs tuples in sorted order, r_1 is above / to the left of r_2
-        pass 
+        r1_adj, r2_adj = find_adjacency(subroom_sets[r1], subroom_sets[r2])
+        subrooms[r1].adj.extend(r1_adj)
+        subrooms[r2].adj.extend(r2_adj)
+    # Assign the obstacles
+    for o in obstacles:
+        o_set = coord.xy_set(o[1], o[2])
+        for r, s in subroom_sets.items():
+            if o_set <= s:
+                r.obstacles.append(o)
+                # Break since the s are disjoint
+                break
+    return current_id, roots, subrooms
 
 def find_adjacency(r1, r2):
     # D R L U
-    directions = [Coords(0,1), Coords(1,0), Coords(-1,0), Coords(0,-1)]
+    directions = [Coord(0,1), Coord(1,0), Coord(-1,0), Coord(0,-1)]
     for d in directions:
         neighbors = sorted([p + d for p in r1 if p + d not in r1 and p + d in r2])
         if len(neighbors > 0):
+            # Topmost leftmost neighbor
             start = neighbors[0]
             dist = 16 * len(neighbors)
-            border2_start = start * Coords(16,16)
+            border2_start = start.scale(16)
+            #TODO can be cleaned up with d.abs()?
             if d < Coord(0,0):
-                border2_start += Coord(-15,-15) * d
-                border2_end = start + Coord(16,16)
+                border2_start += d.scale(-15)
+                dist_coords = (Coord(1,1) + d).scale(dist)
+                border2_end = border2_start + dist_coords - d
             else:
-                dist_coords = (Coords(1, 1) - d) * Coords(dist, dist)
+                dist_coords = (Coord(1, 1) - d).scale(dist)
                 border2_end = border2_start + dist_coords + d
             border1_start = border2_start - d
             border1_end = border2_end - d
-            # Horizontal
-            if d.y == 0:
-                return ([(border1_start, border1_end)], [(border2_start, border2_end)]), ([], [])
-            # Vertical
-            else:
-                return ([], []), ([(border1_start, border1_end)], [(border2_start, border2_end)])
+            return [(r2.id, border1_start, border1_end, d)], [(r1.id, border2_start, border2_end, d.neg())]
         # No borders
-        return ([], []), ([], [])
+        return [], []
 
 def find_rect(cmap, pos):
     """Find the largest rectangle that will fit into the given cmap at the given pos."""

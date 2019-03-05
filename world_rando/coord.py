@@ -101,3 +101,30 @@ class Coord(object):
 
     def area(self):
         return self.x * self.y
+
+    def neg(self):
+        return Coord(-1, -1) * self
+
+    def index(self, direction):
+        if direction == Coord(1, 0):
+            return self.x
+        elif direction == Coord(0, 1):
+            return self.y
+        else:
+            assert False, "Bad direction"
+
+def xy_set(dim1, dim2):
+    """Creates a set of the coordinates in the rectangle defined by dim1, dim2."""
+    xys = set()
+    for x in range(dim1.x, dim2.x):
+        for y in range(dim1.y, dim2.y):
+            xys.add(Coord(x,y)
+    return xys
+
+def split_rect(rect, index, direction):
+    """Returns two new rectangles from splitting the rectangle along index."""
+    div_point = rect[0] + direction.scale(index)
+    rect1 = (rect[0], div_point + (Coord(1,1) - direction) * rect[1])
+    rect2 = (div_point, rect[1])
+    return rect1, rect2
+    
