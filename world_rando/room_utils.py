@@ -36,10 +36,17 @@ def mk_wall(level, map_xy, direction, thickness=2):
     else:
         assert False, "Bad direction: " + str(direction)
 
-def mk_default_rect(level, xy1, xy2):
+#TODO: "RECT" data type built from Coords that allows iterating over the interior
+def mk_rect(level, xy1, xy2, tile_maker):
     for x in range(xy1[0], xy2[0]):
         for y in range(xy1[1], xy2[1]):
-            level[Coord(x,y)] = mk_default_solid()
+            level[Coord(x,y)] = tile_maker()
+
+def mk_default_rect(level, xy1, xy2):
+    mk_rect(level, xy1, xy2, mk_default_solid)
+
+def mk_air_rect(level, xy1, xy2):
+    mk_rect(level, xy1, xy2, mk_default_air)
 
 # Makes a door (default-looking) at the edge of the given maptile
 def mk_door(level, map_xy, direction, door_id, size=2):

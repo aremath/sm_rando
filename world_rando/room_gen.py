@@ -25,7 +25,7 @@ def room_setup(room_tiles, cmap):
     return rooms
 
 #TODO: work in progress
-# Tile rooms is Coord -> room#,
+# Tile rooms is Coord -> room id,
 # paths is [(start_node, end_node, [MCoord])]
 # rooms is room_id -> room
 def room_graphs(rooms, tile_rooms, paths):
@@ -83,6 +83,28 @@ def make_rooms(room_tiles, cmap, paths):
     for r in rooms.values():
         r.level_data = level_of_cmap(r)
     return rooms
+
+def make_subrooms(room):
+    # TODO Generate obstacles
+    # Partition into subrooms
+    roots, subrooms = subroom_partition(room, 20, 5, obstacles)
+    subroom_leaves = find_leaves(subrooms)
+    subroom_graph = subroom_adjacency_graph(subroom_leaves)
+    detailed_room_graph, subroom_nodes, used_subrooms, entrances = embed_room_graph(room.graph, subroom_graph)
+    unused_subrooms = filter(lambda x: x.id not in used_subrooms, subroom_leaves)
+    # Fill the walls
+    make_subroom_walls(room.level, subroom_leaves)
+    # Unfill the subroom entrances
+    #TODO: Decide the type of each entrance based on what items are available
+    # and fill with the appropriate block type
+    for e in entrances:
+        room_utils.mk_air_rect(room.level, e[0], e[1])
+    # Fill unused subrooms
+    for r in unused_subrooms:
+        room_utils.mk_default_rect(room.level, r.rect[0], r.rect[1])
+    # Add relevant info to the room
+    room.detailed_room_graph = detailed_room_graph
+    room.subroom_nodes = subroom_nodes
 
 class SubroomNode(object):
 
@@ -264,17 +286,19 @@ def subroom_adjacency_graph(subroom_leaves):
     # Once all the subrooms have been added, produce the adjacencies
     for leaf in subroom_leaves:
         for neighbor_adj in leaf.adj:
-           g.add_edge(leaf.id, neighbor_adj[0], data=(neighbor_adj[1], neighbor_adj[2]))
+           g.add_edge(leaf.id, neighbor_adj[0], data=(neighbor_adj[1], neighbor_adj[2], neighbor_adj[3]))
     return g
 
 def embed_room_graph(room_graph, subroom_graph):
     """Embed the room graph into the subroom graph, resulting in a new graph
     which is the graph that will actually be searched over during subroom generation."""
-    # key - subroom_id, value - list of nodes belonging to that subroom
-
+    # Key - subroom_id, value - list of nodes belonging to that subroom
+    # Used to create a subgraph when building the subroom
     subroom_nodes = collections.defaultdict(list)
-    unused_subrooms = set()
+    # The subrooms which the graph embedding actually uses
+    # Used to calculate the subrooms which are completely unused.
     used_subrooms = set()
+    entrances = []
     g = basicgraph.BasicGraph()
     for node1, node2 in room_graph.get_edges():
         itemset = room_graph.get_edge_data(node1, node2)
@@ -301,29 +325,61 @@ def embed_room_graph(room_graph, subroom_graph):
                 fs_name = str(first) + "-" + str(second)
                 sf_name = str(second) + "-" + str(first)
                 # Add a node for the exit to the old subroom and the entrance to the new one
-                # TODO: pick a subset of the tiles to use as an exit!
                 if fs_name not in g:
-                    g.add_node(fs_name, data=edge_fs)
+                    # subroom interface nodes should only be added two at a time
+                    assert sf_name not in g
+                    # Choose a place to break the wall between the two subrooms
+                    e1, e2 = choose_entrances(edge_fs, edge_sf)
+                    # Create a node in the first subroom
+                    g.add_node(fs_name, data=e1)
                     subroom_nodes[first].append(fs_name)
                     used_subrooms.add(first)
-                if sf_name not in g:
-                    g.add_node(sf_name, data=edge_sf)
+                    # Create a node in the second subroom
+                    g.add_node(sf_name, data=e2)
                     subroon_nodes[second].append(sf_name)
                     used_subrooms.add(second)
-                # Connect them up
+                    # Add the entrance to the list of entrances to be used
+                    # to fill them with air
+                    entrances.append(e1)
+                    entrances.append(e2)
+                # Regardless of what type of node, connect them up
+                # TODO: update edge append instead!
                 g.add_edge(current_node, fs_name, data=itemset)
                 g.add_edge(fs_name, sf_name, data=itemset)
                 current_node = fs_name
-    #TODO: calculate unused_subrooms!
-    return g, subroom_nodes, unused_subrooms
+    return g, subroom_nodes, used_subrooms, entrances
+
+def choose_entrances(adj1, adj2):
+    """Choose where on an adjacency to make an entrance."""
+    # Make sure the two adjacencies are in opposite directions
+    assert adj1[2] = adj2[2].neg()
+    # The long axis of the adjacency is perpendicular to its direction
+    direction = adj1[2].abs()
+    axis = Coord(1,1) - direction
+    # Find the length of each adjacency
+    adj1_size = adj1[1].index(axis) - adj1[0].index(axis)
+    adj2_size = adj2[1].index(axis) - adj2[0].index(axis)
+    assert adj1_size == adj2_size
+    #TODO: entrances to morph subrooms can be as small as 1...
+    #PARAM
+    entrance_size = random.randrange(3,7)
+    entrance_placement = random.randrange(adj1_size - entrance_size)
+    # Compute the entrances
+    entrance1_start = adj1[0] + axis.scale(entrance_placement)
+    entrance2_end = entrance1_start + axis.scale(entrance_size) + direction
+    # Entrance2 is just shifted by one in the direction that adj1 faces
+    entrance2_start = entrance1_start + adj1[2]
+    entrance2_end = entrance1_end + adj1[2]
+    return (entrance1_start, entrance1_end), (entrance2_start, entrance2_end)
+    
 
 def make_subroom_walls(level, subroom_leaves):
     for leaf in subroom_leaves:
         for a in leaf.adj:
             room_utils.mk_default_rect(level, a[1], a[2])
 
-def miniroom_partition(room, max_parts, min_partsize, obstacles):
-    """Creates a partition of the room into minirooms."""
+def subroom_partition(room, max_parts, min_partsize, obstacles):
+    """Creates a partition of the room into subrooms."""
     # First, generate a greedy rectangularization of the concrete map for the room
     current_id, roots, subrooms = rectangularize(room.cmap, obstacles)
     while True:
@@ -352,7 +408,7 @@ def miniroom_partition(room, max_parts, min_partsize, obstacles):
         else:
             break
     #TODO
-    pass
+    return roots, subrooms
 
 #TODO: parameterized by direction in both x and y
 def rectangularize(cmap, obstacles):

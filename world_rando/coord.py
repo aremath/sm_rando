@@ -105,6 +105,9 @@ class Coord(object):
     def neg(self):
         return Coord(-1, -1) * self
 
+    def abs(self):
+        return Coord(abs(self.x), abs(self.y))
+
     def index(self, direction):
         if direction == Coord(1, 0):
             return self.x
