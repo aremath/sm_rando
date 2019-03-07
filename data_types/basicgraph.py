@@ -34,7 +34,7 @@ class BasicGraph(object):
             self.add_edge(node1, node2, data)
 
     def update_edge_append(self, node1, node2, data):
-        """append data to the edge between n1 and n2"""
+        """Append data to the edge between n1 and n2"""
         if self.is_edge(node1, node2):
             #TODO innefficient!
             for edge in self.nodes[node1].edges:
@@ -44,7 +44,7 @@ class BasicGraph(object):
             self.add_edge(node1, node2, data)
 
     def is_edge(self, node1, node2, p=lambda x: True):
-        """ is there an edge from node1 to node2 satisfying p?"""
+        """Is there an edge from node1 to node2 satisfying p?"""
         assert node1 in self.nodes, "Node does not exist: " + node1
         assert node2 in self.nodes, "Node does not exist: " + node2
         for edge in self.nodes[node1].edges:
@@ -53,7 +53,7 @@ class BasicGraph(object):
         return False
 
     def get_edge_data(self, node1, node2):
-        """ get the data (if any), in the edge from n1 to n2 """
+        """Get the data (if any), in the edge from n1 to n2 """
         assert node1 in self.nodes, "Node does not exist: " + node1
         assert node2 in self.nodes, "Node does not exist: " + node2
         for edge in self.nodes[node1].edges:
@@ -69,6 +69,12 @@ class BasicGraph(object):
                 del self.nodes[node1].edges[index]
                 return
         assert False, "No such edge: " + node1 + " -> " + node2
+
+    def get_node_data(self, node):
+        """Get the data (if any) in the specified node."""
+        assert node in self.nodes, "Node does not exist: " + node
+        return self.nodes[node].data
+
 
     def remove_node(self, node):
         assert node in self.nodes, "Node does not exist: " + node
@@ -111,6 +117,26 @@ class BasicGraph(object):
             for neighbor in self.nodes[node].edges:
                 if neighbor.terminal not in finished:
                     queue.append(neighbor.terminal)
+                    offers[neighbor.terminal] = node
+        return finished, offers
+    
+    #TODO: actually use a collections.deque as a stack
+    # This is basically a direct copy of the BFS code using a stack instead.
+    # Do not want to have to check search method during the search loop, or
+    # mess around with lambdas.
+    def DFS(self, start, end=None):
+        offers = {}
+        finished = set()
+        stack = [start]
+        node = ""
+        while len(stack) > 0:
+            node = stack.pop()
+            if end is not None and node == end:
+                break
+            finished |= set([node])
+            for neighbor in self.nodes[node].edges:
+                if neighbor.terminal not in finished:
+                    queue.insert(0, neighbor.terminal)
                     offers[neighbor.terminal] = node
         return finished, offers
 

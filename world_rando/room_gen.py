@@ -93,6 +93,8 @@ class SubroomNode(object):
         self.obstacles = obstacles
         self.children = []
 
+    # an adjacency is a 4-tuple of (id, rect_start, rect_end, direction)
+    # an obstacle is a 5-tuple of (name, obstacle_start, obstacle_end, target_start, target_end)
     def subdivide(self, index, direction, id1, id2, subrooms):
         """Divide a room at index in the given direction. Cutting a room in the x-direction
         means that the horizontal axis of the room is divided by the cut. Coords of the room
@@ -250,14 +252,70 @@ def find_leaves(subrooms, roots):
         new_roots = []
     return leaves
 
-#TODO!
 def subroom_adjacency_graph(subroom_leaves):
     g = basicgraph.BasicGraph()
+    # Add a node for each subroom and each obstacle
     for leaf in subroom_leaves:
         g.add_node(leaf.id)
         for o in leaf.obstacles:
-            g.add_node(o[0])
-    pass
+            g.add_node(o[0], data=(o[3], o[4]))
+        g.add_edge(leaf.id, o[0])
+        g.add_edge(o[0], leaf.id)
+    # Once all the subrooms have been added, produce the adjacencies
+    for leaf in subroom_leaves:
+        for neighbor_adj in leaf.adj:
+           g.add_edge(leaf.id, neighbor_adj[0], data=(neighbor_adj[1], neighbor_adj[2]))
+    return g
+
+def embed_room_graph(room_graph, subroom_graph):
+    """Embed the room graph into the subroom graph, resulting in a new graph
+    which is the graph that will actually be searched over during subroom generation."""
+    # key - subroom_id, value - list of nodes belonging to that subroom
+
+    subroom_nodes = collections.defaultdict(list)
+    unused_subrooms = set()
+    used_subrooms = set()
+    g = basicgraph.BasicGraph()
+    for node1, node2 in room_graph.get_edges():
+        itemset = room_graph.get_edge_data(node1, node2)
+        #TODO: randomized DFS?
+        path = basicgraph.bfs_path(subroom_graph.DFS(node1, node2))
+        current_node = None
+        for first, second in zip(path, path[1:]):
+            if first in room_graph:
+                # First is an obstacle node
+                # Copy the data: the rectangle of actual tiles that this obstacle represents
+                #TODO: might only want the last two entries: the target squares
+                if first not in g:
+                    g.add_node(first, data=subroom_graph.get_data[first])
+                current_node = first
+            elif second in room_graph:
+                # Second is an obstacle node
+                if second not in g:
+                    g.add_node(second, data=subroom_graph.get_data[second])
+                current_node = second
+            else:
+                # edge between two subroom nodes
+                edge_fs = subroom_graph.get_edge_data(first, second)
+                edge_sf = subroom_graph.get_edge_data(second, first)
+                fs_name = str(first) + "-" + str(second)
+                sf_name = str(second) + "-" + str(first)
+                # Add a node for the exit to the old subroom and the entrance to the new one
+                # TODO: pick a subset of the tiles to use as an exit!
+                if fs_name not in g:
+                    g.add_node(fs_name, data=edge_fs)
+                    subroom_nodes[first].append(fs_name)
+                    used_subrooms.add(first)
+                if sf_name not in g:
+                    g.add_node(sf_name, data=edge_sf)
+                    subroon_nodes[second].append(sf_name)
+                    used_subrooms.add(second)
+                # Connect them up
+                g.add_edge(current_node, fs_name, data=itemset)
+                g.add_edge(fs_name, sf_name, data=itemset)
+                current_node = fs_name
+    #TODO: calculate unused_subrooms!
+    return g, subroom_nodes, unused_subrooms
 
 def make_subroom_walls(level, subroom_leaves):
     for leaf in subroom_leaves:
@@ -284,7 +342,6 @@ def miniroom_partition(room, max_parts, min_partsize, obstacles):
         # break if the xy is invalid
         #   - causes a partition area to be too small
         #   - goes through an obstacle like a door
-        #TODO: goes through an obstacle like a door
         #   - creates a partition over the max
         if current_node.check_valid(index, direction):
             id1 = current_id
@@ -294,6 +351,8 @@ def miniroom_partition(room, max_parts, min_partsize, obstacles):
             current_node.subdivide(index, direction, id1, id2)
         else:
             break
+    #TODO
+    pass
 
 #TODO: parameterized by direction in both x and y
 def rectangularize(cmap, obstacles):
