@@ -115,8 +115,8 @@ class SubroomNode(object):
         self.obstacles = obstacles
         self.children = []
 
-    # an adjacency is a 4-tuple of (id, rect_start, rect_end, direction)
-    # an obstacle is a 5-tuple of (name, obstacle_start, obstacle_end, target_start, target_end)
+    # an adjacency is a 3-tuple of (id, rect, direction)
+    # an obstacle is a 3-tuple of (name, obstacle_rect, target_rect)
     def subdivide(self, index, direction, id1, id2, subrooms):
         """Divide a room at index in the given direction. Cutting a room in the x-direction
         means that the horizontal axis of the room is divided by the cut. Coords of the room
@@ -124,38 +124,37 @@ class SubroomNode(object):
         will belong to the second part."""
         self.check_inbounds(index, direction)
         # Compute the rectangles that each child will take up
-        rect1, rect2 = coord.split_rect(self.rect, index, direction)
+        rect1, rect2 = self.rect.split(index, direction)
         # Compute the adjacencies that each child will have
-        #TODO: might be able to get rid of the first ifelse since the left/top adjacencies will end
-        # before index
+        #TODO: can simplify this with Rect.within
         adj1 = []
         adj2 = []
         for a in self.adjacencies:
             # The other SubroomNode implicated in this adjacency
             other = subrooms[a[0]]
             # child1 takes left/top adjacencies
-            if a[3] == direction.neg():
+            if a[2] == direction.neg():
                 adj1.append(a)
                 # Reassign the old ajdancency for the neighbor
                 other.reassign_adj(self.id, id1)
             # child2 takes right/bottom adjacencies
-            if a[3] == direction:
+            if a[2] == direction:
                 adj2.append(a)
                 other.reassign_adj(self.id, id2)
             else:
                 # If it ends before the index, it belongs to child1
-                if a[2].index(direction) < index:
+                if a.end.index(direction) < index:
                     adj1.append(a)
                     other.reassign_adj(self.id, id1)
                 # If it starts after the index, it belongs to child2
-                elif a[1].index(direction) > index:
+                elif a.start.index(direction) > index:
                     adj1.append(a)
                     other.reassign_adj(self.id, id2)
                 # If neither, it must be split
                 else:
-                    ar1, ar2 = coord.split_rect((a[1], a[2]), index, direction)
-                    a1 = (a[0], ar1[0], ar1[1], a[3])
-                    a2 = (a[0], ar2[0], ar2[1], a[3])
+                    ar1, ar2 = a.split(index, direction)
+                    a1 = (a[0], ar1, a[2])
+                    a2 = (a[0], ar2, a[2])
                     adj1.append(a1)
                     adj2.append(a2)
                     # Also split the neighbor's adjacency
@@ -169,9 +168,9 @@ class SubroomNode(object):
         obs1 = []
         obs2 = []
         for o in self.obstacles:
-            if o[2].index(direction) < index:
+            if o.within(rect1):
                 obs1.append(o)
-            elif o[1].index(direction) > index:
+            elif o.within(rect2):
                 obs2.append(o)
             else:
                 assert False, "Obstacle split by subdivide: " + str(o)
@@ -195,31 +194,28 @@ class SubroomNode(object):
 
     def split_adj(self, old_id, new_id1, new_id2, index, direction):
         adj = self.find_adj(old_id)
-        new_r1, new_r2 = coord.split_rect((adj[0], adj[1]), index, direction)
-        new_1 = (id1, new_r1[0], new_r1[1], adj[3])
-        new_2 = (id2, new_r2[0], new_r2[1], adj[3])
+        new_r1, new_r2 = adj[1].split_rect(index, direction)
+        new_1 = (id1, new_r1, adj[2])
+        new_2 = (id2, new_r2, adj[2])
         self.adj = [i for i in other.adj if i[0] != old_id] + [new_1, new_2]
 
     def div_point(self, index, direction):
-        return self.rect[0] + direction.scale(index)
+        return self.rect.start + direction.scale(index)
 
     def obv_point(self, index, direction):
-        return self.div_point() + (Coord(1,1) - d) * self.rect[1]
+        return self.div_point() + (Coord(1,1) - d) * self.rect.end
 
     def size(self):
         """Returns the total number of places a cut could be made in self."""
-        return self.range[1].x - self.range[0].x + self.range[1].y - self.range[1].y
+        return self.rect.perimeter / 2
 
     def as_set(self):
-        return xy_set(self.rect[0], self.rect[1])
+        return self.rect.as_set()
 
     def check_inbounds(index, direction):
         """Check that the proposed cut is in-bounds."""
         div_point = self.div_point()
-        dp = div_point.index(direction)
-        startpoint = self.rect[0].index(direction)
-        endpoint = self.rect[1].index(direction)
-        assert dp < endpoint and dp >= startpoint
+        assert self.rect.coord_within(div_point)
 
     def check_valid(index, direction, min_size)
         """Checks that a cut can be made at the given index in the given direction
@@ -231,20 +227,18 @@ class SubroomNode(object):
         div_point = self.div_point(index, direction)
         obv_point = self.obv_point(index, direction)
         dp = div_point.index(direction)
-        startpoint = self.rect[0].index(direction)
-        endpoint = self.rect[1].index(direction)
+        startpoint = self.rect.start.index(direction)
+        endpoint = self.rect.start.index(direction)
         if dp - startpoint < min_size:
             return False
         if endpoint - dp < min_size:
             return False
         # a 2xX rectangle indicating where the walls of the proposed cut will appear
-        cut_rect = (div_point - d, obv_point + d)
-        cut_set = coord.xy_set(cut_rect[0], cut_rect[1])
+        cut_rect = Rect(div_point - d, obv_point + d)
         # Check obstacles:
         for o in self.obstacles:
-            o_set = coord.xy_set(o[1], o[2])
-            # Slow but easy way to check rectangle intersection
-            if len(o_set & cut_set) > 0:
+            #
+            if o[1].intersects(cut_rect)
                 return False
         return True
 
@@ -252,7 +246,7 @@ class SubroomNode(object):
         """Randomly choose a possible cut."""
         directions = [Coords(1,0), Coords(0,1)]
         # Get the horizontal and vertical size of the direction
-        sizes = [self.rect[1].index(d) - self.rect[0].index(d) for d in directions]
+        sizes = [self.rect.size(d) for d in directions]
         ds = zip(directions, sizes)
         direction, size = random.choices(ds, sizes)[0]
         index = random.randrange(size)
@@ -276,17 +270,17 @@ def find_leaves(subrooms, roots):
 
 def subroom_adjacency_graph(subroom_leaves):
     g = basicgraph.BasicGraph()
-    # Add a node for each subroom and each obstacle
+    # Add a node for each subroom and each obstacle that holds the target region of the obstacle
     for leaf in subroom_leaves:
         g.add_node(leaf.id)
         for o in leaf.obstacles:
-            g.add_node(o[0], data=(o[3], o[4]))
+            g.add_node(o[0], data=(o[2]))
         g.add_edge(leaf.id, o[0])
         g.add_edge(o[0], leaf.id)
     # Once all the subrooms have been added, produce the adjacencies
     for leaf in subroom_leaves:
         for neighbor_adj in leaf.adj:
-           g.add_edge(leaf.id, neighbor_adj[0], data=(neighbor_adj[1], neighbor_adj[2], neighbor_adj[3]))
+           g.add_edge(leaf.id, neighbor_adj[0], data=(neighbor_adj[1], neighbor_adj[2]))
     return g
 
 def embed_room_graph(room_graph, subroom_graph):
@@ -357,8 +351,8 @@ def choose_entrances(adj1, adj2):
     direction = adj1[2].abs()
     axis = Coord(1,1) - direction
     # Find the length of each adjacency
-    adj1_size = adj1[1].index(axis) - adj1[0].index(axis)
-    adj2_size = adj2[1].index(axis) - adj2[0].index(axis)
+    adj1_size = adj1[1].size(axis)
+    adj2_size = adj2[1].size(axis)
     assert adj1_size == adj2_size
     #TODO: entrances to morph subrooms can be as small as 1...
     #PARAM
@@ -370,13 +364,12 @@ def choose_entrances(adj1, adj2):
     # Entrance2 is just shifted by one in the direction that adj1 faces
     entrance2_start = entrance1_start + adj1[2]
     entrance2_end = entrance1_end + adj1[2]
-    return (entrance1_start, entrance1_end), (entrance2_start, entrance2_end)
-    
+    return Rect(entrance1_start, entrance1_end), Rect(entrance2_start, entrance2_end)
 
 def make_subroom_walls(level, subroom_leaves):
     for leaf in subroom_leaves:
         for a in leaf.adj:
-            room_utils.mk_default_rect(level, a[1], a[2])
+            room_utils.mk_default_rect(level, a[1])
 
 def subroom_partition(room, max_parts, min_partsize, obstacles):
     """Creates a partition of the room into subrooms."""
@@ -407,7 +400,6 @@ def subroom_partition(room, max_parts, min_partsize, obstacles):
             current_node.subdivide(index, direction, id1, id2)
         else:
             break
-    #TODO
     return roots, subrooms
 
 #TODO: parameterized by direction in both x and y
@@ -423,11 +415,10 @@ def rectangularize(cmap, obstacles):
     while len(positions) > 0:
         pos = positions[0]
         rect = find_rect(cmap, pos)
-        for x in range(pos.x, rect.x):
-            for y in range(pos.y, rect.y):
-                positions.remove(coord.y)
+        for c in rect.as_list():
+            positions.remove(c)
         # Add it to the subroom tree, and convert its size and position into the level format
-        subrooms[current_id] = SubroomNode(current_id, (pos.scale(16), rect.scale(16)), [], [])
+        subrooms[current_id] = SubroomNode(current_id, rect.scale(16), [], [])
         subroom_rects[current_id] = coord.xy_set(pos, rect)
         roots.append(current_id)
         current_id += 1
@@ -440,12 +431,15 @@ def rectangularize(cmap, obstacles):
         subrooms[r2].adj.extend(r2_adj)
     # Assign the obstacles
     for o in obstacles:
-        o_set = coord.xy_set(o[1], o[2])
-        for r, s in subroom_sets.items():
-            if o_set <= s:
-                r.obstacles.append(o)
-                # Break since the s are disjoint
+        done = False
+        for s in subrooms.values()
+            # If the object is contained by the subroom...
+            if o[1].within(s.rect)
+                s.obstacles.append(o)
+                done = True
                 break
+        if not done:
+            assert False, "Obstacle not contained by a single subroom: " + str(o)
     return current_id, roots, subrooms
 
 def find_adjacency(r1, r2):
@@ -468,30 +462,39 @@ def find_adjacency(r1, r2):
                 border2_end = border2_start + dist_coords + d
             border1_start = border2_start - d
             border1_end = border2_end - d
-            return [(r2.id, border1_start, border1_end, d)], [(r1.id, border2_start, border2_end, d.neg())]
+            r1 = Rect(border1_start, border1_end)
+            r2 = Rect(border2_start, border2_end)
+            return [(r2.id, r1, d)], [(r1.id, r2, d.neg())]
         # No borders
         return [], []
 
 def find_rect(cmap, pos):
     """Find the largest rectangle that will fit into the given cmap at the given pos."""
     assert pos in cmap
-    best_rect = pos + Coord(1,1)
-    max_area = 1
-    x = pos.x + 1
-    y = pos.y + 1
+    best_rect = Rect(pos, pos + Coord(1,1))
+    # Find the largest x and y that we need to check for a rectangle
+    xmax = 0
     while True:
-        while True:
-            c = Coord(x, y)
-            if pos + c in cmap:
-                area = (c - pos).area()
-                if area > max_area:
-                    best_rect = c
-                    max_area = area
-            else:
-                break
-            x += 1
-        x = 0
-        y += 1
+        c = pos + Coord(xmax, 0)
+        if c in cmap:
+            xmax += 1
+    ymax = 0
+    while True:
+        c = pos + Coord(0, ymax)
+        if c in cmap:
+            ymax += 1
+    max_rect = Rect(pos, pos + Coord(xmax, ymax))
+    max_area = 1
+    for c in max_rect.as_list:
+        c = Coord(x, y)
+        # If the bottom right corner is in the map, then it's a valid rectangle
+        if pos + c in cmap:
+            r = Rect(pos, c + Coord(1,1))
+            area = r.area()
+            # If it's bigger than the current best rectangle, replace the current best
+            if area > max_area:
+                best_rect = r
+                max_area = area
     return best_rect
 
 # Translates the (uncompressed) leveldata bytes to a level dictionary.

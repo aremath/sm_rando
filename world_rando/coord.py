@@ -116,18 +116,80 @@ class Coord(object):
         else:
             assert False, "Bad direction"
 
-def xy_set(dim1, dim2):
-    """Creates a set of the coordinates in the rectangle defined by dim1, dim2."""
-    xys = set()
-    for x in range(dim1.x, dim2.x):
-        for y in range(dim1.y, dim2.y):
-            xys.add(Coord(x,y)
-    return xys
+class Rect(object):
 
-def split_rect(rect, index, direction):
-    """Returns two new rectangles from splitting the rectangle along index."""
-    div_point = rect[0] + direction.scale(index)
-    rect1 = (rect[0], div_point + (Coord(1,1) - direction) * rect[1])
-    rect2 = (div_point, rect[1])
-    return rect1, rect2
-    
+    def __init__(c1, c2):
+        assert c2.x > c1.x
+        assert c2.y > c1.y
+        self.start = c1
+        self.end = c2
+
+    def __repr__(self):
+        return "(" + str(self.start) + "," + str(self.end) + ")"
+
+    def as_set(self):
+        s = set()
+        for x in range(self.start.x, self.end.x):
+            for y in range(self.start.y, self.end.y):
+                s.add(Coord(x,y))
+        return s
+
+    # TODO: some way to to this with iterators so that I can do
+    # " for c in rect: "
+    def as_list(self):
+        l = []
+        for x in range(self.start.x, self.end.x):
+            for y in range(self.start.y, self.end.y):
+                l.append(Coord(x,y))
+        return l
+
+    def split(self, index, direction):
+        div_point = self.start + direction.scale(index)
+        assert self.coord_within(div_point)
+        rect1 = Rect(self.start, div_point + (Coord(1,1) - direction) * rect.end)
+        rect2 = Rect(div_point, self.end)
+        return rect1, rect2
+
+    def intersects(self, other):
+        """Does self intersect with other?"""
+        # self starts to the right of other
+        if self.start.x >= other.end.x:
+            return False
+        # self ends to the left of other
+        elif self.end.x <= other.start.x:
+            return False
+        # self starts below other
+        elif self.start.y >= other.end.y:
+            return False
+        # self ends above other
+        elif self.end.y <= other.start.y:
+            return False
+        else:
+            return True
+
+    def coord_within(self, c):
+        """Is the given coordinate within self?"""
+        if c.x >= self.start.x and c.x < self.end.x:
+            if c.y >= self.start.y and c.y < self.end.y:
+                return True
+        return False
+
+    def within(self, other):
+        """Is self inside other?"""
+        # Start and end must be within...
+        # Subtract 1 from end because the bottommost rightmost square is one square up and to the left
+        # of self.end
+        return other.coord_within(self.start) and other.coord_within(self.end - Coord(1,1))
+
+    def scale(self, factor):
+        return Rect(self.start.scale(factor), self.end.scale(factor))
+
+    def area(self):
+        return (self.end.x - self.start.x) * (self.end.y - self.start.y)
+
+    def perimeter(self):
+        return 2 * (self.end.x - self.start.x + self.end.y - self.start.y)
+
+    def size(self, direction):
+        return self.end.index(direction) - self.start.index(direction)
+
