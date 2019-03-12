@@ -39,8 +39,6 @@ class Room(object):
         fname = directory + "/room" + str(self.room_id) + "_level.png"
         room_viz(self.level_data, fname, "encoding/room_tiles")
 
-#TODO: Door needs to contain some info about what ROOMS it connects, not just what tiles...
-# or maybe the tiles on the cmap know what room they are in.
 class Door(object):
 
     def __init__(self, tile, direction, room1, room2, door_id):
@@ -70,6 +68,23 @@ class Level(object):
 
     def assert_in_bounds(self, coord):
         assert self.in_bounds(coord), "Out of bounds: " + str(coord)
+
+    def matches(self, other, pos):
+        for c in other.itercoords():
+            nc = c + pos
+            if self.in_bounds(nc) and nc in self:
+                if not other[c].matches(self[nc]):
+                    return False
+            else:
+                return False
+        return True
+
+    def find_matches(self, other):
+        matches = []
+        for c in self.itercoords():
+            if self.matches(other, c):
+                matches.append(c)
+        return matches
 
     def compose(self, other, collision_policy="error"):
         new_tiles = {}
@@ -148,6 +163,12 @@ class Tile(object):
         self.texture = texture
         self.tile_type = tile_type
 
+    def __eq__(self, other):
+        return self.texture == other.texture and self.tile_type == other.tile_type
+
+    def matches(self, other):
+        return self.texture.matches(other.texture) and self.tile_type.matches(other.tile_type)
+
     #TODO: safety assertions like hflip, vflip are one bit
     def level1_bytes(self):
         """The 2-byte part of the tile that is stored in the level1 foreground data."""
@@ -178,10 +199,22 @@ class Texture(object):
         self.index = index
         self.flips = flips
 
+    def __eq__(self, other):
+        return self.index == other.index and self.flips == other.flips
+
+    def matches(self, other):
+        return self == other or other == "ANY"
+
 # The physical properties of a tile
 class Type(object):
     
     def __init__(self, index, bts):
         self.index = index
         self.bts = bts
+
+    def __eq__(self, other):
+        return self.index == other.index and self.bts == other.bts
+
+    def matches(self, other):
+        return self == other or other == "ANY"
 
