@@ -70,12 +70,7 @@ def find_image(tile, images, slopes):
         return None
     # Slopes
     elif tindex == 0x1:
-        # top bit unused
-        # Next two bits flips
-        hflip = (bts >> 6) & 0b1
-        vflip = (bts >> 7) & 0b1
-        # Then 5 bit index into the slope table
-        index = bts & 0b11111
+        hflip, vflip, index = tile.get_slope_info()
         img = slopes[index]
         if hflip:
             img = ImageOps.mirror(img)

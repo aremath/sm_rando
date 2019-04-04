@@ -10,6 +10,7 @@ class Room(object):
         self.enemies = []
         self.plms = []
         self.doors = []
+        self.items = []
         if graph is None:
             self.graph = basicgraph.BasicGraph()
         else:
@@ -52,6 +53,12 @@ class Door(object):
     #    #TODO: is this a valid equivalence relation?
     #    return hash(self.tiles)
 
+class Item(object):
+
+    def __init__(self, item_type, map_pos):
+        self.item_type = item_type
+        self.map_pos = map_pos
+
 # TODO: grand unified theory with ConcreteMap
 # Holds the level data for a room
 class Level(object):
@@ -78,6 +85,17 @@ class Level(object):
             else:
                 return False
         return True
+
+    def reflect(self, axis):
+        reflected = Level(self.dimensions)
+        perp = Coord(1,1) - axis
+        size = self.dimensions * axis
+        for c, t in self.tiles.items():
+            axis_c = c * axis
+            new_axis_c = size - axis_c - axis
+            reflected_c = new_axis_c + (c * perp)
+            reflected[reflected_c] = t.reflect(axis)
+        return reflected
 
     def find_matches(self, other):
         matches = []
@@ -168,6 +186,17 @@ class Tile(object):
 
     def matches(self, other):
         return self.texture.matches(other.texture) and self.tile_type.matches(other.tile_type)
+    
+    def reflect(self, axis):
+        if self.texture == "ANY":
+            r_tex = "ANY"
+        else:
+            r_tex = self.texture.reflect(axis)
+        if self.tile_type == "ANY":
+            r_ty = "ANY"
+        else:
+            r_ty = self.tile_type.reflect(axis)
+        return Tile(r_tex, r_ty)
 
     #TODO: safety assertions like hflip, vflip are one bit
     def level1_bytes(self):
@@ -188,6 +217,12 @@ class Tile(object):
         """The 2-byte part of the tile stored in the level2 background data."""
         return b''
 
+# Change the flips to reflect about axis
+# Vertical flip changes if axis is (0,1)
+# Horizontal flip changes if axis is (1,0)
+def reflect_flips(flips, axis):
+    return ((flips[0] + axis[0]) % 2, (flips[1] + axis[1]) % 2)
+
 # These are separate because for the purposes of waveform collapse, the type of a tile
 # can be known while the texture remains unknown and vice versa.
 
@@ -205,6 +240,9 @@ class Texture(object):
     def matches(self, other):
         return self == other or other == "ANY"
 
+    def reflect(self, axis):
+        return Texture(self.index, reflect_flips(self.flips, axis))
+
 # The physical properties of a tile
 class Type(object):
     
@@ -217,4 +255,28 @@ class Type(object):
 
     def matches(self, other):
         return self == other or other == "ANY"
+
+    def get_slope_info(self):
+        assert self.index == 0x01, "Tile is not a slope!"
+        # Top bit is unused
+        # Next two bits are flips
+        hflip = (bts >> 6) & 0b1
+        vflip = (bts >> 7) & 0b1
+        # Then a 5-bit index into the slope table
+        index = bts & 0b11111
+        return hflip, vflip, index
+    
+    def reflect(self, axis):
+        # Must change the flips it if it is a slope
+        if self.index == 0x01:
+            hflip, vflip, index = self.get_slope_info()
+            # Reflect the flips
+            hflip, vflip = reflect_flips((hflip, vflip), axis)
+            new_bts = index | (vflip << 7) | (hflip << 6)
+            return Type(self.index, new_bts)
+        # If it isn't a slope, then it will be symmetrical and flipping does not change it
+        #TODO: that isn't strictly true (ex. conveyors)
+        else:
+            return Type(self.index, self.bts)
+
 

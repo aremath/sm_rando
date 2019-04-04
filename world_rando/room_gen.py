@@ -36,9 +36,11 @@ def room_graphs(rooms, tile_rooms, paths):
         room_end = tile_rooms[path[-1]]
         gstart = rooms[room_start].graph
         if start not in gstart.nodes:
+            room_start.items.append(Item(start, path[0] - room_start.room_pos))
             gstart.add_node(start)
         gend = rooms[room_end].graph
         if end not in gend.nodes:
+            room_end.items.append(Item(end, path[-1] - room_end.room_pos))
             gend.add_node(end)
         current_room = room_start
         current_node = start
@@ -83,6 +85,12 @@ def make_rooms(room_tiles, cmap, paths):
     for r in rooms.values():
         r.level_data = level_of_cmap(r)
     return rooms
+
+def find_item_loc(item, room):
+    #TODO: determine a random item location based on first choosing randomly the
+    # type of place (chozo statue, pedestal, (hidden)), then finding a location based on the
+    # places where the appropriate setup pattern matches.
+    pass
 
 def make_subrooms(room):
     # TODO Generate obstacles
@@ -252,7 +260,21 @@ class SubroomNode(object):
         index = random.randrange(size)
         return index, direction
 
+def find_coord(subrooms, roots, coord):
+    """Find which leaf subroom has the given coord."""
+    curr_roots = roots
+    while True:
+        candidates = [r for r in curr_roots if subrooms[r].rect.coord_within(coord)]
+        assert len(candidates) == 1
+        candidate = candidates[0]
+        if candidate.is_leaf():
+            break
+        else:
+            curr_roots = candidate.children
+    return candidate
+
 def find_leaves(subrooms, roots):
+    """Return a list of the ids of the leaves of the given subroom tree."""
     # Note: will not terminate if there is a cycle in the subroom tree
     # (hopefully there isn't because it's supposed to be a TREE)
     leaves = []

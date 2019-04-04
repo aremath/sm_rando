@@ -1,5 +1,8 @@
 from .room_dtypes import *
 from .coord import *
+import os
+
+#TODO: more advanced DSL that can handle things like input for door id and size...
 
 def parse_pattern(pattern_filename):
     f = open(pattern_filename, "r")
@@ -52,3 +55,15 @@ def find_flips(entry):
     elif len(es) != 1:
         assert False, "Bad Entry!"
     return main_entry, flips
+
+def load_patterns(path):
+    # Get all the filenames in path
+    fnames = [f for f in os.listdir(path) if os.path.isfile(os.path.join(f, path))]
+    patterns = {}
+    for f in fnames:
+        name, ext = f.split(".")
+        if ext == "txt":
+            p = parse_pattern(os.path.join(f, path))
+            patterns[name] = p
+    return patterns
+
