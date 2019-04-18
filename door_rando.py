@@ -1,4 +1,3 @@
-
 from encoding.parse_rooms import *
 from encoding.rom_edit import *
 from door_rando.rando_algs import *
@@ -9,68 +8,72 @@ import argparse
 import shutil
 import sys
 
-#TODO: a better file structure would keep all the rando algorithms that produce door changes and item changes somewhere else
+#TODO: A better file structure would keep all the rando algorithms that produce door changes and item changes somewhere else
 # this file should just be the executable
-#TODO: figure out what's going on with Zip Tube
+#TODO: Fix Zip Tube
 #TODO: graphical glitches after kraid? - can pause to fix, or also just leave kraid's room connected to the kraid eye door room
-#TODO: sand pits don't always connect up - different sizes
-#TODO: change scroll "colors" in kraid, crocomire, sporespawn, shaktool rooms?
-#TODO: door leading to top of bowling turns grey once you beat phantoon?
-#TODO: make the RNG seed work -> random dictionary word?
-#TODO: is it possible to go back through bowling alley?
-#   make the create filename with the seed
-#TODO: get rid of Drain?
+#TODO: Sand pits don't always connect up - different sizes
+#TODO: Change scroll "colors" in kraid, crocomire, sporespawn, shaktool rooms?
+#TODO: Door leading to top of bowling turns grey once you beat phantoon?
+#TODO: Make the RNG seed work -> random dictionary word?
+#TODO: Is it possible to go back through bowling alley?
+#TODO: Make the create filename with the seed
+#TODO: Get rid of Drain?
 #TODO: Old Mother Brain badness before zebes awake + other things with zebes waking up (last missiles)
-#TODO: fix brinstar elevator stupid things?
+#TODO: Fix brinstar elevator stupid things?
 #TODO: I got spring ball instead of morph ball?
-#TODO: randomize ceres within ceres, tourian within tourian?
+#TODO: Randomize ceres within ceres, tourian within tourian?
 #TODO: Boss rush mode!
-#TODO: random number of missiles / supers / pbs per expansion?
-#TODO: loading bar based on % rooms placed
+#TODO: Random number of missiles / supers / pbs per expansion?
+#TODO: Loading bar based on % rooms placed
 
 #TODO: move to rom_edit?
 def rom_setup(rom, time):
     """edits rom to skip ceres, etc."""
-    # skip ceres
-    write_raw_bytes(rom, "0x0016ebb", "\x05")
+    # Skip ceres
+    write_raw_bytes(rom, "0x16ebb", "\x05")
 
-    # make sand easier to jump out of without gravity
+    # Make sand easier to jump out of without gravity
     write_raw_bytes(rom, "0x2348c", "\x00")
     write_raw_bytes(rom, "0x234bd", "\x00")
 
-    # remove gravity suit heat protection
+    # Remove gravity suit heat protection
     write_raw_bytes(rom, "0x6e37d", "\x01")
     write_raw_bytes(rom, "0x869dd", "\x01")
 
-    # suit animation skip #TODO
+    # Suit animation skip #TODO
     write_raw_bytes(rom, "0x20717", "\xea\xea\xea\xea")
 
-    # fix heat damage speed echoes bug #TODO: verify
+    # Fix heat damage speed echoes bug #TODO: verify
     write_raw_bytes(rom, "0x8b629", "\x01")
 
-    # disable GT Code #TODO: verify
+    # Disable GT Code #TODO: verify
     write_raw_bytes(rom, "0x15491c", "\x80")
 
+    # Fix morph item giving spring ball
+    write_raw_bytes(rom, "0x268ce", "\x04")
+    write_raw_bytes(rom, "0x26e02", "\x04")
+
     #TODO: there's some bug here I think... :(
-    # change escape timer
-    # first, convert to minutes, seconds:
+    # Change escape timer
+    # First, convert to minutes, seconds:
     minutes = time / 60
     seconds = time % 60
 
-    # get the number as hex bytes
+    # Get the number as hex bytes
     minute_bytes = int_to_hex(minutes)
     second_bytes = int_to_hex(seconds)
 
-    # can't write more than one byte!
+    # Can't write more than one byte!
     assert len(minute_bytes) == 1, "Minutes too long"
     assert len(second_bytes) == 1, "Seconds too long"
 
-    # write seconds
+    # Write seconds
     write_raw_bytes(rom, "0x0001e21", second_bytes)
     # write minutes
     write_raw_bytes(rom, "0x0001e22", minute_bytes)
 
-    # apply other IPSs #TODO: make sure this works!
+    # Apply other IPSs #TODO: make sure this works!
     apply_ips("patches/g4_skip.ips", rom)
     apply_ips("patches/max_ammo_display.ips", rom)
     apply_ips("patches/wake_zebes.ips", rom)
@@ -138,8 +141,8 @@ if __name__ == "__main__":
     seed = seed_rng(args.seed)
     spoiler_file = open(args.create + ".spoiler.txt", "w")
 
-    # setup
-    # copy it to remove Bombs
+    # Setup
+    # Copy it to remove Bombs
     # TODO: GET RID OF Bombs
     all_items = sm_global.items[:]
     all_items = ItemSet(all_items)
@@ -154,13 +157,13 @@ if __name__ == "__main__":
         #TODO: re-parsing rooms is quick and dirty...
         rooms = parse_rooms("encoding/dsl/rooms.txt")
         door_changes, item_changes, graph, state = item_quota_rando(rooms, starting_items)
-        # check completability - can reach statues?
+        # Check completability - can reach statues?
         start_state = BFSState(state.node, state.items)
         end_state = BFSState("Statues_ET", ItemSet())
         path_to_statues = graph.check_completability(start_state, end_state)
         completable = path_to_statues is not None
         if completable:
-            # check completability - can escape?
+            # Check completability - can escape?
             items = all_items | ItemSet(["Kraid", "Phantoon", "Draygon", "Ridley"])
             prepare_for_escape(graph)
             escape_start = BFSState("Escape_4_R", items)
@@ -172,8 +175,8 @@ if __name__ == "__main__":
                 spoiler_file.write("Path to Escape:\n")
                 spoiler_file.write(str(escape_path))
                 # one minute to get out of tourian, then 30 seconds per room
-                #TODO: is this fair? the player might need to farm and explore...
-                #TODO: simple node-length means intermediate nodes / etc. will cause problems
+                #TODO: Is this fair? the player might need to farm and explore...
+                #TODO: Simple node-length means intermediate nodes / etc. will cause problems
                 # give the player time to defeat minibosses, or go through long cutscenes
                 for node in escape_path:
                     if node == "Crocomire_T":
@@ -189,15 +192,15 @@ if __name__ == "__main__":
                 escape_timer = tourian_time + time_per_node * len(escape_path)
                 spoiler_file.write("\n")
                 spoiler_file.write("Esape Timer: " + str(escape_timer) + " seconds\n")
-        # accept the seed regardless if we don't care about completability
+        # Accept the seed regardless if we don't care about completability
         if not args.completable:
             break
-        # re-seed the rng for a new map (if we need to)
+        # Re-seed the rng for a new map (if we need to)
         if not completable and args.completable:
             seed = seed_rng(None)
 
-    print "Completable: " + str(completable)
-    print "RNG SEED - " + str(seed)
+    print("Completable: " + str(completable))
+    print("RNG SEED - " + str(seed))
 
     spoiler_file.write("ITEMS:\n")
     write_item_assignments(item_changes, spoiler_file)
@@ -205,19 +208,19 @@ if __name__ == "__main__":
     spoiler_file.write("DOORS:\n")
     write_door_changes(door_changes, spoiler_file)
 
-    # make the spoiler graph
+    # Make the spoiler graph
     if args.graph:
         from door_rando import spoiler_graph 
         spoiler_graph.make_spoiler_graph(door_changes, args.create)
 
-    # now that we have the door changes and the item changes, implement them!
-    # first, make the new rom file:
+    # Now that we have the door changes and the item changes, implement them!
+    # First, make the new rom file:
     shutil.copyfile(args.clean, args.create)
     rom_setup(args.create, escape_timer)
     if args.starting_items is not None:
         make_starting_items(args.starting_items, args.create)
 
-    # then make the necessary changes
+    # Then make the necessary changes
     make_items(item_changes, args.create)
     make_doors(door_changes, args.clean, args.create)
     make_saves(door_changes, args.clean, args.create)

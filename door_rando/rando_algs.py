@@ -1,5 +1,5 @@
 
-from alg_support import *
+from .alg_support import *
 import random
 
 #TODO: Room Orientation randomization???? (far future)
@@ -42,7 +42,7 @@ def item_quota_rando(rooms, starting_items=ItemSet()):
     fixed_items = get_fixed_items()
 
     # get a random order for rooms
-    rooms_to_place = rooms.keys()
+    rooms_to_place = list(rooms.keys())
     random.shuffle(rooms_to_place)
 
     door_changes = []
@@ -58,10 +58,10 @@ def item_quota_rando(rooms, starting_items=ItemSet()):
     #TODO: maybe doing this places too many items too early?
     while len(rooms_to_place) > 0:
         #print "At: " + str(current_state)
-        # wildcard BFS to find reachable exits
+        # Wildcard BFS to find reachable exits
         bfs_finished, _, _ = current_graph.BFS_items(current_state, None, fixed_items)
         #print_finished(bfs_finished)
-        # dict comprehensions! - entries of bfs_finished that are dummy exits and actually have a path to them.
+        # Dict comprehensions! - entries of bfs_finished that are dummy exits and actually have a path to them.
         reachable_exits = {exit: bfs_finished[exit] for exit in dummy_exits if len(bfs_finished[exit]) != 0}
 
         #TODO: might need to decide on a reachable exit first?
@@ -134,9 +134,9 @@ def item_quota_rando(rooms, starting_items=ItemSet()):
             if len(paths_through) > 0:
                 #print current_assignments
                 #print current_wildcards
-                print "Placing " + chosen_entrance + " at " + chosen_exit[:-5]
+                print("Placing " + chosen_entrance + " at " + chosen_exit[:-5])
                 if chosen_entrance == "Statues_L":
-                    print "gotem"
+                    print("gotem")
                     break
                 # pick a path-through to follow and update the current state.
                 current_state = choose_random_state(paths_through)
@@ -177,7 +177,7 @@ def item_quota_rando(rooms, starting_items=ItemSet()):
 
         # otherwise, try another room
         if not found:
-            print "No rooms with a path-through"
+            print("No rooms with a path-through")
             break
     unassigned_item_nodes = [node for node in unassigned_item_nodes if node not in current_state.assignments]
     item_changes.extend(current_state.assignments.items())
@@ -234,7 +234,7 @@ def item_quota_rando(rooms, starting_items=ItemSet()):
             found = -1
             for index in range(len(rooms_to_place)):
                 room_doors = rooms[rooms_to_place[index]].doors
-                room_directions = room_doors.keys()
+                room_directions = list(room_doors.keys())
                 random.shuffle(room_directions)
                 for room_direction in room_directions:
                     # pick a representative for each direction
@@ -272,7 +272,7 @@ def item_quota_rando(rooms, starting_items=ItemSet()):
             # we placed the room at index - remove it
             rooms_to_place.pop(found)
         #print sum([len(dir_doors) for dir_doors in current_exits.values()])
-    print "ROOMS NOT PLACED - " + str(len(rooms_to_place))
+    print("ROOMS NOT PLACED - " + str(len(rooms_to_place)))
     return door_changes, item_changes, current_graph, current_state
 
 #UNFINISHED:
@@ -388,7 +388,7 @@ def basic_rando(rooms):
             # we placed the room at index - remove it
             rooms_to_place.pop(found)
         #print sum([len(dir_doors) for dir_doors in current_exits.values()])
-    print "ROOMS NOT PLACED - " + str(len(rooms_to_place))
+    print("ROOMS NOT PLACED - " + str(len(rooms_to_place)))
     # return the list of door and item changes
     return door_changes, item_changes, current_graph
 
@@ -401,8 +401,8 @@ def choose_random_state(finished):
     finished = to_states(finished)
     finished = from_states(finished)
 
-    node = random.choice(finished.keys())
-    items = random.choice(finished[node].keys())
+    node = random.choice(list(finished.keys()))
+    items = random.choice(list(finished[node].keys()))
     wildcards, assignments = random.choice(finished[node][items])
     return BFSItemsState(node, wildcards, items, assignments)
 

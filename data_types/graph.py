@@ -28,10 +28,10 @@
 # you can cross every edge and obtain every* item. 
 # * except the Main Street missiles if you can't do that shortcharge. My encoding makes no edges to that item, for this reason.
 
-from minsetset import *
-from item_set import *
+from .minsetset import *
+from .item_set import *
 import collections
-from Queue import *
+from queue import *
 
 #TODO: now that node, item set are both hashable... hash this?
 #TODO: alter graph so that the edge list is part of the node data structure?
@@ -318,11 +318,11 @@ class ConstraintGraph(object):
                     if not is_finished(state):
                         finished[state.node][state.items.copy()].append((wildcards.copy(), assignments.copy()))
                         queue.put(state.copy())
-                    # there's no need to process edges - picking up that item will allow you to cross strictly more edges
+                    # there's no need to process edges - picking up that item won't prevent you from crossing an edge
                     continue
                 elif state.node in assignments:
                     if assignments[state.node] not in items:
-                        state.items |= ItemSet(assignments[state.node])
+                        state.items |= ItemSet([assignments[state.node]])
                         if not is_finished(state):
                             finished[state.node][state.items.copy()].append((wildcards.copy(), assignments.copy()))
                             queue.put(state.copy())

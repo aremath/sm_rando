@@ -13,6 +13,7 @@
 # you not to have an item.
 
 from data_types.minsetset import *
+from functools import reduce
 
 def parse_constraint(constraint):
 	# BASE CASE

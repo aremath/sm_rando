@@ -64,8 +64,8 @@ def add_dummy_exits(graph, exits):
     added_nodes = []
     for direction in exits:
         for node in exits[direction]:
-            print direction
-            print node
+            print(direction)
+            print(node)
             # if it's possible to go through the door
             if graph.name_node[node].data.accessible:
                 node_constraint = graph.name_node[node].data.items
@@ -167,11 +167,11 @@ def filter_finished(pred, finished):
 def print_finished(finished):
     "prints a BFS_Items finished table"
     for node in finished:
-        print node
+        print(node)
         for iset in finished[node]:
-            print "\t" + str(iset)
+            print("\t" + str(iset))
             for wildcards, assignments in finished[node][iset]:
-                print "\t\t" + str(wildcards) + "\t" + str(assignments)
+                print("\t\t" + str(wildcards) + "\t" + str(assignments))
 
 def clean_rooms(rooms):
     """remove some rooms we don't want to change from the dictionary of rooms"""

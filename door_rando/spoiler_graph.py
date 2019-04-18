@@ -1,4 +1,5 @@
 import graphviz
+from functools import reduce
 
 boss_rooms = ["Kraid", "Ridley", "Draygon", "Phantoon"]
 miniboss_rooms = ["Spore Spawn", "Botwoon", "Crocomire", "Bomb Torizo", "Golden Torizo"]
