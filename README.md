@@ -12,21 +12,21 @@ Note that this is a very rough draft - expect bugs and strange behavior.
 ## Usage:
 Once you've downloaded the script, just point it at the rom you're interested in randomizing, like this:
 
-    python main.py --clean ~/sm.smc --create ~/sm_rando.smc
+    python door_rando.py --clean ~/sm.smc --create ~/sm_rando.smc
 
 The file paths are an example here, but the `--clean` file is the one that already exists (and hopefully is "clean", but the randomization process is probably compatible with a bunch of other hacks if you really want). The --create file is a file that the randomizer will create. The randomizer will choose the seed at random and print it out. Right now, making that seed again is buggy, so you might want to use
 
-    python main.py --clean ~/sm.smc --create ~/sm_rando.smc --seed hello
+    python door_rando.py --clean ~/sm.smc --create ~/sm_rando.smc --seed hello
 
 Which will set the randomization seed to `hello`. There's another option called `--completable`, which will keep generating seeds until it finds one that's completable. To use this, just do
 
-    python main.py --clean ~/sm.smc --create ~/sm_rando.smc --completable
+    python door_rando.py --clean ~/sm.smc --create ~/sm_rando.smc --completable
 
 You can use the `--seed` option with `--completable`, in which case it will try the suggested seed first. However, the `--completable` option will need to re-seed the RNG if it turns out that your seed wasn't completable, so there's no real reason to do this.
 
 Another useful command-line option is `--starting_items`. This command edits what items Samus will start with when you land on Zebes. The syntax for the command looks like this:
 
-    python main.py --clean ~/sm.smc --create ~/sm_rando.smc --starting_items "B S10 E500 WB"
+    python door_rando.py --clean ~/sm.smc --create ~/sm_rando.smc --starting_items "B S10 E500 WB"
 
 This example gives you Bombs, 10 Super Missiles, 500 Energy, and Wave Beam on starting the game (why you'd want bombs without morph ball beats me). The quotes around the list of items you want to start with are important.
 The algorithm will take your starting items into account when deciding if a seed is completable and deciding what rooms to place where.
@@ -38,7 +38,7 @@ If you have graphviz, the `--graph` command-line option will also generate a roo
 The randomizer also provides a spoiler file with the same name as your rom but with `.spoiler.txt` appended. This spoiler file is a work in progress: right now it only contains the shortest path to escape Zebes and the list of door changes.
 
 ## Miscellaneous Information
-The bottom of the output from `main.py` will tell you whether your seed is completable (and what the seed is, just to confirm). If you get a `Completable: False`, do not expect to be able to complete the game!
+The bottom of the output from `door_rando.py` will tell you whether your seed is completable (and what the seed is, just to confirm). If you get a `Completable: False`, do not expect to be able to complete the game!
 
 Emphasis on completable! These seeds will troll you, and it's entirely possible to get stuck and have to start over. I'm working on making this less common, but for now I recommend caution and a lot of save states. There will also likely be parts where both ammo and energy will be a major concern. I'm also working on tweaking the drop rates to make this less of a problem, but you might want to use the `--starting_items` option or SMILE to start with some extra e-tanks.
 

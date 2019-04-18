@@ -1,0 +1,159 @@
+Worley pattern ideas:
+
+To split up rooms, distribute n means through the map
+	now, run a series of steps with randomized BFS (shuffle the queue every time?) for each mean.
+	a mean "claims" the territory that it searches - one mean cannot claim territory already claimed by another mean
+	keep going until all available territory has been claimed.
+
+How to decide on value of n?
+
+
+This technique might also be able to create a partition of the map for deciding what 'aesthetic area' each room is in!
+
+
+Want to generate:
+
+Abstract
+- Rooms with two discontiguous paths (Green Brinstar Entrance) (connected with hidden passage)
+- Drop you into an old room with one-way?
+- Tantalizing Item display (with access from another room)
+- Hidden T-junction
+- Hidden "Sectors", where all in-out connections are hidden?
+- A "Speed Section" through which you can maintain a speedboost across multiple rooms?
+
+Concrete
+- Zebbo farm with pits
+- Grapple Beam over Water
+- Spike Floor
+- Standing and Sitting Chozo Statues
+- Map Rooms
+- Little plants! + Hanging Vines
+- Evolving tile schema / aesthetic within a split room (?)
+- Surface Irregularities (stalactites, etc.)
+- Little Pockets / Dead Ends?
+- Ripper Tunnel (Ice Beam)
+- Sand Falls
+- Grapple Beam Walls
+- Shot Block Maze?
+- Spike Platforms?
+- Sand Pits
+- Danger Above and Below (crateria power bombs)
+- Cavy backgrounds (crateria keyhunters)
+- Water -> Eroded tiles
+- Space Fleas
+- Hidden Ceiling Stuff
+- Smooth surfaces (let them use speed booster!)
+- Crateria Mushrooms (branching mushrooms??)
+- Hidden "looky-eyes"
+- Running Crumble Floors
+- "Nontraditional" enemy farms (geemers, rippers, etc.)
+- "Out of place" enemies - ex Pink Brinstar E-Tank
+- Yapping Maws with Spikes / Acid!
+- Floor "textures"?
+- Cave-like versus Straight versus Sand-like ?
+	-> Different "processes"
+		-> generate a cave, then "structures" ex. lower norfair.
+- Respawning Drillbats
+- Wasteland Horizontal Spikes!
+- Powered on vs. off Wrecked Ship
+
+Level Design
+- Pits & Platforms
+- Space Jump to travel to the ceiling of big rooms
+- Box with Platforms
+	- Shaft with Platforms...
+- Bowl + Platform
+	- Maridia sand + Crateria Keyhunters
+- Multiple Paths through the room to get to the same point
+	- Platform challenges with failure, but also just paths...
+- Morph Ball Only maze
+- Grapple / Wall Jump shaft
+- Platform Stairs
+- Generalized "climb room"
+- Zigzag Climb
+- "General" platforms
+- Combinations of these things for big rooms...
+- "Minirooms" (Green Hill Zone, Red Tower)!!
+- "Wide Passage" - It's fine for a map tile to be mostly empty...
+- Minirooms separated by shot blocks (or X blocks...)
+- Minirooms separated by tunnels / morph ball tunnels.
+- Space Jump Spike Maze
+- Room "Motifs" as well as Aesthetic Motifs
+- "Extended" Pits & Platforms (Cathedral)
+- Morph Ball Minirooms that can be long and thin.
+- Big rooms with big minirooms (Grapple Yump)
+	- Can dedicate one miniroom to building a shinespark and the next to using it!
+- Different minirooms can have different styles! (Bubble Mountain / Big Pink)
+	- speckledy transitions (Single Chamber)
+- Allow single minirooms (Rising Tide)
+- Minirooms can help define where scroll PLMs should be!
+- Minirooms do not have to have walls all the way around
+- Do not have to partition the entire space either.
+	
+Art
+- Draygon Room as an aesthetic?
+- Save Room / Map Room as an aesthetic?
+- Golden Statues Room as an aesthetic?
+- Statues Tunnel as an aesthetic?
+
+Regions:
+Crateria
+	- Upper Crateria (West Ocean + Landing Site)
+		- Crateria Caves (sub-region)
+		- Wrecked Ship Transition
+	- Old Mother Brain
+	- Blue Tiles
+	- Mushroom Caves (Can coincide with blue tiles?)
+	
+Brinstar
+	- Green Brinstar
+		- Spore Spawn
+	- Pink Brinstar
+	- Blue Brinstar
+	- Red Brinstar
+	- Kraid's Lair (Brown)
+	- Kraid's Lair (Green Tiles)
+
+Norfair
+	- Upper Norfair Caves
+	- Upper Norfair Heated Caves (Cathedral)
+	- Purple Crocomire
+	- Purple Ridley Cave Norfair
+	- Bubble Norfair
+	- Purple Norfair (same as ridley cave??)
+	- Lower Brick Norfair
+	- Lower Ridley Tiles
+	- Red Tile Norfair (Ridley E-Tank)
+	
+Wrecked Ship
+	- Electricity Off
+	- Electricity On
+	
+Maridia
+	- Green Cave Maridia
+	- Sandy Vine Maridia (Light + Dark ex. Plasma room)
+		- Sandy Pit
+	- Teal Chalk Maridia
+	- Purple Tiles and Pipes Maridia
+	
+- Tourian
+	- Metroid Tourian
+	- Sandy Tourian
+	- Escape Tourian
+
+Global:
+	- "Constructed" (Single Rooms though, probably (?))
+		- Pipes (Crateria Supers)
+		- Tiles (Pre-Map Green Brinstar)
+	- Also Constructed Minirooms within other regions
+
+Cell Automaton -> Generate cave walls
++ Add Pipes and stuff?
+
+3-square jump height underwater no gravity
+
+TODO:
+Add item sets  to the abstract graph
+Add fixed areas to the cmap instead of just nodes
+Adding other item nodes to the abstract map
+use (bfs_dist / euclidean dist) to create new paths

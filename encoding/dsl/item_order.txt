@@ -1,0 +1,19 @@
+# Bosses
+Kraid < Phantoon < (Draygon Ridley) < Mother_Brain
+(GS SJ) < Draygon
+V < Ridley
+CB < Kraid
+E < Phantoon
+
+# Minibosses
+Bomb_Torizo < (Spore_Spawn Crocomire) < Botwoon < Golden_Torizo < Mother_Brain
+#TODO: ALL < Mother_Brain
+
+# Beams
+(CB Spazer) < (WB IB) < PLB
+
+# Other Stuff
+MB < (B PB SPB)
+B < PB
+M < S < PB
+(G HJ) < SJ
