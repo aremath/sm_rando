@@ -93,7 +93,7 @@ class RomManager(object):
         self.write_to_new(Address(0x8b629), b"\x01")
         # Disable GT Code #TODO: verify
         self.write_to_new(Address(0x15491c), b"\x80")
-        # Fix morph item giving spring ball
+        # Fix chozo/hidden morph item actually giving spring ball
         self.write_to_new(Address(0x268ce), b"\x04")
         self.write_to_new(Address(0x26e02), b"\x04")
         # Apply other IPSs #TODO: make sure this works!
