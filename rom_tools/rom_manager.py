@@ -75,10 +75,45 @@ class RomManager(object):
         else: #TODO: restrict once we know what the checksums are supposed to be.
             print("Something is wrong with this rom")
             self.new_rom = open(new_name, "r+b")
+            self.mod_rom()
 
     def mod_rom(self):
-        """ *eventually* will modify a pure rom to have the mods we need """
-        print("currently a stub")
+        """Modifies a pure rom to have the mods we need"""
+        # Skip ceres
+        self.write_to_new(Address(0x16ebb), b"\x05")
+        # Make sand easier to jump out of without gravity
+        self.write_to_new(Address(0x2348c), b"\x00")
+        self.write_to_new(Address(0x234bd), b"\x00")
+        # Remove gravity suit heat protection
+        self.write_to_new(Address(0x6e37d), b"\x01")
+        self.write_to_new(Address(0x869dd), b"\x01")
+        # Suit animation skip #TODO
+        self.write_to_new(Address(0x20717), b"\xea\xea\xea\xea")
+        # Fix heat damage speed echoes bug #TODO: verify
+        self.write_to_new(Address(0x8b629), b"\x01")
+        # Disable GT Code #TODO: verify
+        self.write_to_new(Address(0x15491c), b"\x80")
+        # Fix morph item giving spring ball
+        self.write_to_new(Address(0x268ce), b"\x04")
+        self.write_to_new(Address(0x26e02), b"\x04")
+        # Apply other IPSs #TODO: make sure this works!
+        self.apply_ips("patches/g4_skip.ips")
+        self.apply_ips("patches/max_ammo_display.ips")
+        self.apply_ips("patches/wake_zebes.ips")
+        #TODO: why does this break everything?
+        #self.apply_ips("patches/introskip_doorflags.ips")
+
+    def set_escape_timer(self, time):
+        # Change escape timer
+        # First, convert to minutes, seconds:
+        minutes = time // 60
+        seconds = time % 60
+        # Get the times as bytes
+        minute_bytes = minutes.to_bytes(1, byteorder='little')
+        second_bytes = seconds.to_bytes(1, byteorder='little')
+        # Write them
+        self.write_to_new(Address(0x0001e21), second_bytes)
+        self.write_to_new(Address(0x0001e22), minute_bytes)
 
     def decapitate_rom(self, filename):
         """removes the header from the rom """
@@ -138,3 +173,38 @@ class RomManager(object):
         self.write_to_new(mapaddr, mapdata)
         #self.write_to_new(hiddenaddr, hiddendata)
 
+    # Thanks to the main SM item rando for this
+    def apply_ips(self, ips_file, offset=5):
+        ips = open(ips_file, "rb")
+        while True:
+            ips.seek(offset)
+            ips_address_b = ips.read(3)
+            if ips_address_b == b"\x45\x4f\x46":
+                break
+            ips.seek(offset + 3)
+            ips_length_b = ips.read(2)
+            ips_address = Address(int.from_bytes(ips_address_b, byteorder='big'))
+            ips_length = int.from_bytes(ips_length_b, byteorder='big')
+            # Update offset past the end of the bytes we just read
+            offset += 5
+            
+            # 0 is the code for - get a new length then write one byte that many times
+            if ips_length == 0:
+                ips.seek(offset)
+                new_length_b = ips.read(2)
+                new_length = int.from_bytes(new_length_b, byteorder='big')
+                ips.seek(offset + 2)
+                data = ips.read(1) * new_length
+                self.write_to_new(ips_address, data)
+                offset += 3
+            # Get length bytes at offset and write them
+            else:
+                ips.seek(offset)
+                data = ips.read(ips_length)
+                self.write_to_new(ips_address, data)
+                offset += ips_length
+        ips.close()
+
+    def apply_patches(self, patches):
+        for address, data in patches:
+            self.write_to_new(address, data)

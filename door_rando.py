@@ -1,7 +1,8 @@
 from encoding.parse_rooms import *
-from encoding.rom_edit import *
+from rom_tools.rom_edit import *
 from door_rando.rando_algs import *
 from encoding import sm_global
+from rom_tools.rom_manager import *
 
 import random
 import argparse
@@ -26,59 +27,6 @@ import sys
 #TODO: Boss rush mode!
 #TODO: Random number of missiles / supers / pbs per expansion?
 #TODO: Loading bar based on % rooms placed
-
-#TODO: move to rom_edit?
-def rom_setup(rom, time):
-    """edits rom to skip ceres, etc."""
-    # Skip ceres
-    write_raw_bytes(rom, "0x16ebb", "\x05")
-
-    # Make sand easier to jump out of without gravity
-    write_raw_bytes(rom, "0x2348c", "\x00")
-    write_raw_bytes(rom, "0x234bd", "\x00")
-
-    # Remove gravity suit heat protection
-    write_raw_bytes(rom, "0x6e37d", "\x01")
-    write_raw_bytes(rom, "0x869dd", "\x01")
-
-    # Suit animation skip #TODO
-    write_raw_bytes(rom, "0x20717", "\xea\xea\xea\xea")
-
-    # Fix heat damage speed echoes bug #TODO: verify
-    write_raw_bytes(rom, "0x8b629", "\x01")
-
-    # Disable GT Code #TODO: verify
-    write_raw_bytes(rom, "0x15491c", "\x80")
-
-    # Fix morph item giving spring ball
-    write_raw_bytes(rom, "0x268ce", "\x04")
-    write_raw_bytes(rom, "0x26e02", "\x04")
-
-    #TODO: there's some bug here I think... :(
-    # Change escape timer
-    # First, convert to minutes, seconds:
-    minutes = time / 60
-    seconds = time % 60
-
-    # Get the number as hex bytes
-    minute_bytes = int_to_hex(minutes)
-    second_bytes = int_to_hex(seconds)
-
-    # Can't write more than one byte!
-    assert len(minute_bytes) == 1, "Minutes too long"
-    assert len(second_bytes) == 1, "Seconds too long"
-
-    # Write seconds
-    write_raw_bytes(rom, "0x0001e21", second_bytes)
-    # write minutes
-    write_raw_bytes(rom, "0x0001e22", minute_bytes)
-
-    # Apply other IPSs #TODO: make sure this works!
-    apply_ips("patches/g4_skip.ips", rom)
-    apply_ips("patches/max_ammo_display.ips", rom)
-    apply_ips("patches/wake_zebes.ips", rom)
-    #TODO: why does this break everything?
-    #apply_ips("patches/introskip_doorflags.ips", rom)
 
 #TODO: is there a possibility for a door not to be in door_changes?
 def write_door_changes(door_changes, spoiler_file):
@@ -215,16 +163,18 @@ if __name__ == "__main__":
 
     # Now that we have the door changes and the item changes, implement them!
     # First, make the new rom file:
-    shutil.copyfile(args.clean, args.create)
-    rom_setup(args.create, escape_timer)
+    rom = RomManager(args.clean, args.create)
+    rom.set_escape_timer(escape_timer)
     if args.starting_items is not None:
-        make_starting_items(args.starting_items, args.create)
+        make_starting_items(args.starting_items, rom)
 
     # Then make the necessary changes
-    make_items(item_changes, args.create)
-    make_doors(door_changes, args.clean, args.create)
-    make_saves(door_changes, args.clean, args.create)
+    make_items(item_changes, rom)
+    make_doors(door_changes, rom)
+    make_saves(door_changes, rom)
 
+    # Save out the rom
+    rom.save_and_close()
 
 #TODO: these are some things I noted earlier about the escape paths
 # find the escape path
