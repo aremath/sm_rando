@@ -1,5 +1,6 @@
 
 from .alg_support import *
+from misc.progress_bar import *
 import random
 
 #TODO: Room Orientation randomization???? (far future)
@@ -17,10 +18,13 @@ import random
 #TODO: see if the item quota idea actually works??
 #TODO: use connect_doors and make_door in the item quota??
 
-# new idea - give the player some items, then just randomly place the rest of the map
-def item_quota_rando(rooms, starting_items=ItemSet()):
+# New idea - give the player some items, then just randomly place the rest of the map
+def item_quota_rando(rooms, debug, starting_items=ItemSet()):
     clean_rooms(rooms)
     check_door_totals(rooms)
+    nrooms = len(rooms)
+    nrooms_placed = 0
+    progress_prefix = "Placing Rooms:"
 
     landing_site = rooms.pop("Landing_Site")
     current_graph = landing_site.graph
@@ -54,6 +58,9 @@ def item_quota_rando(rooms, starting_items=ItemSet()):
     # make dummy exit nodes for landing_site
     # these dummy exits serve to let the BFS search not just reachable doors, but enterable doors.
     current_graph, dummy_exits = dummy_exit_graph(current_graph, exits_to_connect)
+
+    if not debug:
+        print_progress_bar(nrooms_placed, nrooms, prefix=progress_prefix)
 
     #TODO: maybe doing this places too many items too early?
     while len(rooms_to_place) > 0:
@@ -113,9 +120,9 @@ def item_quota_rando(rooms, starting_items=ItemSet()):
         # update with the choices we made to use that path
         chosen_direction = door_direction(chosen_exit[:-5])
 
-        # find a room with a path-through
-        #TODO: shuffle them to eliminate the extra work of getting re-testing of bad rooms?
+        # Find a room with a path-through
         found = False
+        # Shuffle them to eliminate the extra work of getting re-testing of bad rooms
         random.shuffle(rooms_to_place)
         for room_name in rooms_to_place:
             room = rooms[room_name]
@@ -134,9 +141,9 @@ def item_quota_rando(rooms, starting_items=ItemSet()):
             if len(paths_through) > 0:
                 #print current_assignments
                 #print current_wildcards
-                print("Placing " + chosen_entrance + " at " + chosen_exit[:-5])
+                if debug:
+                    print("Placing " + chosen_entrance + " at " + chosen_exit[:-5])
                 if chosen_entrance == "Statues_L":
-                    print("gotem")
                     break
                 # pick a path-through to follow and update the current state.
                 current_state = choose_random_state(paths_through)
@@ -157,27 +164,31 @@ def item_quota_rando(rooms, starting_items=ItemSet()):
                 chosen_exit = chosen_exit[:-5]
                 dummy_exits.extend(room_dummy_exits)
 
-                # update exits_to_connect
-                # add all the exits of the new room
-                # it would be nice to just add these two dicts together using a defined +
+                # Update exits_to_connect
+                # Add all the exits of the new room
+                # TODO: It would be nice to just add these two dicts together using a defined +
                 for direction, doors in room.doors.items():
                     exits_to_connect[direction].extend(doors)
-                # now get rid of the two doors we just hooked up
+                # Now get rid of the two doors we just hooked up
                 exits_to_connect[chosen_direction].remove(chosen_exit)
                 exits_to_connect[room_direction].remove(chosen_entrance)
 
-                # add the graph of the other room
+                # Add the graph of the other room
                 current_graph.add_room(chosen_exit, chosen_entrance, room_graph)
 
                 door_changes.append((chosen_exit, chosen_entrance))
-                # now that we have placed it, get rid of it
+                # Now that we have placed it, get rid of it
                 rooms_to_place.remove(room_name)
+                nrooms_placed += 1
+                if not debug:
+                    print_progress_bar(nrooms_placed, nrooms, prefix=progress_prefix)
                 found = True
                 break
 
         # otherwise, try another room
         if not found:
-            print("No rooms with a path-through")
+            if debug:
+                print("No rooms with a path-through")
             break
     unassigned_item_nodes = [node for node in unassigned_item_nodes if node not in current_state.assignments]
     item_changes.extend(current_state.assignments.items())
@@ -201,8 +212,8 @@ def item_quota_rando(rooms, starting_items=ItemSet()):
     for exit in dummy_exits:
         current_graph.remove_node(exit)
 
-    # now just place rooms randomly
-    # while there are doors that haven't been connected
+    # Now just place rooms randomly
+    # While there are doors that haven't been connected
     while reduce(lambda x,y: x or y, [len(direction_doors) != 0 for direction_doors in exits_to_connect.values()]):
 
         # all directions that still have a door left to place
@@ -269,10 +280,17 @@ def item_quota_rando(rooms, starting_items=ItemSet()):
                         break
                 if found >= 0:
                     break
-            # we placed the room at index - remove it
+            # We placed the room at index - remove it
             rooms_to_place.pop(found)
+            nrooms_placed += 1
+            if not debug:
+                print_progress_bar(nrooms_placed, nrooms, prefix=progress_prefix)
         #print sum([len(dir_doors) for dir_doors in current_exits.values()])
-    print("ROOMS NOT PLACED - " + str(len(rooms_to_place)))
+    if debug:
+        print("ROOMS NOT PLACED - " + str(len(rooms_to_place)))
+    else:
+        # Dirty hack to get it to finish...
+        print_progress_bar(nrooms, nrooms, prefix=progress_prefix)
     return door_changes, item_changes, current_graph, current_state
 
 #UNFINISHED:

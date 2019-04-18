@@ -64,16 +64,16 @@ class RomManager(object):
         
         # Mod the rom if necessary
         if checksum == pure_rom_sum:
-            print("Looks like a valid pure rom, we'll mod it first")
+            #print("Looks like a valid pure rom, we'll mod it first")
             self.new_rom = open(new_name, "r+b")
             self.mod_rom()
         # Load it if it already has the right mods
         # TODO: do we want this?
         elif checksum == modded_rom_sum:
-            print("This is already modded, we can just load it")
+            #print("This is already modded, we can just load it")
             self.new_rom = open(new_name, "r+b")
         else: #TODO: restrict once we know what the checksums are supposed to be.
-            print("Something is wrong with this rom")
+            #print("Something is wrong with this rom")
             self.new_rom = open(new_name, "r+b")
             self.mod_rom()
 

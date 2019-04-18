@@ -27,6 +27,7 @@ import sys
 #TODO: Boss rush mode!
 #TODO: Random number of missiles / supers / pbs per expansion?
 #TODO: Loading bar based on % rooms placed
+#TODO: timeout for the completability check...
 
 #TODO: is there a possibility for a door not to be in door_changes?
 def write_door_changes(door_changes, spoiler_file):
@@ -83,6 +84,7 @@ if __name__ == "__main__":
     parser.add_argument("--completable", action="store_true", help="generate until you find a completable map.")
     parser.add_argument("--starting_items", metavar="<item_list>", required=False, help="A list of items to start with: see Readme.md for details.")
     parser.add_argument("--graph", action="store_true", help="create a room graph spoiler file. You will need graphviz installed in your $PATH")
+    parser.add_argument("--debug", action="store_true", required=False, help="print debug information while creating the room layout.")
     #TODO argument for which algorithm to use
 
     args = parser.parse_args()
@@ -104,7 +106,7 @@ if __name__ == "__main__":
     while not completable:
         #TODO: re-parsing rooms is quick and dirty...
         rooms = parse_rooms("encoding/dsl/rooms.txt")
-        door_changes, item_changes, graph, state = item_quota_rando(rooms, starting_items)
+        door_changes, item_changes, graph, state = item_quota_rando(rooms, args.debug, starting_items)
         # Check completability - can reach statues?
         start_state = BFSState(state.node, state.items)
         end_state = BFSState("Statues_ET", ItemSet())
@@ -145,6 +147,7 @@ if __name__ == "__main__":
             break
         # Re-seed the rng for a new map (if we need to)
         if not completable and args.completable:
+            print("Not Completable")
             seed = seed_rng(None)
 
     print("Completable: " + str(completable))
