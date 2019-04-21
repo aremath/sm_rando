@@ -62,7 +62,7 @@ def direct_copy(n, index, src, dst, debug):
     if debug:
         print("DIRECTCOPY", len(dst), len(dst) + n)
         print(arg)
-    assert len(arg) == n
+    assert len(arg) == n, (len(arg), n)
     return arg, index + n
 
 def bytefill(n, index, src, dst, debug):
@@ -101,6 +101,7 @@ def sigmafill(n, index, src, dst, debug):
 def addr_copy(n, index, src, dst, debug):
     arg_bytes = src[index:index+2]
     arg = int.from_bytes(arg_bytes, byteorder='little')
+    to_copy = get_copy_bytes(arg, arg+n, dst)
     to_copy = dst[arg:arg+n]
     if debug:
         print("ADDRCPY", arg, len(dst), len(dst) + n)
@@ -111,39 +112,47 @@ def addr_copy(n, index, src, dst, debug):
 def map_bytes(op, byte):
     out = b""
     for b in byte:
-        #b_int = int.from_bytes(b, byteorder='little')
         out += op(b).to_bytes(1, byteorder='little')
     return out
 
 def addr_xor_copy(n, index, src, dst, debug):
     arg_bytes = src[index:index+2]
     arg = int.from_bytes(arg_bytes, byteorder='little')
-    to_copy = dst[arg:arg+n]
-    to_copy = map_bytes(lambda x: x^0xff, to_copy)
+    to_copy = get_copy_bytes(arg, arg+n, dst, lambda x: x^0xff)
     if debug:
         print("ADDRXORCPY", arg, len(dst), len(dst) + n)
         print(to_copy)
-    assert len(to_copy) == n
+    assert len(to_copy) == n, (len(to_copy), n)
     return to_copy, index+2
+
+def get_copy_bytes(index0, index1, dst, op=lambda x: x):
+    """Get the bytes between index0 and index1 in dst. If index1 is past the end of dst, then this wraps as many
+    times as is necessary to simulate those bytes being already copied."""
+    # TODO: Allow my own compression to use this feature...
+    buf = b""
+    # While still within the existing buffer, copy from it
+    while index0 < index1 and index0 < len(dst):
+        buf += map_bytes(op, dst[index0:index0+1])
+        index0 += 1
+    # When you overrun, begin copying from yourself
+    i = 0
+    while index0 < index1:
+        buf += map_bytes(op, buf[i:i+1])
+        i += 1
+        index0 += 1
+    return buf
 
 def rel_addr_copy(n, index, src, dst, debug):
     # One byte
     arg = src[index]
-    # Can't used negative indexing because n-arg can be zero
+    # Can't use negative indexing because n-arg can be zero
     index0 = len(dst) - arg
     index1 = len(dst) + n - arg
-    # Allow copying starting from the first byte again if index1 exceed len(dst)
-    # TODO: This needs to wrap... use a while loop!
-    # TODO: Allow my own compression to use this feature...
-    extra = b""
-    if index1 > len(dst):
-        extra = dst[index0:index0 + (index1-len(dst))]
-        index1 = len(dst)
-    to_copy = dst[index0:index1] + extra
+    to_copy = get_copy_bytes(index0, index1, dst)
     if debug:
         print("ADDRRELCPY", arg, len(dst), len(dst) + n)
         print(to_copy)
-    assert len(to_copy) == n
+    assert len(to_copy) == n, (len(to_copy), n)
     return to_copy, index+1
 
 #TODO rel_addr_xor_copy: an extended command with cmd-code 7 is a relative address xor copy!

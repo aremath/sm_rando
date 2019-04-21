@@ -155,17 +155,3 @@
 #TODO: initial position of Samus doesn't matter....
 14,6 - Grapple Wall Jump
 #TODO: starting position of samus is underneath ending position... OR starting position is anywhere "near" grapple point...
-
-8-930pm grutoring		1/28
-6-10pm grading			1/31
-3-5pm grading			2/2
-
-4:30-6
-6-7 grading 			2/4
-8-9 grutoring
-
-6-9 grading 			2/7
-10:30-11				2/10
-
-8-9 grutoring			2/11
-6-8 grading				2/14

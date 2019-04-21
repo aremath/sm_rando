@@ -24,7 +24,6 @@ class Address(object):
         return hash(self.pc_addr)
 
     def from_snes(self,addr):
-        byte_ops.assert_valid_snes(addr)
         self.pc_addr = byte_ops.snes_to_pc(addr)
 
     def from_pc(self,addr):
@@ -35,7 +34,6 @@ class Address(object):
 
     def as_snes(self):
         sn = byte_ops.pc_to_snes(self.pc_addr)
-        byte_ops.assert_valid_snes(sn)
         return sn
     
     def as_snes_bytes(self, nbytes):

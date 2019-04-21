@@ -1,11 +1,13 @@
-import subprocess
+from . import byte_ops
 from . import areamap
 from .memory import *
 from .address import Address
+from .compress import decompress
+
 from shutil import copy2 as copy_file
 from hashlib import md5
 from os import stat, remove, rename
-from . import byte_ops
+from collections import defaultdict
 
 def _checksum(filename):
     """ md5sums a file """
@@ -148,6 +150,38 @@ class RomManager(object):
         self.clean_rom.seek(offset.as_pc())
         r = self.clean_rom.read(n_bytes)
         return r
+
+    def read_array(self, offset, array_width, array_height, element_size, rom="clean"):
+        if rom == "clean":
+            read = self.read_from_clean
+        elif rom == "new":
+            read = self.read_from_new
+        else:
+            assert False, "Bad rom option"
+        #TODO: is dict really the best option?
+        array = defaultdict(dict)
+        for x in range(array_width):
+            for y in range(array_height):
+                array_offset = (y * array_width + x) * element_size
+                array[x][y] = read(offset + array_offset, element_size)
+        return array
+
+    def read_compressed_list(self, offset, list_length, element_size, rom="clean"):
+        if rom == "clean":
+            read = self.read_from_clean
+        elif rom == "new":
+            read = self.read_from_new
+        else:
+            assert False, "Bad rom option"
+        total_size = list_length * element_size
+        # The compressed data should be shorter than the total size of the uncompressed list
+        compressed_data = read(offset, total_size)
+        data = decompress.decompress(compressed_data)
+        assert len(data) == total_size, (len(data), total_size)
+        l = []
+        for i in range(0, total_size, element_size):
+            l.append(data[i:i+element_size])
+        return l
 
     def smart_place_map(self, am, area):
         """ uses the lookup dictionary in areamap.py to translate
