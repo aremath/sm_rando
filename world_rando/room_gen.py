@@ -225,7 +225,7 @@ class SubroomNode(object):
         div_point = self.div_point()
         assert self.rect.coord_within(div_point)
 
-    def check_valid(index, direction, min_size)
+    def check_valid(index, direction, min_size):
         """Checks that a cut can be made at the given index in the given direction
         if the smallest size of a subroom is min_size. Fails with assertion if the
         cut is outside of range, returns False if the cut is within range but would
@@ -246,7 +246,7 @@ class SubroomNode(object):
         # Check obstacles:
         for o in self.obstacles:
             #
-            if o[1].intersects(cut_rect)
+            if o[1].intersects(cut_rect):
                 return False
         return True
 
@@ -368,7 +368,7 @@ def embed_room_graph(room_graph, subroom_graph):
 def choose_entrances(adj1, adj2):
     """Choose where on an adjacency to make an entrance."""
     # Make sure the two adjacencies are in opposite directions
-    assert adj1[2] = adj2[2].neg()
+    assert adj1[2] == adj2[2].neg()
     # The long axis of the adjacency is perpendicular to its direction
     direction = adj1[2].abs()
     axis = Coord(1,1) - direction
@@ -454,9 +454,9 @@ def rectangularize(cmap, obstacles):
     # Assign the obstacles
     for o in obstacles:
         done = False
-        for s in subrooms.values()
+        for s in subrooms.values():
             # If the object is contained by the subroom...
-            if o[1].within(s.rect)
+            if o[1].within(s.rect):
                 s.obstacles.append(o)
                 done = True
                 break
@@ -554,8 +554,8 @@ def level_from_bytes(levelbytes, dimensions):
             #TODO: level2 info dropped on the floor
             
             ttype = level1 >> 12
-            hflip = (level1 >> 10) & 1
-            vflip = (level1 >> 11) & 1
+            hflip = (level1 >> 11) & 1
+            vflip = (level1 >> 10) & 1
             tindex = level1 & 0b1111111111
             texture = Texture(tindex, (hflip, vflip))
             tiletype = Type(ttype, bts)

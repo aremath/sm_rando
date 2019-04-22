@@ -260,10 +260,10 @@ class Type(object):
         assert self.index == 0x01, "Tile is not a slope!"
         # Top bit is unused
         # Next two bits are flips
-        hflip = (bts >> 6) & 0b1
-        vflip = (bts >> 7) & 0b1
+        hflip = (self.bts >> 6) & 0b1
+        vflip = (self.bts >> 7) & 0b1
         # Then a 5-bit index into the slope table
-        index = bts & 0b11111
+        index = self.bts & 0b11111
         return hflip, vflip, index
     
     def reflect(self, axis):

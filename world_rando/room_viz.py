@@ -70,7 +70,7 @@ def find_image(tile, images, slopes):
         return None
     # Slopes
     elif tindex == 0x1:
-        hflip, vflip, index = tile.get_slope_info()
+        hflip, vflip, index = tile.tile_type.get_slope_info()
         img = slopes[index]
         if hflip:
             img = ImageOps.mirror(img)
@@ -137,6 +137,7 @@ def room_viz(level, filename, room_dir):
         rtile = level[c]
         img = find_image(rtile, images, slopes)
         if img is not None:
+            # Third argument is the alpha mask to use
             room_image.paste(img, (c.x*16,c.y*16), img)
     room_image.save(filename)
     return room_image
