@@ -1,9 +1,12 @@
 # visualizes a concrete map of the form laid out in concrete_map.py
-import collections #defaultdict
+
 from .coord import *
-#from .room_dtypes import *
+
+import collections #defaultdict
+
 from PIL import Image
 from PIL import ImageOps
+
 
 # Cuts an image into xsize x ysize images as a list
 def image_grid(image, xsize, ysize):

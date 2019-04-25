@@ -166,7 +166,7 @@ class RomManager(object):
                 array[x][y] = read(offset + array_offset, element_size)
         return array
 
-    def read_compressed_list(self, offset, list_length, element_size, rom="clean"):
+    def read_list(self, offset, element_size, list_length, rom="clean", check_length=True, compressed=True):
         if rom == "clean":
             read = self.read_from_clean
         elif rom == "new":
@@ -176,8 +176,16 @@ class RomManager(object):
         total_size = list_length * element_size
         # The compressed data should be shorter than the total size of the uncompressed list
         compressed_data = read(offset, total_size)
-        data = decompress.decompress(compressed_data)
-        assert len(data) == total_size, (len(data), total_size)
+        if compressed:
+            data = decompress.decompress(compressed_data)
+        else:
+            data = compressed_data
+        # If you aren't certain of the true length of the list, set check_length = False
+        if check_length:
+            assert len(data) == total_size, (len(data), total_size)
+        # Either way, the total amount of data has to be a multiple of the element size
+        else:
+            assert len(data) % element_size == 0
         l = []
         for i in range(0, total_size, element_size):
             l.append(data[i:i+element_size])

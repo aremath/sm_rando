@@ -4,8 +4,13 @@ class Address(object):
     """Address Class that handles conversions
        this way we don't have to remember which 'kind' of address we have
        just which kind we want to use"""
-    def __init__(self, pc):
-        self.from_pc(pc)
+    def __init__(self, addr, mode="pc"):
+        if mode == "pc":
+            self.from_pc(addr)
+        elif mode == "snes":
+            self.from_snes(addr)
+        else:
+            assert False, "Bad address mode: " + mode
 
     def __repr__(self):
         return hex(self.as_pc())
