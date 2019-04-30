@@ -11,22 +11,21 @@ import sys
 
 #TODO: A better file structure would keep all the rando algorithms that produce door changes and item changes somewhere else
 # this file should just be the executable
-#TODO: Fix Zip Tube
-#TODO: graphical glitches after kraid? - can pause to fix, or also just leave kraid's room connected to the kraid eye door room
+#TODO: Fix Zip Tube by removing the door ASM from the doors that lead into it in vanilla, and adding the same ASM to the doors that lead into it on the randomized ROM
+#TODO: Fix graphical glitches after Kraid by setting the "Reload CRE" flag in the room headers of the rooms adjacent to Kraid's room.
 #TODO: Sand pits don't always connect up - different sizes
-#TODO: Change scroll "colors" in kraid, crocomire, sporespawn, shaktool rooms?
-#TODO: Door leading to top of bowling turns grey once you beat phantoon?
-#TODO: Make the RNG seed work -> random dictionary word?
+#TODO: Add grey door caps to the back side of boss rooms. Do this by finding the appropriate door in the actual level data to determine the position and facing of the door cap, then adding a new PLM to the room (reallocating the PLMs as necessary)
+#TODO: Door leading to top of bowling should not turn grey after you beat Phantoon.
+#TODO: Make the RNG seed work -> random dictionary word? Currently input seed is interpreted as a string, but the RNG seed is commonly an int, making copy/pasting the seed not work...
 #TODO: Is it possible to go back through bowling alley?
 #TODO: Make the create filename with the seed
 #TODO: Get rid of Drain?
 #TODO: Old Mother Brain badness before zebes awake + other things with zebes waking up (last missiles)
 #TODO: Fix brinstar elevator stupid things?
-#TODO: I got spring ball instead of morph ball?
 #TODO: Randomize ceres within ceres, tourian within tourian?
+#   - general "keep the same area" randomization?
 #TODO: Boss rush mode!
 #TODO: Random number of missiles / supers / pbs per expansion?
-#TODO: Loading bar based on % rooms placed
 #TODO: timeout for the completability check...
 
 #TODO: is there a possibility for a door not to be in door_changes?

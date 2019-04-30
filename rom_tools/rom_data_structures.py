@@ -120,7 +120,11 @@ class RoomState(object):
         return head, tail, futures
 
 def alloc_and_collect(a_list, memory, env):
+    """Allocates a list of allocateable objects to memory.
+        Returns a list of the resulting future addresses that must
+        be filled."""
     f_list = map(lambda x: x.allocate(memory, env), a_list)
+    # Un-wrap the futures (take [[future]] -> [future])
     return [future for fs in f_list for future in fs]
 
 # defaults:
@@ -128,7 +132,7 @@ def alloc_and_collect(a_list, memory, env):
 # down_scroll = 0xa0
 # special graphics = 0
 #TODO: some way for door data to be shared
-# (for a door to be a symbolic pointer string instead of a Door
+# (for a door to be a symbolic pointer string instead of a Door)
 class RoomHeader(object):
     """Represents a room header (including any data that the header relies on)"""
 
@@ -264,6 +268,8 @@ class LevelData(object):
         return []
 
 def direction_convert(close, s):
+    """Convert a door direction as a string to the ROM representation.
+        close is whether the door closes when you leave it."""
     if s == "L":
         d = 1
     elif s == "R":

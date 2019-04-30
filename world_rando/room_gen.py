@@ -1,6 +1,7 @@
 from .room_dtypes import *
 from .room_utils import *
 from .coord import *
+from .util import *
 from data_types import basicgraph
 
 # Room Generation:
@@ -86,11 +87,111 @@ def make_rooms(room_tiles, cmap, paths):
         r.level_data = level_of_cmap(r)
     return rooms
 
-def find_item_loc(item, room):
-    #TODO: determine a random item location based on first choosing randomly the
-    # type of place (chozo statue, pedestal, (hidden)), then finding a location based on the
-    # places where the appropriate setup pattern matches.
-    pass
+# The weights for how often a given item type will require a given type of item location.
+# The order is [chozo statue, pedestal, hidden]
+#TODO: fill out this table
+item_place_map = {
+        "default"   :   ([50,50,0])
+        }
+
+def choose_place_order(item):
+    ty = item.item_type
+    if ty in item_place_map:
+        weights = item_place_map[ty]
+    else:
+        weights = item_place_map["default"]
+    return weighted_random_order(["chozo", "pedestal", "hidden"], weights)
+    
+
+def find_item_loc(item, room, patterns):
+    """Determines a random item location based on first choosing randomly the
+    type of place (chozo statue, pedestal, (hidden)), then finding a location based on the
+    places where the appropriate setup pattern matches. Alters the level while doing so by
+    placing in the required tiles for the item location."""
+    places = choose_place_order(item)
+    # Go through the places sequentially so that a pedestal positioning can be found if a chozo statue
+    # positioning is not found.
+    for p in places:
+        if p == "chozo":
+            #TODO: in the pattern files, the setup pattern is backwards from the normal pattern...
+            # Here R means that the pattern faces in the "canonical" direction
+            # so that a chozo statue in the 'r' direction is in fact facing right
+            # If the setup pattern matches a location that means that that location can
+            # be overwritten with the pattern to produce the desired item location
+            setup_pattern_r = patterns["chozo_statue_setup_l"]
+            setup_pattern_l = patterns["chozo_statue_setup_r"]
+            # Pattern is the actual pattern that is written to produce the desired item loc.
+            pattern_l = patterns["chozo_statue_l"]
+            pattern_r = patterns["chozo_statue_r"]
+            # Pattern offset is where (relative to the setup pattern match) the pattern should be placed.
+            pattern_offset_r = Coord(1,0)
+            # Rel obstacle is a rect which are the non-cuttable squares of the pattern relative to
+            # where the pattern should be placed. Used for determining where the valid cuts are when
+            # generating the subrooms.
+            rel_obstacle_r = Rect(Coord(0,0), Coord(4,3))
+            # Rel target are the squares that allow picking up the item relative to where the
+            # pattern should be placed. Used for determining what states allow picking up the item
+            # when searching for a level configuration.
+            rel_target_r = Rect(Coord(3,0), Coord(4,3))
+            # Rel item placement is the actual positioning of the item. Used for creating the item PLM.
+            rel_item_placement_r = Coord(2,0)
+        elif p == "pedestal":
+            #TODO: technically these are the same pattern
+            setup_pattern_l = patterns["pedestal_setup_l"]
+            setup_pattern_r = patterns["pedestal_setup_r"]
+            #TODO: what about orbs on the pedestal?
+            pattern_l = patterns["pedestal_non_orb_l"]
+            pattern_r = patterns["pedestal_non_orb_r"]
+            pattern_offset_r = Coord(1,1)
+            rel_obstacle_r = Rect(Coord(-1,0), Coord(2,2))
+            rel_target_r = Rect(Coord(-1,0), Coord(2,2))
+            rel_item_placement_r = Coord(0,0)
+        elif p == "hidden":
+            assert False, "Not implemented!"
+        directions = random.shuffle(["L", "R"])
+        # Choose the direction randomly (but fall through if no valid configuration is found
+        # for the first direction
+        for d in directions:
+            # Set up the variables so that the next part doesn't have to care about
+            # which direction is being used.
+            if d == "L":
+                setup_pattern = setup_pattern_l
+                pattern = pattern_l
+                offset = pattern_offset_r * Coord(-1,0)
+                rel_obstacle = rel_obstacle_r.flip(Coord(1,0))
+                rel_target = rel_target_r.flip(Coord(1,0))
+                rel_item_placement = rel_item_placement_r * Coord(-1, 0)
+            if d == "R":
+                setup_pattern = setup_pattern_r
+                pattern = pattern_r
+                pattern_offset = pattern_offset_r
+                rel_obstacle = rel_obstacle_r
+                rel_target = rel_target_r
+                rel_item_placement = rel_item_placement_r
+            # Find the locations in the room where the setup pattern can match
+            matches = room.level.find_matches(setup_pattern)
+            # If there are no matches, then fall through to the next possible item placement
+            # (different direction, different type of item loc)
+            if len(matches) == 0:
+                pass
+            else:
+                # Choose the placement of the item randomly
+                c = random.choice(matches)
+                # Calculate the absolute positions based on the relative positions
+                pattern_placement = c + pattern_offset
+                item_placement = pattern_placement + rel_item_placement
+                obstacle = rel_obstacle.translate(pattern_placement)
+                target = rel_target.translate(pattern_placement)
+                # Actually make the necessary level edit
+                room.level = room.level.compose(pattern, offset=pattern_placement)
+                # Tell the item where it is in the room
+                #TODO: also tell the item what type of item to be
+                item.room_pos = item_placement
+                # Return the obstacle definition for the item location
+                return (obstacle, target, item.name)
+        else:
+            assert False, "Bad place type: " + p
+    assert False, "No item placement found!"
 
 def make_subrooms(room):
     # TODO Generate obstacles

@@ -59,7 +59,11 @@ class Item(object):
         self.item_type = item_type
         self.map_pos = map_pos
 
-# TODO: grand unified theory with ConcreteMap
+#TODO: grand unified theory with ConcreteMap
+#TODO: This data structure should be in rom_tools since
+# other tools that interact with the rom might need access to
+# this kind of level info.
+
 # Holds the level data for a room
 class Level(object):
     
@@ -104,23 +108,24 @@ class Level(object):
                 matches.append(c)
         return matches
 
-    def compose(self, other, collision_policy="error"):
+    def compose(self, other, collision_policy="error", offset=Coord(0,0)):
         new_tiles = {}
         for c, t in self.items():
             new_tiles[c] = t
         for c, t in other.items():
-            self.assert_in_bounds(c)
-            if c in new_tiles:
+            c_mod = c + offset
+            self.assert_in_bounds(c_mod)
+            if c_mod in new_tiles:
                 if collision_policy == "defer":
                     continue
                 elif collision_policy == "error":
-                    assert False, "Collision in compose: " + str(c)
+                    assert False, "Collision in compose: " + str(c_mod)
                 elif collision_policy == "overwrite":
-                    new_tiles[c] = t
+                    new_tiles[c_mod] = t
                 else:
                     assert False, "Bad collision policy: " + collision_policy
             else:
-                new_tiles[c] = t
+                new_tiles[c_mod] = t
         return Level(self.dimensions, tiles=new_tiles)
 
     def missing_defaults(self, mk_default):

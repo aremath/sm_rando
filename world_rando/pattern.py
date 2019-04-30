@@ -64,6 +64,8 @@ def load_patterns(path):
         name, ext = f.split(".")
         if ext == "txt":
             p = parse_pattern(os.path.join(f, path))
-            patterns[name] = p
+            #TODO: create a flag that can be written in the file for whether to include a flip
+            patterns[name + "_l"] = p
+            patterns[name + "_r"] = p.reflect(Coord(1,0))
     return patterns
 
