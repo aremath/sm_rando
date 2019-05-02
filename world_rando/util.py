@@ -9,7 +9,7 @@ def weighted_random_order(l, weights):
     while len(l_c) > 0:
         # Avoid a 'bug' where random.choices crashes when trying to choose from a list 
         # of elements whose weights are all zero
-        if all_zero(w)
+        if all_zero(w):
             out.extend(l_c.shuffle())
             break
         # Choose an element

@@ -26,17 +26,17 @@ def mk_wall(level, map_xy, direction, thickness=2):
     map_y = map_xy.y * 16
     tstart = 16 - thickness
     if direction == "U":
-        mk_default_rect(level, (map_x, map_y), (map_x + 16, map_y + thickness))
+        r = Rect(Coord(map_x, map_y), Coord(map_x + 16, map_y + thickness))
     elif direction == "D":
-        mk_default_rect(level, (map_x, map_y + tstart), (map_x + 16, map_y + 16))
+        r = Rect(Coord(map_x, map_y + tstart), Coord(map_x + 16, map_y + 16))
     elif direction == "L":
-        mk_default_rect(level, (map_x, map_y), (map_x + thickness, map_y + 16))
+        r = Rect(Coord(map_x, map_y), Coord(map_x + thickness, map_y + 16))
     elif direction == "R":
-        mk_default_rect(level, (map_x + tstart, map_y), (map_x + 16, map_y + 16))
+        r = Rect(Coord(map_x + tstart, map_y), Coord(map_x + 16, map_y + 16))
     else:
         assert False, "Bad direction: " + str(direction)
+    mk_default_rect(level, r)
 
-#TODO: "RECT" data type built from Coords that allows iterating over the interior
 def mk_rect(level, rect, tile_maker):
     for c in rect.as_list():
         level[c] = tile_maker()

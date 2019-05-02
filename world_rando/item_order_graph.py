@@ -12,30 +12,21 @@ import itertools
 # comes time to place it as a PLM.
 # Can do this later when determining PLM placement, keeping a counter of items placed
 
-# How eagerly each region grabs nodes - Larger allows more nuance, but is higher variance
-default_weights ={
-    "Wrecked_Ship"  : 2,
-    "Maridia"       : 4,
-    "Crateria"      : 4,
-    "Norfair"       : 4,
-    "Brinstar"      : 4,
-    "Tourian"       : 1
-}
-
-def abstract_map():
+def abstract_map(settings):
     """puts it all together to make an abstract map with regions and elevators"""
     order, graph = order_graph()
     #TODO: add items before or after partition?
     # after is probably better...
-    add_items(graph, {"S": 10, "PB": 10, "M": 15, "E": 12})
+    add_items(graph, settings["extra_items"])
     #region_order, region_finished = partition_order(graph, sm_global.regions)
-    region_order, region_finished = weighted_partition_order(graph, sm_global.regions, default_weights)
+    region_order, region_finished = weighted_partition_order(graph, sm_global.regions, settings["region_weights"])
     elevators = make_elevators(graph, region_finished)
     region_order = item_order.region_order()
     es = elevator_directions(elevators, region_order)
     rsg = region_subgraphs(graph, region_finished)
     return order, graph, rsg, es, region_order
 
+#TODO: item annotations
 def order_graph():
     """Creates an item order graph, which is an
         order in which the items may be picked up
@@ -145,7 +136,8 @@ def make_elevators(graph, regions):
     return elevators
         
 
-# crossings:
+# Find the places where the edges of a graph cross a given partitioning of it.
+# Crossings:
 # key1 - set of region1, region2
 # value - list of node1, node2 pairs
 # such that n1 is in r1, n2 is in r2, and n1 has an edge to n2
@@ -160,6 +152,8 @@ def find_crossings(graph, regions):
                         crossings[fset].append((node1, node2, e.data))
     return crossings
 
+#TODO: Why do we need this?
+# Find what region a node is in.
 def node_in_region(node, regions):
     for region in regions:
         if node in regions[region]:

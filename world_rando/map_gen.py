@@ -42,7 +42,7 @@ def spring_model(node_locs, graph, n_iterations, spring_constant, spring_equilib
         iteration = iteration + 1
     # resolve to an int
     # TODO: is there a dict map function?
-    node_locs = { n: node_locs[n].resolve_int() for n in node_locs }
+    node_locs = {n: node_locs[n].resolve_int() for n in node_locs}
     return node_locs
 
 #TODO: generalize this?
@@ -52,15 +52,18 @@ def spring_model(node_locs, graph, n_iterations, spring_constant, spring_equilib
 #TODO:
 # -> pick an item node later in the order than Draygon and put it past Draygon?
 # -> default to supers
+# OR a map station after every boss?
 #TODO: Possibly just add some extra edges to the regional graph to make it more "uniform"
 # through the spring model?
+#TODO: rename this!
 
-def less_naive_gen(dimensions, dist, graph, elevators):
+def less_naive_gen(dimensions, graph, elevators, settings):
+    dist = settings["distance_metric"]
     r = Rect(Coord(0,0), dimensions)
     xys = r.as_set()
     up_es, down_es = elevators
     # Find a placement for nodes, and initialize it with the areas for those nodes
-    node_locs, cmap, bboxes = node_place(graph, dimensions, up_es, down_es)
+    node_locs, cmap, bboxes = node_place(graph, dimensions, up_es, down_es, settings)
 
     rnodes = list(graph.nodes.keys())
     random.shuffle(rnodes)
@@ -99,7 +102,7 @@ def less_naive_gen(dimensions, dist, graph, elevators):
             path = path_concat(to_closest, to_end)
             paths.append((node, edge.terminal, path))
     # partition the map into random rooms
-    room_size = len(cmap) // 5
+    room_size = len(cmap) // settings["room_size"]
     #_, rooms = cmap.random_rooms(room_size)
     rooms = cmap.random_rooms_alt(room_size, bboxes)
     #TODO: Each room grabs the map tiles that are inside its bounding box!
@@ -169,9 +172,13 @@ def find_placement(initial, areas, infos, cmap):
 #   Random initially, with elevators guaranteed to be at the top and bottom (initially)
 #   Subjected to a spring model which reduces the total potential energy (moves far nodes closer)
 #   Subject to a search so that nodes can be placed without violating each other's areas.
-def node_place(graph, dimensions, up_es, down_es):
+def node_place(graph, dimensions, up_es, down_es, settings):
     initial = random_node_place(graph, dimensions, up_es, down_es)
-    spring = spring_model(initial, graph, 5, 2, 3, 0.1)
+    spring = spring_model(initial, graph, 
+            settings["n_iterations"],
+            settings["spring_constant"],
+            settings["equilibrium"],
+            settings["spring_dt"])
     trunc_spring = {n : xy.truncate(Coord(0,0), dimensions) for (n, xy) in spring.items()}
     # Now do a search for a good placement for each nod.
     cmap = ConcreteMap(dimensions)
@@ -185,6 +192,7 @@ def avoids_elevators(xy, up_es, down_es):
     up and down elevators"""
     return (not is_p_list(xy, up_es, is_above)) and (not is_p_list(xy, down_es, is_below))
 
+#TODO
 def connecting_path(cmap, t1, t2, threshold):
     """creates a path from t1 to t2 if
     bfs_d(t1, t2) / d(t1, t2) exceeds threshold."""
@@ -194,5 +202,5 @@ def connecting_path(cmap, t1, t2, threshold):
     assert not cmap[t2].is_fixed
     _, o, f = cmap.map_bfs(t1, lambda x: x == t2, reach_pred=lambda x: x in cmap and not cmap[x].is_fixed)
     p = get_path(o, t1, t2)
-    ratio = len(p) / euclidean(t1, t2) + 1e-5 # epsilon for nonzero
+    ratio = len(p) / (euclidean(t1, t2) + 1e-5) # epsilon for nonzero
 

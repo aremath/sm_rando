@@ -3,6 +3,7 @@ from world_rando import item_order_graph
 from world_rando import map_gen
 from world_rando import map_viz
 from world_rando import room_gen
+from world_rando import settings
 
 from rom_tools import rom_manager
 from encoding import sm_global
@@ -12,15 +13,6 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-def rand_m(p1, p2):
-    return concrete_map.manhattan(p1, p2) + random.uniform(0,6)
-
-def less_rand_d(p1, p2):
-    return concrete_map.euclidean(p1, p2) + random.uniform(0,6)
-
-def rand_d(p1, p2):
-    return concrete_map.euclidean(p1, p2) + random.uniform(0,9)
-
 def get_path_info(paths):
     npaths = len(paths)
     lens = [len(p[2]) for p in paths]
@@ -28,7 +20,7 @@ def get_path_info(paths):
     return total_length, npaths
 
 if __name__ == "__main__":
-    o, g, rsg, es, ro = item_order_graph.abstract_map()
+    o, g, rsg, es, ro = item_order_graph.abstract_map(settings.abstract_map_settings)
     region_cmaps = {}
     region_room_defs = {}
     ntiles = 0
@@ -38,9 +30,9 @@ if __name__ == "__main__":
     for region, graph in rsg.items():
         graph.visualize("output/" + region + "/graph")
         print("Generating map for " + region)
-        # Can be as large as 64/32
+        # At most 64,32
         dimensions = concrete_map.Coord(54,30)
-        cmap, rooms, paths = map_gen.less_naive_gen(dimensions, rand_d, graph, es)
+        cmap, rooms, paths = map_gen.less_naive_gen(dimensions, graph, es, settings.concrete_map_settings)
         region_cmaps[region] = cmap
         region_room_defs[region] = room_gen.make_rooms(rooms, cmap, paths)
         # Various info

@@ -165,7 +165,7 @@ class ConcreteMap(object):
         return set(filter(lambda p: not self.tiles[p].is_fixed, self.keys()))
 
     def elide_walls(self):
-        """ adds walls to cmap where the tile abuts empty space """
+        """Adds walls to cmap where the tile abuts empty space."""
         for xy in self.keys():
             n = xy.neighbors()
             for a in n:
@@ -265,6 +265,9 @@ def map_lsearch(start, goal, pred=lambda x:True, dist=lambda x,y: euclidean(x,y)
     diff = goal - start
     pass
 
+#TODO: possible bug where a path might be shorter than expected if
+# START is encountered multiple times along the path
+
 # Uses the offers from a bfs to construct a path
 # a path is a list of consecutive states where
 #   1. if state a is before state b in the list, then b is reachable from a
@@ -320,8 +323,7 @@ def bfs_partition(space, means, priority=lambda x: 0):
                     moffers[mean][n] = mpos[mean]
     return moffers, mfinished
 
-#TODO: Need to handle elevators, bosses, etc, as "implied bboxes"!
-#TODO: partition algorithm that makes rooms that do not overlap
+# Partition algorithm that makes rooms that do not overlap
 # A room overlaps with another room when they have screens that
 # are in the same map position.
 # In practical terms, a way to check this is that a tile designated to

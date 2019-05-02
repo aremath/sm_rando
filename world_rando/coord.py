@@ -118,7 +118,7 @@ class Coord(object):
 
 class Rect(object):
 
-    def __init__(c1, c2):
+    def __init__(self, c1, c2):
         assert c2.x > c1.x
         assert c2.y > c1.y
         self.start = c1

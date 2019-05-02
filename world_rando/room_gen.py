@@ -37,11 +37,11 @@ def room_graphs(rooms, tile_rooms, paths):
         room_end = tile_rooms[path[-1]]
         gstart = rooms[room_start].graph
         if start not in gstart.nodes:
-            room_start.items.append(Item(start, path[0] - room_start.room_pos))
+            rooms[room_start].items.append(Item(start, path[0] - rooms[room_start].pos))
             gstart.add_node(start)
         gend = rooms[room_end].graph
         if end not in gend.nodes:
-            room_end.items.append(Item(end, path[-1] - room_end.room_pos))
+            rooms[room_end].items.append(Item(end, path[-1] - rooms[room_end].pos))
             gend.add_node(end)
         current_room = room_start
         current_node = start
@@ -87,28 +87,23 @@ def make_rooms(room_tiles, cmap, paths):
         r.level_data = level_of_cmap(r)
     return rooms
 
-# The weights for how often a given item type will require a given type of item location.
-# The order is [chozo statue, pedestal, hidden]
-#TODO: fill out this table
-item_place_map = {
-        "default"   :   ([50,50,0])
-        }
-
-def choose_place_order(item):
+# Chooses an order to search for item placements for a given item
+def choose_place_order(item, placement_chances):
     ty = item.item_type
-    if ty in item_place_map:
-        weights = item_place_map[ty]
+    if ty in placement_chances:
+        weights = placement_chances[ty]
     else:
-        weights = item_place_map["default"]
+        weights = placement_chances["default"]
     return weighted_random_order(["chozo", "pedestal", "hidden"], weights)
-    
 
-def find_item_loc(item, room, patterns):
+#TODO: Needs to also remove part of an adjacency in the subroom list and
+# add its own obstacle to the subroom's obstacle list
+def find_item_loc(item, room, patterns, placement_chances):
     """Determines a random item location based on first choosing randomly the
     type of place (chozo statue, pedestal, (hidden)), then finding a location based on the
     places where the appropriate setup pattern matches. Alters the level while doing so by
     placing in the required tiles for the item location."""
-    places = choose_place_order(item)
+    places = choose_place_order(item, placement_chances)
     # Go through the places sequentially so that a pedestal positioning can be found if a chozo statue
     # positioning is not found.
     for p in places:
@@ -169,6 +164,7 @@ def find_item_loc(item, room, patterns):
                 rel_target = rel_target_r
                 rel_item_placement = rel_item_placement_r
             # Find the locations in the room where the setup pattern can match
+            # TODO: find only the matches within the map square given by the item's map location!
             matches = room.level.find_matches(setup_pattern)
             # If there are no matches, then fall through to the next possible item placement
             # (different direction, different type of item loc)
@@ -194,9 +190,10 @@ def find_item_loc(item, room, patterns):
     assert False, "No item placement found!"
 
 def make_subrooms(room):
-    # TODO Generate obstacles
+    #TODO: Generate obstacles for doors
     # Partition into subrooms
     roots, subrooms = subroom_partition(room, 20, 5, obstacles)
+    #TODO: Generate obstacles for rooms using find_item loc
     subroom_leaves = find_leaves(subrooms)
     subroom_graph = subroom_adjacency_graph(subroom_leaves)
     detailed_room_graph, subroom_nodes, used_subrooms, entrances = embed_room_graph(room.graph, subroom_graph)
