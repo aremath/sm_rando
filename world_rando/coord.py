@@ -201,13 +201,42 @@ class Rect(object):
         p = Coord(1,1) - axis
         start_flip = self.start * flip
         end_flip = self.end * flip
-        new_start_1 = end_flip.index(axis) + axis
-        new_start_2 = start_flip.index(p)
+        new_start_1 = end_flip * axis + axis
+        new_start_2 = start_flip * p
         new_start = new_start_1 + new_start_2
-        new_end_1 = start_flip.index(axis) + axis
-        new_end_2 = end_flip.index(p)
+        new_end_1 = start_flip * axis + axis
+        new_end_2 = end_flip * p
         new_end = new_end_1 + new_end_2
         return Rect(new_start, new_end)
 
+    def cut(self, other, axis, min_size):
+        """Cuts self into up to two rectangles that do not overlap with other on the given axis.
+        Rectangles resulting from the cut that are smaller than min_size will not be returned."""
+        out = []
+        r1_size = other.start.index(axis) - self.start.index(axis)
+        r2_size = self.end.index(axis) - other.end.index(axis)
+        if r1_size > 0 and r1_size >= min_size:
+            r1 = Rect(self.start, self.end + (self.end - other.start) * axis)
+            out.append(r1)
+        if r2_size > 0 and r2_size >= min_size:
+            r2 = Rect(self.start + (other.end - self.start) * axis, self.end)
+            out.append(r2)
+        return out
+
+    def borders(self):
+        """Returns a list of rectangles with directions that correspond to the four areas
+        directly adjacent to the edges of self."""
+        out = []
+        l = Coord(-1,0)
+        r = Coord(1,0)
+        u = Coord(-1,0)
+        d = Coord(1,0)
+        for direction in [l,u]:
+            rect = Rect(self.start + direction, self.start + (self.end - self.start) * direction.abs())
+            out.append((rect, direction))
+        for direction in [r,d]:
+            rect = Rect(self.start + (self.end - self.start) * direction, self.end + direction)
+            out.append((rect, direction))
+        return out
 
 

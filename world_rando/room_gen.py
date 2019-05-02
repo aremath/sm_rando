@@ -89,16 +89,14 @@ def make_rooms(room_tiles, cmap, paths):
 
 # Chooses an order to search for item placements for a given item
 def choose_place_order(item, placement_chances):
-    ty = item.item_type
+    ty = item.item_graphic
     if ty in placement_chances:
         weights = placement_chances[ty]
     else:
         weights = placement_chances["default"]
     return weighted_random_order(["chozo", "pedestal", "hidden"], weights)
 
-#TODO: Needs to also remove part of an adjacency in the subroom list and
-# add its own obstacle to the subroom's obstacle list
-def find_item_loc(item, room, patterns, placement_chances):
+def find_item_loc(item, room, subrooms, roots, patterns, placement_chances, min_part_size):
     """Determines a random item location based on first choosing randomly the
     type of place (chozo statue, pedestal, (hidden)), then finding a location based on the
     places where the appropriate setup pattern matches. Alters the level while doing so by
@@ -130,6 +128,7 @@ def find_item_loc(item, room, patterns, placement_chances):
             rel_target_r = Rect(Coord(3,0), Coord(4,3))
             # Rel item placement is the actual positioning of the item. Used for creating the item PLM.
             rel_item_placement_r = Coord(2,0)
+            item_graphic = "C"
         elif p == "pedestal":
             #TODO: technically these are the same pattern
             setup_pattern_l = patterns["pedestal_setup_l"]
@@ -141,7 +140,9 @@ def find_item_loc(item, room, patterns, placement_chances):
             rel_obstacle_r = Rect(Coord(-1,0), Coord(2,2))
             rel_target_r = Rect(Coord(-1,0), Coord(2,2))
             rel_item_placement_r = Coord(0,0)
+            item_graphic = "N"
         elif p == "hidden":
+            item_graphic = "H"
             assert False, "Not implemented!"
         directions = random.shuffle(["L", "R"])
         # Choose the direction randomly (but fall through if no valid configuration is found
@@ -163,9 +164,9 @@ def find_item_loc(item, room, patterns, placement_chances):
                 rel_obstacle = rel_obstacle_r
                 rel_target = rel_target_r
                 rel_item_placement = rel_item_placement_r
-            # Find the locations in the room where the setup pattern can match
-            # TODO: find only the matches within the map square given by the item's map location!
-            matches = room.level.find_matches(setup_pattern)
+            # Find the locations in the item's maptile where the setup pattern can match
+            item_maptile = Rect(item.map_pos.scale(16), item.map_pos.scale(16) + Coord(16,16))
+            matches = room.level.find_matches_in_rect(setup_pattern, item_maptile)
             # If there are no matches, then fall through to the next possible item placement
             # (different direction, different type of item loc)
             if len(matches) == 0:
@@ -180,20 +181,22 @@ def find_item_loc(item, room, patterns, placement_chances):
                 target = rel_target.translate(pattern_placement)
                 # Actually make the necessary level edit
                 room.level = room.level.compose(pattern, offset=pattern_placement)
-                # Tell the item where it is in the room
-                #TODO: also tell the item what type of item to be
+                # Tell the item where it is in the room and what its graphics should be.
                 item.room_pos = item_placement
-                # Return the obstacle definition for the item location
-                return (obstacle, target, item.name)
+                item.graphic = item_graphic
+                #TODO: pattern placement might not necessarily be within the subroom?
+                item_subroom = find_coord(subrooms, roots, pattern_placement)
+                # Add the resulting obstacle to the subroom's obstacles
+                subrooms[item_subroom].place_obstacle((obstacle, target, item.name))
         else:
             assert False, "Bad place type: " + p
     assert False, "No item placement found!"
 
-def make_subrooms(room):
+def make_subrooms(room, max_parts, min_part_size):
     #TODO: Generate obstacles for doors
     # Partition into subrooms
-    roots, subrooms = subroom_partition(room, 20, 5, obstacles)
-    #TODO: Generate obstacles for rooms using find_item loc
+    roots, subrooms = subroom_partition(room, max_parts, min_part_size, obstacles)
+    #TODO: Generate obstacles for rooms using find_item_loc
     subroom_leaves = find_leaves(subrooms)
     subroom_graph = subroom_adjacency_graph(subroom_leaves)
     detailed_room_graph, subroom_nodes, used_subrooms, entrances = embed_room_graph(room.graph, subroom_graph)
@@ -274,9 +277,9 @@ class SubroomNode(object):
         obs1 = []
         obs2 = []
         for o in self.obstacles:
-            if o.within(rect1):
+            if o[1].within(rect1):
                 obs1.append(o)
-            elif o.within(rect2):
+            elif o[1].within(rect2):
                 obs2.append(o)
             else:
                 assert False, "Obstacle split by subdivide: " + str(o)
@@ -293,10 +296,28 @@ class SubroomNode(object):
         assert len(the_adj) == 1
         return the_adj[0]
 
+    #TODO: not proof against multiple adjacencies with the same id
+    def find_adj_index(self, id):
+        for (i, a) in self.adj.enumerate():
+            if a[0] == id:
+                return i
+        assert False, "Adjacency not found: " + str(id)
+
     def reassign_adj(self, old_id, new_id):
-        new_adj = self.find_adj(old_id)
-        new_adj[0] = new_id
-        self.adj = [i for i in other.adj if i[0] != old_id] + [new_adj]
+        """Reassign the id of an adjacency"""
+        i = self.find_adj_index(adj_id)
+        a = self.adj.pop(i)
+        self.adj.append((new_id, a[1], a[2])
+
+    def replace_adj(self, adj_id, new_rect):
+        """Replace the rect of an adjacency"""
+        i = self.find_adj_index(adj_id)
+        a = self.adj.pop(i)
+        self.adj.append((a[0], new_rect, a[2]))
+
+    def remove_adj(self, adj_id):
+        i = self.find_adj_index(adj_id)
+        self.adj.pop(i)
 
     def split_adj(self, old_id, new_id1, new_id2, index, direction):
         adj = self.find_adj(old_id)
@@ -304,6 +325,44 @@ class SubroomNode(object):
         new_1 = (id1, new_r1, adj[2])
         new_2 = (id2, new_r2, adj[2])
         self.adj = [i for i in other.adj if i[0] != old_id] + [new_1, new_2]
+
+    #TODO: allow this to create more than one adjacency for both rooms
+    # Requires a major rework of the current code, which assumes that there will only
+    # ever be a single adjacency between two subrooms.
+    #TODO: this is deeply flawed: adjacencies are used for all sorts of things besides obstacles
+    # Perhaps a better approach would be to do something on the path-searching end
+    # or maybe have an "obstacle adjacencies" list which is used? yuck.
+    def cut_adj_border(self, border, subrooms, min_size):
+        """Cut both sides of an adjacency so that neither overlaps border. 
+        Used when adding an impassable area to the room to cut the adjacencies where that object
+        aligns with the room borders."""
+        rect, direction = border
+        adj_to_cut = [a for a in self.adj if a[2] == direction and rect.within(a[1])]
+        assert len(adj_to_cut) <= 1
+        # Here I'm using the convention that s refers to self and o refers to other
+        if len(adj_to_cut) == 1:
+            adj_s = adj_to_cut[0]
+            other = subrooms[adj_s[0]]
+            ajd_o = other.find_adj(self.id)
+            cut_rects_s = adj_s[1].cut(border,adj_s[2].abs(), min_size)
+            cut_rects_o = adj_o[1].cut(border,adj_o[2].abs(), min_size)
+            if len(cut_rects_s) > 0:
+                rect_s = max(cut_rects_s, key=lambda x: x.area())
+                rect_o = max(cut_rects_o, key=lambda x: x.area())
+                self.replace_adj(adj_s[0], rect_s)
+                other.replace_adj(adj_o[0], rect_o)
+            # If there is no rect, remove the adjacency entirely
+            else:
+                self.remove_adj(adj_s[0])
+                other.remove_adj(adj_o[0])
+        else:
+            pass
+
+    def place_obstacle(self, obstacle, min_part_size):
+        self.obstacles.append(obstacle)
+        change_borders = obstacle[1].borders()
+        for b in change_borders:
+            subrooms[item_subroom].cut_adj_border(b, subrooms, min_part_size)
 
     def div_point(self, index, direction):
         return self.rect.start + direction.scale(index)
@@ -343,7 +402,6 @@ class SubroomNode(object):
         cut_rect = Rect(div_point - d, obv_point + d)
         # Check obstacles:
         for o in self.obstacles:
-            #
             if o[1].intersects(cut_rect):
                 return False
         return True

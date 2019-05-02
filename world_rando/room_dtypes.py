@@ -56,8 +56,16 @@ class Door(object):
 class Item(object):
 
     def __init__(self, item_type, map_pos):
+        # String - the actual item contained here
+        # Second index to the dict in rom_tools/item_definitions.py
         self.item_type = item_type
+        # Coord - position of the item in the concrete map for the room
         self.map_pos = map_pos
+        # String - one of "C", "N", "H" for Chozo, Hidden, Normal
+        # First index to the item definition in rom_tools/item_definitions.py
+        self.graphic = None
+        # Coord - position of the item in the room
+        self.room_pos = None
 
 #TODO: grand unified theory with ConcreteMap
 #TODO: This data structure should be in rom_tools since
@@ -81,6 +89,7 @@ class Level(object):
         assert self.in_bounds(coord), "Out of bounds: " + str(coord)
 
     def matches(self, other, pos):
+        """Can other be put into self at pos without conflict?"""
         for c in other.itercoords():
             nc = c + pos
             if self.in_bounds(nc) and nc in self:
@@ -104,6 +113,13 @@ class Level(object):
     def find_matches(self, other):
         matches = []
         for c in self.itercoords():
+            if self.matches(other, c):
+                matches.append(c)
+        return matches
+
+    def find_matches_in_rect(self, other, rect):
+        matches = []
+        for c in rect.as_list():
             if self.matches(other, c):
                 matches.append(c)
         return matches

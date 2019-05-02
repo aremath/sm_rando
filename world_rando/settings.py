@@ -43,4 +43,6 @@ room_gen_settings = {
     #TODO: fill out this table
     "item_placement_chances"    :   { "default" : [50, 50, 0]
         }
+    "max_room_partitions"       :   20
+    "min_room_partition_size"   :   5
     }
