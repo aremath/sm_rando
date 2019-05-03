@@ -42,7 +42,13 @@ room_gen_settings = {
     # Default is for missing items
     #TODO: fill out this table
     "item_placement_chances"    :   { "default" : [50, 50, 0]
-        }
-    "max_room_partitions"       :   20
-    "min_room_partition_size"   :   5
+        },
+    # Max number of partitions in a single room
+    "max_room_partitions"       :   20,
+    # Minimum size of any partition (in both x and y)
+    "min_room_partition_size"   :   5,
+    # TODO: entrances to morph subrooms can be as small as 1...
+    # Min and max size for the entrance to a subroom
+    "min_room_entrance_size"    :   3,
+    "max_room_entrance_size"    :   7
     }

@@ -4,6 +4,7 @@ from world_rando import map_gen
 from world_rando import map_viz
 from world_rando import room_gen
 from world_rando import settings
+from world_rando import pattern
 
 from rom_tools import rom_manager
 from encoding import sm_global
@@ -20,6 +21,7 @@ def get_path_info(paths):
     return total_length, npaths
 
 if __name__ == "__main__":
+    patterns = pattern.load_patterns("encoding/patterns")
     o, g, rsg, es, ro = item_order_graph.abstract_map(settings.abstract_map_settings)
     region_cmaps = {}
     region_room_defs = {}
@@ -34,7 +36,7 @@ if __name__ == "__main__":
         dimensions = concrete_map.Coord(54,30)
         cmap, rooms, paths = map_gen.less_naive_gen(dimensions, graph, es, settings.concrete_map_settings)
         region_cmaps[region] = cmap
-        region_room_defs[region] = room_gen.make_rooms(rooms, cmap, paths)
+        region_room_defs[region] = room_gen.make_rooms(rooms, cmap, paths, settings.room_gen_settings, patterns)
         # Various info
         ntiles += len(region_cmaps[region])
         for room in rooms.values():
@@ -46,6 +48,7 @@ if __name__ == "__main__":
     print("Tiles: " + str(ntiles))
     print("Average room size: " + str(sum(room_dims)/len(room_dims)))
     print("Average path length: " + str(path_length/npaths))
+
     for region, cmap in region_cmaps.items():
         map_viz.map_viz(cmap, "output/" + region + "/cmap.png", "encoding/map_tiles")
     for region, room_defs in region_room_defs.items():

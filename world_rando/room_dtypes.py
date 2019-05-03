@@ -42,12 +42,13 @@ class Room(object):
 
 class Door(object):
 
-    def __init__(self, tile, direction, room1, room2, door_id):
+    def __init__(self, tile, direction, room1, room2, door_id, name):
         self.pos = tile
         self.direction = direction
         self.origin = room1
         self.destination = room2
         self.id = door_id
+        self.name = name
 
     #def __hash__(self):
     #    #TODO: is this a valid equivalence relation?
@@ -223,8 +224,8 @@ class Tile(object):
     def level1_bytes(self):
         """The 2-byte part of the tile that is stored in the level1 foreground data."""
         n_texture = self.texture.index
-        n_hflip = self.texture.flips[0] << 10
-        n_vflip = self.texture.flips[1] << 11
+        n_hflip = self.texture.flips[0] << 11
+        n_vflip = self.texture.flips[1] << 10
         n_ttype = self.tile_type.index << 12
         n_all = n_texture | n_hflip | n_vflip | n_ttype
         return n_all.to_bytes(2, byteorder="little")

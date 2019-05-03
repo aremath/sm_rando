@@ -47,26 +47,41 @@ def mk_default_rect(level, rect):
 def mk_air_rect(level, rect):
     mk_rect(level, rect, mk_default_air)
 
-# Makes a door (default-looking) at the edge of the given maptile
-def mk_door(level, map_xy, direction, door_id, size=2):
+#TODO: the four cardinal coords better represent the four
+# directions
+#p = Coord(1,1) - d.abs()
+#c = p.scale(6)
+#if direction > Coord(0,0):
+#   c += direction.scale(16-size)
+#return c
+def find_door_pos(map_xy, direction, size=2):
+    map_xy_s = map_xy.scale(16)
     if direction == "U":
-        xpos = map_xy.x * 16 + 6
-        ypos = map_xy.y * 16
-        mk_up_door(level, Coord(xpos, ypos), door_id, size)
+        add = Coord(6,0)
     elif direction == "D":
-        xpos = map_xy.x * 16 + 6
-        ypos = map_xy.y * 16 + (16-size)
-        mk_down_door(level, Coord(xpos, ypos), door_id, size)
+        add = Coord(6, 16-size)
     elif direction == "L":
-        xpos = map_xy.x * 16
-        ypos = map_xy.y * 16 + 6
-        mk_left_door(level, Coord(xpos, ypos), door_id, size)
+        add = Coord(0, 6)
     elif direction == "R":
-        xpos = map_xy.x *16 + (16-size)
-        ypos = map_xy.y * 16 + 6
-        mk_right_door(level, Coord(xpos, ypos), door_id, size)
+        add = Coord(16-size, 6)
     else:
         assert False, "Bad direction: " + str(direction)
+    return map_xy_s + add
+
+# Makes a door (default-looking) at the edge of the given maptile
+def mk_door(level, map_xy, direction, door_id, size=2):
+    p = find_door_pos(map_xy, direction, size)
+    if direction == "U":
+        door_fun = mk_up_door
+    elif direction == "D":
+        door_fun = mk_down_door
+    elif direction == "L":
+        door_fun = mk_left_door
+    elif direction == "R":
+        door_fun = mk_right_door
+    else:
+        assert False, "Bad direction: " + str(direction)
+    door_fun(level, p, door_id, size)
 
 # Whee more spaghetti
 # Door /leading/ up

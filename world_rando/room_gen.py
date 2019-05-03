@@ -4,6 +4,8 @@ from .coord import *
 from .util import *
 from data_types import basicgraph
 
+import itertools
+
 # Room Generation:
 
 # takes d: a -> [b] to
@@ -59,7 +61,7 @@ def room_graphs(rooms, tile_rooms, paths):
                     gcurrent.add_node(current_door)
                     # Create a new door for current -> new
                     d = rooms[current_room].doors
-                    d.append(Door(current_pos, current_wr, current_room, new_room, len(d)))
+                    d.append(Door(current_pos, current_wr, current_room, new_room, len(d), current_door))
                 # Link the current node with the door
                 gcurrent.update_edge(current_node, current_door)
                 # Node in the new room
@@ -69,7 +71,7 @@ def room_graphs(rooms, tile_rooms, paths):
                     gnew.add_node(new_door)
                     # Create a new door for the new -> current
                     d = rooms[new_room].doors
-                    d.append(Door(new_pos, new_wr, new_room, current_room, len(d)))
+                    d.append(Door(new_pos, new_wr, new_room, current_room, len(d), new_door))
                 # set the new current room
                 current_room = tile_rooms[new_pos]
                 # the new current node is the door we came into the new room by
@@ -78,13 +80,15 @@ def room_graphs(rooms, tile_rooms, paths):
         # link the final current node with end
         gend.update_edge(current_node, end)
 
-def make_rooms(room_tiles, cmap, paths):
+def make_rooms(room_tiles, cmap, paths, settings, patterns):
     rooms = room_setup(room_tiles, cmap)
     tile_rooms = reverse_list_dict(room_tiles)
     room_graphs(rooms, tile_rooms, paths)
     # ... generate map data etc ...
-    for r in rooms.values():
+    for i, r in rooms.items():
+        print("Generating room " + str(i))
         r.level_data = level_of_cmap(r)
+        make_subrooms(r, settings, patterns)
     return rooms
 
 # Chooses an order to search for item placements for a given item
@@ -96,7 +100,7 @@ def choose_place_order(item, placement_chances):
         weights = placement_chances["default"]
     return weighted_random_order(["chozo", "pedestal", "hidden"], weights)
 
-def find_item_loc(item, room, subrooms, roots, patterns, placement_chances, min_part_size):
+def find_item_loc(item, room, subrooms, roots, patterns, placement_chances):
     """Determines a random item location based on first choosing randomly the
     type of place (chozo statue, pedestal, (hidden)), then finding a location based on the
     places where the appropriate setup pattern matches. Alters the level while doing so by
@@ -192,28 +196,176 @@ def find_item_loc(item, room, subrooms, roots, patterns, placement_chances, min_
             assert False, "Bad place type: " + p
     assert False, "No item placement found!"
 
-def make_subrooms(room, max_parts, min_part_size):
-    #TODO: Generate obstacles for doors
-    # Partition into subrooms
-    roots, subrooms = subroom_partition(room, max_parts, min_part_size, obstacles)
-    #TODO: Generate obstacles for rooms using find_item_loc
+#TODO: doors should generate their own obstacle when they are created?
+# same with their own pattern?
+#TODO: doors should have a map_pos and a room_pos just like items
+def mk_door_obstacles(room):
+    obstacles = []
+    for door in room.doors:
+        map_pos = door.pos - room.pos
+        room_pos = find_door_pos(map_pos, door.direction)
+        direction = door.direction
+        #TODO: some way to have this as a construct rather than writing it out every time...
+        if direction == "U":
+            obstacle_rect_rel = Rect(Coord(0,0), Coord(4,2))
+            target_rect_rel = Rect(Coord(0,0), Coord(4,1))
+        elif direction == "D":
+            obstacle_rect_rel = Rect(Coord(0,0), Coord(4,2))
+            target_rect_rel = Rect(Coord(0,1), Coord(4,2))
+        elif direction == "L":
+            obstacle_rect_rel = Rect(Coord(0,0), Coord(2,4))
+            target_rect_rel = Rect(Coord(0,0), Coord(1,4))
+        elif direction == "R":
+            obstacle_rect_rel = Rect(Coord(0,0), Coord(2,4))
+            target_rect_rel = Rect(Coord(1,0), Coord(2,4))
+        else:
+            assert False, "Bad direction: " + str(direction)
+        obstacle_rect = obstacle_rect_rel.translate(room_pos)
+        target_rect = target_rect_rel.translate(room_pos)
+        door_obstacle = Obstacle(door.name, obstacle_rect, target_rect)
+        obstacles.append(door_obstacle)
+    return obstacles
+
+def make_subrooms(room, settings, patterns):
+    door_obstacles = mk_door_obstacles(room)
+    # Partition into subrooms avoiding doors
+    print("Creating subrooms")
+    max_parts = settings["max_room_partitions"]
+    min_part_size = settings["min_room_partition_size"]
+    roots, subrooms = subroom_partition(room, max_parts, min_part_size, door_obstacles)
     subroom_leaves = find_leaves(subrooms)
-    subroom_graph = subroom_adjacency_graph(subroom_leaves)
-    detailed_room_graph, subroom_nodes, used_subrooms, entrances = embed_room_graph(room.graph, subroom_graph)
-    unused_subrooms = filter(lambda x: x.id not in used_subrooms, subroom_leaves)
-    # Fill the walls
+    # Fill the walls so that the item generation will know where to look
     make_subroom_walls(room.level, subroom_leaves)
-    # Unfill the subroom entrances
-    #TODO: Decide the type of each entrance based on what items are available
-    # and fill with the appropriate block type
-    for e in entrances:
-        room_utils.mk_air_rect(room.level, e[0], e[1])
+    # Generate item locations
+    print("Generating item locations")
+    placement_chances = settings["item_placement_chances"]
+    for i in room.items:
+        find_item_loc(i, room, subrooms, roots, patterns, placement_chances)
+    # Generate the graph
+    print("Generating subroom adjacencies")
+    subroom_graph = subroom_adjacency_graph(subroom_leaves)
+    min_entrance_size = settings["min_room_entrance_size"]
+    max_entrance_size = settings["max_room_entrance_size"]
+    print("Embedding room graph")
+    t = embed_room_graph(room.graph, subroom_graph, min_entrance_size, max_entrance_size)
+    detailed_room_graph, subroom_nodes, used_subrooms = t
+    unused_subrooms = filter(lambda x: x.id not in used_subrooms, subroom_leaves)
+    #TODO: this is kind of messy
+    print("Finishing up subroom generation.")
+    # Fill the walls again (now with entrances)
+    make_subroom_walls(room.level, subroom_leaves)
     # Fill unused subrooms
     for r in unused_subrooms:
         room_utils.mk_default_rect(room.level, r.rect[0], r.rect[1])
     # Add relevant info to the room
     room.detailed_room_graph = detailed_room_graph
     room.subroom_nodes = subroom_nodes
+
+class Adjacency(object):
+
+    # subroom_id is which subroom this adj abuts
+    def __init__(self, id1, id2, rect, direction, impassables=None, entrances=None):
+        self.id1 = id1
+        self.id2 = id2
+        self.rect = rect
+        self.direction = direction
+        if impassables is not None:
+            self.impassables = impassables
+        else:
+            self.impassables = []
+        if entrances is not None:
+            self.entrances = entrances
+        else:
+            self.entrances = []
+
+    #TODO: self.impassables might not be correct
+    def split(self, id2, index, direction):
+        r1, r2 = self.rect.split(index, direction)
+        a1 = Adjacency(self.id1, id2, r1, self.direction, self.impassables)
+        a2 = Adjacency(self.id1, id2, r2, self.direction, self.impassables)
+        return a1, a2
+
+    def is_between(self, id1, id2):
+        return (self.id1 == id1 and self.id2 == id2) or (self.id1 == id2 and self.id2 == id1)
+
+    def get_other_id(self, subroom_id):
+        if self.id1 == subroom_id:
+            return self.id2
+        elif self.id2 == subroom_id:
+            return self.id1
+        else:
+            assert False, "This is not an adjacency of subroom_" + str(subroom_id)
+
+    def replace_id(old_id, new_id):
+        if self.id1 == old_id:
+            self.id1 = new_id
+        elif self.id2 == old_id:
+            self.id2 = new_id
+        else:
+            assert False, "This is not an adjacency of subroom_" + str(subroom_id)
+
+    def add_impassable(self, impassable):
+        self.impassables.append(impassable)
+
+    #TODO: list of rectangles which can be used to make an entrance that is
+    # at least as large as min_size
+    def find_passables(self, min_size):
+        rects = [self.rect]
+        new_rects = []
+        # Cut every rectangle with each impassable rect
+        for i_direction, i_rect in impassables:
+            for r in rects:
+                new_rects.append(r.cut(i_rect, i_direction, min_size))
+            rects = new_rects
+        # Also cut them with the entrances since the new rect can't go on top
+        # of the entrance
+        for e_rect in self.entrances:
+            for r in rects:
+                #TODO: is self.direction correct?
+                new_rects.append(r.cut(e_rect, self.direction, min_size))
+            rects = new_rects
+        return rects
+
+    def find_non_entrances(self):
+        rects = [self.rect]
+        new_rects = []
+        for e_rect in self.entrances:
+            for r in rects:
+                #TODO: is self.direction correct?
+                new_rects.append(r.cut(e_rect, self.direction, min_size))
+            rects = new_rects
+        return rects
+
+    #TODO: entrances to morph subrooms can be as small as 1...
+    def add_entrance(self, min_size, max_size):
+        # The long axis of the adjacency is perpendicular to its direction
+        axis = Coord(1,1) - self.direction
+        passables = self.find_passables(min_size)
+        weights = [p.area() for p in passables]
+        p = random.choices(passables, weights)[0]
+        adj_size = self.rect.size(axis)
+        passable_size = p.index(axis)
+        entrance_size = random.randrange(min_size, min(max_size, passable_size))
+        entrance_placement = random.randrange(adj_size - entrance_size)
+        entrance_start = self.rect.start + axis.scale(entrance_placement)
+        entrance_end = entrance_start + axis.scale(entrance_size) + direction.scale(2)
+        entrance = Rect(entrance_start, entrance_end)
+        self.entrances.append(entrance)
+        return entrance
+
+    def mk_wall(self, level):
+        for r in find_non_entrances(self):
+            mk_default_rect(level, r)
+        #TODO: implement entrance types
+        for e in self.entrances:
+            mk_air_rect(level, e)
+
+class Obstacle(object):
+
+    def __init__(self, name, obstacle_rect, target_rect):
+        self.name = name
+        self.obstacle_rect = obstacle_rect
+        self.target_rect = target_rect
 
 class SubroomNode(object):
 
@@ -224,8 +376,6 @@ class SubroomNode(object):
         self.obstacles = obstacles
         self.children = []
 
-    # an adjacency is a 3-tuple of (id, rect, direction)
-    # an obstacle is a 3-tuple of (name, obstacle_rect, target_rect)
     def subdivide(self, index, direction, id1, id2, subrooms):
         """Divide a room at index in the given direction. Cutting a room in the x-direction
         means that the horizontal axis of the room is divided by the cut. Coords of the room
@@ -240,46 +390,44 @@ class SubroomNode(object):
         adj2 = []
         for a in self.adjacencies:
             # The other SubroomNode implicated in this adjacency
-            other = subrooms[a[0]]
+            other = a.get_other_id(self.id)
             # child1 takes left/top adjacencies
-            if a[2] == direction.neg():
+            if a.direction == direction.neg():
                 adj1.append(a)
                 # Reassign the old ajdancency for the neighbor
                 other.reassign_adj(self.id, id1)
             # child2 takes right/bottom adjacencies
-            if a[2] == direction:
+            if a.direction == direction:
                 adj2.append(a)
                 other.reassign_adj(self.id, id2)
             else:
                 # If it ends before the index, it belongs to child1
-                if a.end.index(direction) < index:
+                if a.rect.end.index(direction) < index:
                     adj1.append(a)
                     other.reassign_adj(self.id, id1)
                 # If it starts after the index, it belongs to child2
-                elif a.start.index(direction) > index:
+                elif a.rect.start.index(direction) > index:
                     adj1.append(a)
                     other.reassign_adj(self.id, id2)
                 # If neither, it must be split
                 else:
-                    ar1, ar2 = a.split(index, direction)
-                    a1 = (a[0], ar1, a[2])
-                    a2 = (a[0], ar2, a[2])
+                    a1, a2 = a.split(other, index, direction)
                     adj1.append(a1)
                     adj2.append(a2)
                     # Also split the neighbor's adjacency
-                    other.split_adj(self.id, id1, id2, index, direction)
+                    other.replace_adj(self.id, [a1, a2])
         # Add an adjacency between the two children along the newly created edge
         dp = self.div_point(index, direction)
         op = self.obv_point(index, direction)
-        adj1.append((id2, dp - direction, op - direction, direction))
-        adj2.append((id1, dp, op, direction.scale(-1)))
+        adj1.append(Adjacency(id1, id2, Rect(dp - direction, op - direction), direction))
+        adj2.append(Adjacency(id1, id2, Rect(dp, op), direction))
         # Assign obstacles the same way as adjacencies
         obs1 = []
         obs2 = []
         for o in self.obstacles:
-            if o[1].within(rect1):
+            if o.obstacle_rect.within(rect1):
                 obs1.append(o)
-            elif o[1].within(rect2):
+            elif o.obstacle_rect.within(rect2):
                 obs2.append(o)
             else:
                 assert False, "Obstacle split by subdivide: " + str(o)
@@ -292,77 +440,38 @@ class SubroomNode(object):
 
     def find_adj(self, id):
         """Find the adjacency with the given id"""
-        the_adj = [i for i in self.adj if i[0] == id]
+        the_adj = [i for i in self.adj if i.is_between(self.id, id)]
         assert len(the_adj) == 1
         return the_adj[0]
 
-    #TODO: not proof against multiple adjacencies with the same id
+    #TODO: not proof against multiple adjs with the same id pairs
     def find_adj_index(self, id):
-        for (i, a) in self.adj.enumerate():
-            if a[0] == id:
+        for i, a in enumerate(self.adj):
+            if a.is_between(self.id, id):
                 return i
-        assert False, "Adjacency not found: " + str(id)
+        assert False, "No adjacency"
 
     def reassign_adj(self, old_id, new_id):
         """Reassign the id of an adjacency"""
-        i = self.find_adj_index(adj_id)
-        a = self.adj.pop(i)
-        self.adj.append((new_id, a[1], a[2])
+        a = self.find_adj(old_id)
+        a.replace_id(old_id, new_id)
 
-    def replace_adj(self, adj_id, new_rect):
-        """Replace the rect of an adjacency"""
-        i = self.find_adj_index(adj_id)
-        a = self.adj.pop(i)
-        self.adj.append((a[0], new_rect, a[2]))
+    def replace_adj(self, id, new_adjs):
+        """Replace an ajdacency with new ones"""
+        self.remove_adj(id)
+        self.adj.extend(new_adjs)
 
     def remove_adj(self, adj_id):
         i = self.find_adj_index(adj_id)
         self.adj.pop(i)
 
-    def split_adj(self, old_id, new_id1, new_id2, index, direction):
-        adj = self.find_adj(old_id)
-        new_r1, new_r2 = adj[1].split_rect(index, direction)
-        new_1 = (id1, new_r1, adj[2])
-        new_2 = (id2, new_r2, adj[2])
-        self.adj = [i for i in other.adj if i[0] != old_id] + [new_1, new_2]
-
-    #TODO: allow this to create more than one adjacency for both rooms
-    # Requires a major rework of the current code, which assumes that there will only
-    # ever be a single adjacency between two subrooms.
-    #TODO: this is deeply flawed: adjacencies are used for all sorts of things besides obstacles
-    # Perhaps a better approach would be to do something on the path-searching end
-    # or maybe have an "obstacle adjacencies" list which is used? yuck.
-    def cut_adj_border(self, border, subrooms, min_size):
-        """Cut both sides of an adjacency so that neither overlaps border. 
-        Used when adding an impassable area to the room to cut the adjacencies where that object
-        aligns with the room borders."""
-        rect, direction = border
-        adj_to_cut = [a for a in self.adj if a[2] == direction and rect.within(a[1])]
-        assert len(adj_to_cut) <= 1
-        # Here I'm using the convention that s refers to self and o refers to other
-        if len(adj_to_cut) == 1:
-            adj_s = adj_to_cut[0]
-            other = subrooms[adj_s[0]]
-            ajd_o = other.find_adj(self.id)
-            cut_rects_s = adj_s[1].cut(border,adj_s[2].abs(), min_size)
-            cut_rects_o = adj_o[1].cut(border,adj_o[2].abs(), min_size)
-            if len(cut_rects_s) > 0:
-                rect_s = max(cut_rects_s, key=lambda x: x.area())
-                rect_o = max(cut_rects_o, key=lambda x: x.area())
-                self.replace_adj(adj_s[0], rect_s)
-                other.replace_adj(adj_o[0], rect_o)
-            # If there is no rect, remove the adjacency entirely
-            else:
-                self.remove_adj(adj_s[0])
-                other.remove_adj(adj_o[0])
-        else:
-            pass
-
-    def place_obstacle(self, obstacle, min_part_size):
+    def place_obstacle(self, obstacle):
         self.obstacles.append(obstacle)
-        change_borders = obstacle[1].borders()
-        for b in change_borders:
-            subrooms[item_subroom].cut_adj_border(b, subrooms, min_part_size)
+        change_borders = obstacle.obstacle_rect.borders()
+        for direction, rect in change_borders:
+            adj_to_cut = [a for a in self.adj if a.direction == direction and rect.within(a.rect)]
+            for a in adj_to_cut:
+                a.add_impassable(b)
 
     def div_point(self, index, direction):
         return self.rect.start + direction.scale(index)
@@ -402,7 +511,7 @@ class SubroomNode(object):
         cut_rect = Rect(div_point - d, obv_point + d)
         # Check obstacles:
         for o in self.obstacles:
-            if o[1].intersects(cut_rect):
+            if o.obstacle_rect.intersects(cut_rect):
                 return False
         return True
 
@@ -452,16 +561,16 @@ def subroom_adjacency_graph(subroom_leaves):
     for leaf in subroom_leaves:
         g.add_node(leaf.id)
         for o in leaf.obstacles:
-            g.add_node(o[0], data=(o[2]))
-        g.add_edge(leaf.id, o[0])
-        g.add_edge(o[0], leaf.id)
+            g.add_node(o.name, data=o)
+        g.add_edge(leaf.id, o.name)
+        g.add_edge(o.name, leaf.id)
     # Once all the subrooms have been added, produce the adjacencies
     for leaf in subroom_leaves:
         for neighbor_adj in leaf.adj:
-           g.add_edge(leaf.id, neighbor_adj[0], data=(neighbor_adj[1], neighbor_adj[2]))
+           g.add_edge(leaf.id, neighbor_adj.get_other_id(leaf.id), data=neighbor_adj)
     return g
 
-def embed_room_graph(room_graph, subroom_graph):
+def embed_room_graph(room_graph, subroom_graph, min_entrance_size, max_entrance_size):
     """Embed the room graph into the subroom graph, resulting in a new graph
     which is the graph that will actually be searched over during subroom generation."""
     # Key - subroom_id, value - list of nodes belonging to that subroom
@@ -470,7 +579,6 @@ def embed_room_graph(room_graph, subroom_graph):
     # The subrooms which the graph embedding actually uses
     # Used to calculate the subrooms which are completely unused.
     used_subrooms = set()
-    entrances = []
     g = basicgraph.BasicGraph()
     for node1, node2 in room_graph.get_edges():
         itemset = room_graph.get_edge_data(node1, node2)
@@ -501,58 +609,34 @@ def embed_room_graph(room_graph, subroom_graph):
                     # subroom interface nodes should only be added two at a time
                     assert sf_name not in g
                     # Choose a place to break the wall between the two subrooms
-                    e1, e2 = choose_entrances(edge_fs, edge_sf)
+                    #TODO: Decide the type of each entrance based on what items are available
+                    e = edge_fs.add_entrance(min_entrance_size, max_entrance_size)
                     # Create a node in the first subroom
-                    g.add_node(fs_name, data=e1)
+                    g.add_node(fs_name, data=e)
                     subroom_nodes[first].append(fs_name)
                     used_subrooms.add(first)
                     # Create a node in the second subroom
-                    g.add_node(sf_name, data=e2)
+                    g.add_node(sf_name, data=e)
                     subroon_nodes[second].append(sf_name)
                     used_subrooms.add(second)
-                    # Add the entrance to the list of entrances to be used
-                    # to fill them with air
-                    entrances.append(e1)
-                    entrances.append(e2)
                 # Regardless of what type of node, connect them up
                 # TODO: update edge append instead!
                 g.add_edge(current_node, fs_name, data=itemset)
                 g.add_edge(fs_name, sf_name, data=itemset)
                 current_node = fs_name
-    return g, subroom_nodes, used_subrooms, entrances
-
-def choose_entrances(adj1, adj2):
-    """Choose where on an adjacency to make an entrance."""
-    # Make sure the two adjacencies are in opposite directions
-    assert adj1[2] == adj2[2].neg()
-    # The long axis of the adjacency is perpendicular to its direction
-    direction = adj1[2].abs()
-    axis = Coord(1,1) - direction
-    # Find the length of each adjacency
-    adj1_size = adj1[1].size(axis)
-    adj2_size = adj2[1].size(axis)
-    assert adj1_size == adj2_size
-    #TODO: entrances to morph subrooms can be as small as 1...
-    #PARAM
-    entrance_size = random.randrange(3,7)
-    entrance_placement = random.randrange(adj1_size - entrance_size)
-    # Compute the entrances
-    entrance1_start = adj1[0] + axis.scale(entrance_placement)
-    entrance2_end = entrance1_start + axis.scale(entrance_size) + direction
-    # Entrance2 is just shifted by one in the direction that adj1 faces
-    entrance2_start = entrance1_start + adj1[2]
-    entrance2_end = entrance1_end + adj1[2]
-    return Rect(entrance1_start, entrance1_end), Rect(entrance2_start, entrance2_end)
+    return g, subroom_nodes, used_subrooms
 
 def make_subroom_walls(level, subroom_leaves):
     for leaf in subroom_leaves:
         for a in leaf.adj:
-            room_utils.mk_default_rect(level, a[1])
+            a.mk_wall(level)
 
 def subroom_partition(room, max_parts, min_partsize, obstacles):
     """Creates a partition of the room into subrooms."""
     # First, generate a greedy rectangularization of the concrete map for the room
+    print("PART: Finding rectangularization")
     current_id, roots, subrooms = rectangularize(room.cmap, obstacles)
+    print("PART: Generating partitions")
     while True:
         current_children = roots
         # Choose a partition to subdivide
@@ -581,15 +665,17 @@ def subroom_partition(room, max_parts, min_partsize, obstacles):
     return roots, subrooms
 
 #TODO: parameterized by direction in both x and y
+# i.e. which corner to start from.
 def rectangularize(cmap, obstacles):
     subrooms = {}
     # Stores the set of CMAP tiles for each subroom
     subroom_sets = {}
     roots = []
     current_id = 0
-    # sorts topmost leftmost
+    # Sorts topmost leftmost
     positions = sorted(cmap.keys())
     # Find rectangles until the entire cmap is covered
+    print("RECT: Finding rectangles")
     while len(positions) > 0:
         pos = positions[0]
         rect = find_rect(cmap, pos)
@@ -597,58 +683,64 @@ def rectangularize(cmap, obstacles):
             positions.remove(c)
         # Add it to the subroom tree, and convert its size and position into the level format
         subrooms[current_id] = SubroomNode(current_id, rect.scale(16), [], [])
-        subroom_rects[current_id] = coord.xy_set(pos, rect)
+        subroom_sets[current_id] = rect.as_set()
         roots.append(current_id)
         current_id += 1
     # Find adjacencies between the rectangles
+    print("RECT: Finding adjacencies")
     for r1, r2 in itertools.combinations(roots, 2):
         # Since positions was sorted and the combinations function
         # outputs tuples in sorted order, r_1 is above / to the left of r_2
-        r1_adj, r2_adj = find_adjacency(subroom_sets[r1], subroom_sets[r2])
-        subrooms[r1].adj.extend(r1_adj)
-        subrooms[r2].adj.extend(r2_adj)
+        adj = add_adjacency(subrooms[r1], subroom_sets[r1], subrooms[r2], subroom_sets[r2])
     # Assign the obstacles
+    print("RECT: Assigning obstacles")
     for o in obstacles:
         done = False
         for s in subrooms.values():
             # If the object is contained by the subroom...
-            if o[1].within(s.rect):
+            if o.obstacle_rect.within(s.rect):
                 s.obstacles.append(o)
                 done = True
                 break
         if not done:
-            assert False, "Obstacle not contained by a single subroom: " + str(o)
+            assert False, "Obstacle not contained by a single subroom: " + str(o.obstacle_rect)
     return current_id, roots, subrooms
 
-def find_adjacency(r1, r2):
+def add_adjacency(r1, r1_set, r2, r2_set):
     # D R L U
     directions = [Coord(0,1), Coord(1,0), Coord(-1,0), Coord(0,-1)]
     for d in directions:
-        neighbors = sorted([p + d for p in r1 if p + d not in r1 and p + d in r2])
-        if len(neighbors > 0):
-            # Topmost leftmost neighbor
-            start = neighbors[0]
-            dist = 16 * len(neighbors)
-            border2_start = start.scale(16)
-            #TODO can be cleaned up with d.abs()?
-            if d < Coord(0,0):
-                border2_start += d.scale(-15)
-                dist_coords = (Coord(1,1) + d).scale(dist)
-                border2_end = border2_start + dist_coords - d
+        neighbors = sorted([p + d for p in r1_set if p + d not in r1_set and p + d in r2_set])
+        if len(neighbors) > 0:
+            # The top left corner of the topmost leftmost neighbor
+            tl_neighbor = neighbors[0].scale(16)
+            # The top left corner of the cell directly adjacent to the topmost
+            # leftmost neighbor (in direction d)
+            tl_self = tl_neighbor + d.scale(-16)
+            if tl_neighbor < tl_self:
+                tl1 = tl_neighbor
+                tl2 = tl_self
             else:
-                dist_coords = (Coord(1, 1) - d).scale(dist)
-                border2_end = border2_start + dist_coords + d
-            border1_start = border2_start - d
-            border1_end = border2_end - d
-            r1 = Rect(border1_start, border1_end)
-            r2 = Rect(border2_start, border2_end)
-            return [(r2.id, r1, d)], [(r1.id, r2, d.neg())]
-        # No borders
-        return [], []
+                tl1 = tl_self
+                tl2 = tl_neighbor
+            da = d.abs()
+            # Perpendicular to da and also positive
+            pa = Coord(1,1) - d
+            dist = 16 * len(neighbors)
+            start = tl1 + da.scale(15)
+            end = start + pa.scale(dist) + da.scale(2)
+            rect = Rect(start, end)
+            a = Adjacency(r1.id, r2.id, rect, da)
+            r1.adj.append(a)
+            r2.adj.append(a)
+        # They do not border each other
+        else:
+            pass
 
 def find_rect(cmap, pos):
     """Find the largest rectangle that will fit into the given cmap at the given pos."""
     assert pos in cmap
+    print("FIND: finding best rectangle for " + str(pos))
     best_rect = Rect(pos, pos + Coord(1,1))
     # Find the largest x and y that we need to check for a rectangle
     xmax = 0
@@ -656,15 +748,18 @@ def find_rect(cmap, pos):
         c = pos + Coord(xmax, 0)
         if c in cmap:
             xmax += 1
+        else:
+            break
     ymax = 0
     while True:
         c = pos + Coord(0, ymax)
         if c in cmap:
             ymax += 1
+        else:
+            break
     max_rect = Rect(pos, pos + Coord(xmax, ymax))
     max_area = 1
-    for c in max_rect.as_list:
-        c = Coord(x, y)
+    for c in max_rect.as_list():
         # If the bottom right corner is in the map, then it's a valid rectangle
         if pos + c in cmap:
             r = Rect(pos, c + Coord(1,1))
@@ -717,3 +812,4 @@ def level_from_bytes(levelbytes, dimensions):
             tiletype = Type(ttype, bts)
             level[Coord(x,y)] = Tile(texture, tiletype)
     return level
+
