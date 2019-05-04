@@ -77,11 +77,6 @@ class ConcreteMap(object):
         """ The extent of the cmap, two Coord which specify the bounding box."""
         return extent(self.keys())
 
-    def map_range(self):
-        """Returns the actual ranges of the map, along with the placement of that range in x,y"""
-        mmin, mmax = self.map_extent()
-        return mmax - mmin, mmin
-
     def at_offset(self, offset):
         """Returns a new cmap which is the old cmap with all tiles
         at an offset. Data may be shared."""
@@ -225,16 +220,18 @@ class ConcreteMap(object):
         else:
             return False
 
-    def sub(self, start, end):
+    def sub(self, rect, relative=False):
         """Returns a subcmap which is the cmap defined by the [start, end) rectangle."""
         new_tiles = {}
-        for x in range(start.x, end.x):
-            for y in range(start.y, end.y):
-                xy = Coord(x,y)
-                if xy in self:
-                    new_tiles[xy] = self[xy]
+        if relative:
+            offset = rect.start
+        else:
+            offset = Coord(0,0)
+        for c in rect.as_list():
+            if c in self:
+                new_tiles[c - offset] = self[c]
         # new cmap's dimensions are end-start
-        return ConcreteMap(end-start, _tiles=new_tiles), start
+        return ConcreteMap(rect.size_coord(), _tiles=new_tiles), rect.start
 
     # Behaves like a dictionary, interfacing to tiles
     def __getitem__(self, key):
@@ -383,19 +380,19 @@ def can_merge(room1, room2, rooms, maxsize, implicit_bboxes):
     # Check that the new room won't have more than maxsize tiles
     if len(tiles1) + len(tiles2) > maxsize:
         return False
-    bbox = bounding_box(tiles1 | tiles2)
+    bbox = extent(tiles1 | tiles2)
     # Check that the actual number of screens that need to be loaded
     # for the new room won't exceed maxsize.
-    if bound_size(bbox) > maxsize:
+    if bbox.area() > maxsize:
         return False
     # Build the bounding box for each room
-    room_bboxes = {k: bounding_box(v) for k,v in rooms.items()}
+    room_bboxes = {k: extent(v) for k,v in rooms.items()}
     # Don't care about room1 and room2, since the merge will replace them
     del room_bboxes[room1]
     del room_bboxes[room2]
     # Make sure that the bbox of the merged room does not overlap with
     # any of the existing rooms
-    return not any(map(lambda b: overlap(bbox, b), list(room_bboxes.values()) + implicit_bboxes))
+    return not any(map(lambda b: bbox.intersects(b), list(room_bboxes.values()) + implicit_bboxes))
 
 # When two rooms merge, their adjacencies merge
 # When r1 and r2 merge into r1, go through and replace r2 in adjacencies with r1
@@ -415,33 +412,14 @@ def active_delete(active, tile):
     return {key : value - set([tile]) for (key, value) in active if key != tile}
 
 def extent(coords):
-    """Determines the extent of a list of Coord"""
+    """Returns the smallest rectangle that contains each of the coords"""
     if len(coords) == 0:
         return None
     minx = min(coords, key=lambda item: item.x).x
     miny = min(coords, key=lambda item: item.y).y
     maxx = max(coords, key=lambda item: item.x).x
     maxy = max(coords, key=lambda item: item.y).y
-    return (Coord(minx, miny), Coord(maxx, maxy))
-
-def bounding_box(coords):
-    l, u = extent(coords)
-    return l, u + Coord(1,1)
-
-def bound_size(bbox):
-    l, u = bbox
-    n = l - u
-    return n.x * n.y
-
-# Is there a square in box1 that is in box2?
-# For a bounding box, the upper bound is not inclusive.
-def overlap(box1, box2):
-    l1, r1 = box1
-    l2, r2 = box2
-    if l1.x >= r2.x or l2.x >= r1.x or l1.y >= r2.y or l2.y >= r1.y:
-        return False
-    else:
-        return True
+    return Rect(Coord(minx, miny), Coord(maxx, maxy) + Coord(1,1))
 
 # Simple inefficient test for room ajdacency
 # Adjacent rooms can be merged.

@@ -68,33 +68,33 @@ def find_image(walls, xy):
     assert False, "no matching walls! " + str(walls)
        
 def map_viz(rcmap, filename, map_dir):
-    mrange, mins = rcmap.map_range()
-    map_image = Image.new("RGBA", ((mrange.x+1)*16, (mrange.y+1)*16), "black")
+    map_extent = rcmap.map_extent()
+    map_size = map_extent.size_coord
+    map_image = Image.new("RGBA", ((map_size.x)*16, (map_size.y)*16), "black")
     # bind the current region for easy re-use
     wmap, blank, item, elevator = load_map_tiles(map_dir)
-    for x in range(mrange.x+1):
-        for y in range(mrange.y+1):
-            relxy = Coord(x, y) + mins
-            xy = (x,y)
-            if relxy in rcmap:
-                mtile = rcmap[relxy]
-                if mtile.tile_type == TileType.elevator_shaft:
-                    image_name, rotation = "et", 0
-                elif mtile.tile_type == TileType.blank:
-                    image_name, rotation = "b", 0
-                else:
-                    image_name, rotation = find_image(mtile.walls, relxy)
-                image = wmap[image_name]
-                imrotate = image.rotate(rotation)
-                map_image.paste(imrotate, (x*16,y*16), imrotate)
-                if mtile.is_item:
-                    map_image.paste(item, (x*16,y*16), item)
-                if (mtile.tile_type == TileType.elevator_main_up or
-                    mtile.tile_type == TileType.elevator_main_down):
-                    map_image.paste(elevator, (x*16,y*16), elevator)
+    for c in map_extent.as_list():
+        if c in rcmap:
+            c_rel = c - map_extent.start
+            image_loc = (c_rel.x*16, c_rel.y*16)
+            mtile = rcmap[c]
+            if mtile.tile_type == TileType.elevator_shaft:
+                image_name, rotation = "et", 0
+            elif mtile.tile_type == TileType.blank:
+                image_name, rotation = "b", 0
             else:
-                # it's a blank
-                map_image.paste(blank, (x*16,y*16), blank)
+                image_name, rotation = find_image(mtile.walls, c)
+            image = wmap[image_name]
+            imrotate = image.rotate(rotation)
+            map_image.paste(imrotate, image_loc, imrotate)
+            if mtile.is_item:
+                map_image.paste(item, image_loc, item)
+            if (mtile.tile_type == TileType.elevator_main_up or
+                mtile.tile_type == TileType.elevator_main_down):
+                map_image.paste(elevator, image_loc, elevator)
+        else:
+            # it's a blank
+            map_image.paste(blank, image_loc, blank)
     map_image.save(filename)
     return map_image
 

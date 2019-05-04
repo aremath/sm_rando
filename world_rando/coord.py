@@ -193,6 +193,9 @@ class Rect(object):
     def perimeter(self):
         return 2 * (self.end.x - self.start.x + self.end.y - self.start.y)
 
+    def size_coord(self):
+        return self.end - self.start
+
     def size(self, direction):
         return self.end.index(direction) - self.start.index(direction)
 

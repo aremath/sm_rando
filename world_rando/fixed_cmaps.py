@@ -38,8 +38,8 @@ def kraid_boss_area(pos, dims):
 
 def kraid_bboxes(pos, dims):
     return [
-        (pos + Coord(1,-1), pos + Coord(3,1)),
-        (pos + Coord(3,0), pos + Coord(4,1))
+        Rect(pos + Coord(1,-1), pos + Coord(3,1)),
+        Rect(pos + Coord(3,0), pos + Coord(4,1))
     ]
 
 def phantoon_boss_area(pos, dims):
@@ -50,7 +50,9 @@ def phantoon_boss_area(pos, dims):
     ]
 
 def phantoon_bboxes(pos, dims):
-    return [(pos + Coord(1,0), pos + Coord(2,1))]
+    return [
+        Rect(pos + Coord(1,0), pos + Coord(2,1))
+    ]
 
 def draygon_boss_area(pos, dims):
     return [
@@ -65,8 +67,8 @@ def draygon_boss_area(pos, dims):
 
 def draygon_bboxes(pos, dims):
     return [
-        (pos + Coord(-2,0), pos + Coord(0,2)),
-        (pos + Coord(-3,1), pos + Coord(-2,2))
+        Rect(pos + Coord(-2,0), pos + Coord(0,2)),
+        Rect(pos + Coord(-3,1), pos + Coord(-2,2))
     ]
 
 def ridley_boss_area(pos, dims):
@@ -80,8 +82,8 @@ def ridley_boss_area(pos, dims):
 
 def ridley_bboxes(pos, dims):
     return [
-        (pos + Coord(-1,0), pos + Coord(0,2)),
-        (pos + Coord(-2,1), pos + Coord(-1,2))
+        Rect(pos + Coord(-1,0), pos + Coord(0,2)),
+        Rect(pos + Coord(-2,1), pos + Coord(-1,2))
     ]
 
 #TODO: how to make sure that the other side is used?
@@ -98,7 +100,7 @@ def mother_brain_boss_area(pos, dims):
 
 def mother_brain_bboxes(pos, dims):
     return [
-        (pos + Coord(-4,0), pos + Coord(0,1)),
+        Rect(pos + Coord(-4,0), pos + Coord(0,1)),
     ]
 
 def bomb_torizo_boss_area(pos, dims):
@@ -109,7 +111,7 @@ def bomb_torizo_boss_area(pos, dims):
 
 def bomb_torizo_bboxes(pos, dims):
     return [
-        (pos + Coord(1,0), pos + Coord(2,1)),
+        Rect(pos + Coord(1,0), pos + Coord(2,1)),
     ]
 
 def spore_spawn_boss_area(pos, dims):
@@ -124,8 +126,8 @@ def spore_spawn_boss_area(pos, dims):
 
 def spore_spawn_bboxes(pos, dims):
     return [
-        (pos + Coord(0,-3), pos + Coord(1,0)),
-        (pos + Coord(1,-3), pos + Coord(2,-2))
+        Rect(pos + Coord(0,-3), pos + Coord(1,0)),
+        Rect(pos + Coord(1,-3), pos + Coord(2,-2))
     ]
 
 def crocomire_boss_area(pos, dims):
@@ -145,8 +147,8 @@ def crocomire_boss_area(pos, dims):
 
 def crocomire_bboxes(pos, dims):
     return [
-        (pos + Coord(-3,1), pos + Coord(5,2)),
-        (pos + Coord(-4,1), pos + Coord(-3,2))
+        Rect(pos + Coord(-3,1), pos + Coord(5,2)),
+        Rect(pos + Coord(-4,1), pos + Coord(-3,2))
     ]
 
 def botwoon_boss_area(pos, dims):
@@ -160,8 +162,8 @@ def botwoon_boss_area(pos, dims):
 
 def botwoon_bboxes(pos, dims):
     return [
-        (pos + Coord(1,0), pos + Coord(3,1)),
-        (pos + Coord(3,0), pos + Coord(4,1))
+        Rect(pos + Coord(1,0), pos + Coord(3,1)),
+        Rect(pos + Coord(3,0), pos + Coord(4,1))
     ]
 
 def golden_torizo_boss_area(pos, dims):
@@ -177,8 +179,8 @@ def golden_torizo_boss_area(pos, dims):
 
 def golden_torizo_bboxes(pos, dims):
     return [
-        (pos + Coord(1,0), pos + Coord(3,2)),
-        (pos + Coord(3,1), pos + Coord(4,2))
+        Rect(pos + Coord(1,0), pos + Coord(3,2)),
+        Rect(pos + Coord(3,1), pos + Coord(4,2))
     ]
 
 def elevator_down_area(pos, dims):
@@ -199,7 +201,7 @@ def elevator_down_area(pos, dims):
 
 def elevator_down_bboxes(pos, dims):
     return [
-        (pos + Coord(0,1), pos + Coord(1,4)),
+        Rect(pos + Coord(0,1), pos + Coord(1,4)),
     ]
 
 def elevator_up_area(pos, dims):
@@ -218,7 +220,7 @@ def elevator_up_area(pos, dims):
 
 def elevator_up_bboxes(pos, dims):
     return [
-        (pos + Coord(0,-3), pos + Coord(1,0))
+        Rect(pos + Coord(0,-3), pos + Coord(1,0))
     ]
 
 def save_point_area(pos, dims):
@@ -226,6 +228,7 @@ def save_point_area(pos, dims):
         (pos, MapTile(_save=True))
     ]
 
+#TODO?
 def save_point_bboxes(pos, dims):
     return []
 

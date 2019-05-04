@@ -21,10 +21,9 @@ def reverse_list_dict(d):
 def room_setup(room_tiles, cmap):
     rooms = {}
     for room_id, coord_set in room_tiles.items():
-        lower, upper = extent(coord_set)
-        room_cmap, room_pos = cmap.sub(lower, upper + Coord(1,1))
-        size = upper + Coord(1,1) - lower
-        rooms[room_id] = Room(room_cmap, size, room_id, room_pos)
+        room_bbox = extent(coord_set)
+        room_cmap, room_pos = cmap.sub(room_bbox)
+        rooms[room_id] = Room(room_cmap, room_bbox.size_coord(), room_id, room_pos)
     return rooms
 
 #TODO: work in progress
@@ -681,6 +680,8 @@ def rectangularize(cmap, obstacles):
         rect = find_rect(cmap, pos)
         for c in rect.as_list():
             positions.remove(c)
+        #TODO: rects are not relative to the room position, but they should be...
+        print(rect)
         # Add it to the subroom tree, and convert its size and position into the level format
         subrooms[current_id] = SubroomNode(current_id, rect.scale(16), [], [])
         subroom_sets[current_id] = rect.as_set()
