@@ -57,7 +57,7 @@ class BasicGraph(object):
         assert node1 in self.nodes, "Node does not exist: " + node1
         assert node2 in self.nodes, "Node does not exist: " + node2
         for edge in self.nodes[node1].edges:
-            if edge.terminal == node2 and p(edge.data):
+            if edge.terminal == node2:
                 return edge.data
         return None
 
@@ -105,7 +105,7 @@ class BasicGraph(object):
     def BFS(self, start, end=None):
         # key - node name
         # value - the previous node in the BFS
-        offers = {}
+        offers = {start : start}
         finished = set()
         queue = [start]
         node = ""
@@ -116,7 +116,7 @@ class BasicGraph(object):
             finished |= set([node])
             for neighbor in self.nodes[node].edges:
                 if neighbor.terminal not in finished:
-                    queue.append(neighbor.terminal)
+                    queue.insert(0, neighbor.terminal)
                     offers[neighbor.terminal] = node
         return finished, offers
     
@@ -125,7 +125,7 @@ class BasicGraph(object):
     # Do not want to have to check search method during the search loop, or
     # mess around with lambdas.
     def DFS(self, start, end=None):
-        offers = {}
+        offers = {start : start}
         finished = set()
         stack = [start]
         node = ""
@@ -136,7 +136,7 @@ class BasicGraph(object):
             finished |= set([node])
             for neighbor in self.nodes[node].edges:
                 if neighbor.terminal not in finished:
-                    queue.insert(0, neighbor.terminal)
+                    stack.append(neighbor.terminal)
                     offers[neighbor.terminal] = node
         return finished, offers
 
@@ -161,18 +161,21 @@ class BasicGraph(object):
 
     def __repr__(self):
         self_str = ""
-        for node_name, node in self.nodes.iteritems():
-            self_str += node_name
+        for node_name, node in self.nodes.items():
+            self_str += "Node: " + str(node_name)
             if node.data is not None:
-                self_str += "\t" + str(node.data)
+                self_str += "\t Node data: " + str(node.data)
             self_str += "\n"
             for edge in node.edges:
-                self_str += "\t" + str(edge.terminal)
+                self_str += "\t Edge: " + str(edge.terminal)
                 if edge.data is not None:
                     self_str += "\t" + str(edge.data)
                 self_str += "\n"
         # remove trailing \n
-        return self_str[-1]
+        return self_str[:-1]
+
+    def __contains__(self, node):
+        return node in self.nodes
 
     def visualize(self, fname):
         """Use graphviz to show the graph, as <fname>.pdf"""

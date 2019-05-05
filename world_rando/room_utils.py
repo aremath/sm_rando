@@ -224,15 +224,14 @@ def level_of_cmap(room):
     #level = room_dtypes.Level(cmap.dimensions * Coord(16,16))
     cmap = room.cmap
     doors = room.doors
-    r_pos = room.pos
-    level = Level(cmap.dimensions * Coord(16,16))
+    level = Level(cmap.dimensions.scale(16))
     # Make walls
     for w_pos, tile in cmap.items():
         for direction in tile.walls:
-            mk_wall(level, w_pos - r_pos, direction)
+            mk_wall(level, w_pos, direction)
     # Make doors
     for door in doors:
-        mk_door(level, door.pos - r_pos, door.direction, door.id)
+        mk_door(level, door.pos - room.pos, door.direction, door.id)
     # Rest is air
     level.missing_defaults(mk_default_air)
     return level
@@ -243,7 +242,7 @@ def level_of_cmap(room):
 
 # Convert a room into a rom RoomHeader for allocation
 def convert_room(room):
-    level_bytes = room.level_data.to_bytes()
+    level_bytes = room.level.to_bytes()
     # Make a default room state for the room
     # Good luck trying to remember what number goes with what argument!
     s = RoomState(room.room_id, 0, 0xe5e6, 0, 0, room.tileset, room.song, 0, 0, room.bg_scroll, 0, 0, room.bg, 0)

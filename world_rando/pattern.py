@@ -56,6 +56,7 @@ def find_flips(entry):
         assert False, "Bad Entry!"
     return main_entry, flips
 
+#BUG: this is empty!
 def load_patterns(path):
     # Get all the filenames in path
     fnames = [f for f in os.listdir(path) if os.path.isfile(os.path.join(f, path))]

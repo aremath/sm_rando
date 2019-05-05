@@ -9,15 +9,16 @@ def weighted_random_order(l, weights):
     while len(l_c) > 0:
         # Avoid a 'bug' where random.choices crashes when trying to choose from a list 
         # of elements whose weights are all zero
-        if all_zero(w):
-            out.extend(l_c.shuffle())
+        if all_zero(weights_c):
+            random.shuffle(l_c)
+            out.extend(l_c)
             break
         # Choose an element
-        elem = random.choices(l_c, weights_c, 1)
+        elem = random.choices(l_c, weights_c)[0]
         # Remove it from the lists
         i = l_c.index(elem)
         l_c.pop(i)
-        out.pop(i)
+        weights_c.pop(i)
         # Add it to the output
         out.append(elem)
     return out
@@ -27,3 +28,4 @@ def all_zero(w):
         if i != 0:
             return False
     return True
+

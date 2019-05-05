@@ -22,6 +22,7 @@ def get_path_info(paths):
 
 if __name__ == "__main__":
     patterns = pattern.load_patterns("encoding/patterns")
+    print(patterns)
     o, g, rsg, es, ro = item_order_graph.abstract_map(settings.abstract_map_settings)
     region_cmaps = {}
     region_room_defs = {}
