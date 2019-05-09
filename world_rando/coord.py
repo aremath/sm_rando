@@ -199,19 +199,6 @@ class Rect(object):
     def size(self, direction):
         return self.end.index(direction) - self.start.index(direction)
 
-    def flip(self, axis):
-        flip = axis.scale(-1)
-        p = Coord(1,1) - axis
-        start_flip = self.start * flip
-        end_flip = self.end * flip
-        new_start_1 = end_flip * axis + axis
-        new_start_2 = start_flip * p
-        new_start = new_start_1 + new_start_2
-        new_end_1 = start_flip * axis + axis
-        new_end_2 = end_flip * p
-        new_end = new_end_1 + new_end_2
-        return Rect(new_start, new_end)
-
     def cut(self, other, axis, min_size):
         """Cuts self into up to two rectangles that do not overlap with other on the given axis.
         Rectangles resulting from the cut that are smaller than min_size will not be returned."""

@@ -210,12 +210,12 @@ class Tile(object):
         return self.texture.matches(other.texture) and self.tile_type.matches(other.tile_type)
     
     def reflect(self, axis):
-        if self.texture == "ANY":
-            r_tex = "ANY"
+        if self.texture.is_any:
+            r_tex = self.texture
         else:
             r_tex = self.texture.reflect(axis)
-        if self.tile_type == "ANY":
-            r_ty = "ANY"
+        if self.tile_type.is_any:
+            r_ty = self.tile_type
         else:
             r_ty = self.tile_type.reflect(axis)
         return Tile(r_tex, r_ty)
@@ -243,24 +243,32 @@ class Tile(object):
 # Vertical flip changes if axis is (0,1)
 # Horizontal flip changes if axis is (1,0)
 def reflect_flips(flips, axis):
-    return ((flips[0] + axis[0]) % 2, (flips[1] + axis[1]) % 2)
+
+    return ((flips[0] + axis.x) % 2, (flips[1] + axis.y) % 2)
 
 # These are separate because for the purposes of waveform collapse, the type of a tile
 # can be known while the texture remains unknown and vice versa.
+
+#TODO: the is_any thing is kind of awkward...
 
 # The visual properties of a tile
 # Flips are hflip, vflip
 class Texture(object):
 
-    def __init__(self, index, flips):
-        self.index = index
-        self.flips = flips
+    def __init__(self, index, flips, is_any=False):
+        self.is_any = is_any
+        if is_any:
+            self.index = None
+            self.flips = None
+        else:
+            self.index = index
+            self.flips = flips
 
     def __eq__(self, other):
         return self.index == other.index and self.flips == other.flips
 
     def matches(self, other):
-        return self == other or other == "ANY"
+        return self == other or other.is_any
 
     def reflect(self, axis):
         return Texture(self.index, reflect_flips(self.flips, axis))
@@ -268,15 +276,20 @@ class Texture(object):
 # The physical properties of a tile
 class Type(object):
     
-    def __init__(self, index, bts):
-        self.index = index
-        self.bts = bts
+    def __init__(self, index, bts, is_any=False):
+        self.is_any = is_any
+        if is_any:
+            self.index = None
+            self.flips = None
+        else:
+            self.index = index
+            self.bts = bts
 
     def __eq__(self, other):
         return self.index == other.index and self.bts == other.bts
 
     def matches(self, other):
-        return self == other or other == "ANY"
+        return self == other or other.is_any
 
     def get_slope_info(self):
         assert self.index == 0x01, "Tile is not a slope!"

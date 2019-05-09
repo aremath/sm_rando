@@ -20,9 +20,10 @@ def get_path_info(paths):
     total_length = sum(lens)
     return total_length, npaths
 
+#TODO: config file for editing settings so that it's easier to change the settings.
+
 if __name__ == "__main__":
     patterns = pattern.load_patterns("encoding/patterns")
-    print(patterns)
     o, g, rsg, es, ro = item_order_graph.abstract_map(settings.abstract_map_settings)
     region_cmaps = {}
     region_room_defs = {}

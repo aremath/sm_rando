@@ -147,16 +147,18 @@ def find_item_loc(item, room, subrooms, roots, patterns, placement_chances):
         elif p == "hidden":
             item_graphic = "H"
             assert False, "Not implemented!"
-        directions = random.shuffle(["L", "R"])
         # Choose the direction randomly (but fall through if no valid configuration is found
         # for the first direction
+        directions = ["L", "R"]
+        random.shuffle(directions)
         for d in directions:
             # Set up the variables so that the next part doesn't have to care about
             # which direction is being used.
+            #TODO: this math is very off!
             if d == "L":
                 setup_pattern = setup_pattern_l
                 pattern = pattern_l
-                offset = pattern_offset_r * Coord(-1,0)
+                pattern_offset = pattern_offset_r * Coord(-1,0)
                 rel_obstacle = rel_obstacle_r.flip(Coord(1,0))
                 rel_target = rel_target_r.flip(Coord(1,0))
                 rel_item_placement = rel_item_placement_r * Coord(-1, 0)
@@ -306,7 +308,7 @@ class Adjacency(object):
     def add_impassable(self, impassable):
         self.impassables.append(impassable)
 
-    #TODO: list of rectangles which can be used to make an entrance that is
+    # List of rectangles which can be used to make an entrance that is
     # at least as large as min_size
     def find_passables(self, min_size):
         rects = [self.rect]
@@ -343,11 +345,11 @@ class Adjacency(object):
         weights = [p.area() for p in passables]
         p = random.choices(passables, weights)[0]
         adj_size = self.rect.size(axis)
-        passable_size = p.index(axis)
+        passable_size = p.size(axis)
         entrance_size = random.randrange(min_size, min(max_size, passable_size))
         entrance_placement = random.randrange(adj_size - entrance_size)
         entrance_start = self.rect.start + axis.scale(entrance_placement)
-        entrance_end = entrance_start + axis.scale(entrance_size) + direction.scale(2)
+        entrance_end = entrance_start + axis.scale(entrance_size) + self.direction.scale(2)
         entrance = Rect(entrance_start, entrance_end)
         self.entrances.append(entrance)
         return entrance

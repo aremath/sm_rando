@@ -24,20 +24,20 @@ def parse_pattern(pattern_filename):
                 assert False, "Bad entry: " + entry
             # Find the texture
             if es[0] == "_":
-                texture = "ANY"
+                texture = Texture(0,0,is_any=True)
             else:
                 tex_index, flips = find_flips(es[0])
                 texture = Texture(tex_index, flips)
             # Find the type
             if es[1] == "_":
-                tile_type = "ANY"
+                tile_type = Type(0,0,is_any=True)
             else:
                 ty_index = int(es[1], 16)
                 ty = Type(ty_index, bts)
-            c = Coord(x, y)
+            c = Coord(x,y)
             a = c.area()
             tiles[c] = Tile(texture, ty)
-            if a > max_area:
+            if a >= max_area:
                 max_tile = c
                 max_area = a
     f.close()
@@ -59,12 +59,12 @@ def find_flips(entry):
 #BUG: this is empty!
 def load_patterns(path):
     # Get all the filenames in path
-    fnames = [f for f in os.listdir(path) if os.path.isfile(os.path.join(f, path))]
+    fnames = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     patterns = {}
     for f in fnames:
         name, ext = f.split(".")
         if ext == "txt":
-            p = parse_pattern(os.path.join(f, path))
+            p = parse_pattern(os.path.join(path, f))
             #TODO: create a flag that can be written in the file for whether to include a flip
             patterns[name + "_l"] = p
             patterns[name + "_r"] = p.reflect(Coord(1,0))
