@@ -69,14 +69,14 @@ def find_image(walls, xy):
        
 def map_viz(rcmap, filename, map_dir):
     map_extent = rcmap.map_extent()
-    map_size = map_extent.size_coord
+    map_size = map_extent.size_coord()
     map_image = Image.new("RGBA", ((map_size.x)*16, (map_size.y)*16), "black")
     # bind the current region for easy re-use
     wmap, blank, item, elevator = load_map_tiles(map_dir)
     for c in map_extent.as_list():
+        c_rel = c - map_extent.start
+        image_loc = (c_rel.x*16, c_rel.y*16)
         if c in rcmap:
-            c_rel = c - map_extent.start
-            image_loc = (c_rel.x*16, c_rel.y*16)
             mtile = rcmap[c]
             if mtile.tile_type == TileType.elevator_shaft:
                 image_name, rotation = "et", 0

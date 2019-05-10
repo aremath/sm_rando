@@ -38,7 +38,7 @@ class Room(object):
     #TODO...
     def viz_level(self, directory):
         fname = directory + "/room" + str(self.room_id) + "_level.png"
-        room_viz(self.level_data, fname, "encoding/room_tiles")
+        room_viz(self.level, fname, "encoding/room_tiles")
 
 class Door(object):
 

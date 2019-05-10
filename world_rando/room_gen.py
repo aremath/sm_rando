@@ -147,6 +147,8 @@ def find_item_loc(item, room, subrooms, roots, patterns, placement_chances):
         elif p == "hidden":
             item_graphic = "H"
             assert False, "Not implemented!"
+        else:
+            assert False, "Bad place type: " + p
         # Choose the direction randomly (but fall through if no valid configuration is found
         # for the first direction
         directions = ["L", "R"]
@@ -154,14 +156,13 @@ def find_item_loc(item, room, subrooms, roots, patterns, placement_chances):
         for d in directions:
             # Set up the variables so that the next part doesn't have to care about
             # which direction is being used.
-            #TODO: this math is very off!
             if d == "L":
                 setup_pattern = setup_pattern_l
                 pattern = pattern_l
                 pattern_offset = pattern_offset_r * Coord(-1,0)
-                rel_obstacle = rel_obstacle_r.flip(Coord(1,0))
-                rel_target = rel_target_r.flip(Coord(1,0))
-                rel_item_placement = rel_item_placement_r * Coord(-1, 0)
+                rel_obstacle = rel_obstacle_r.flip_in_rect(pattern.dimensions, Coord(1,0))
+                rel_target = rel_target_r.flip_in_rect(pattern.dimensions, Coord(1,0))
+                rel_item_placement = rel_item_placement_r.flip_in_rect(pattern.dimensions, Coord(1,0))
             if d == "R":
                 setup_pattern = setup_pattern_r
                 pattern = pattern_r
@@ -175,6 +176,7 @@ def find_item_loc(item, room, subrooms, roots, patterns, placement_chances):
             # If there are no matches, then fall through to the next possible item placement
             # (different direction, different type of item loc)
             if len(matches) == 0:
+                print("No match for: " + p + ", " + d)
                 pass
             else:
                 # Choose the placement of the item randomly
@@ -193,8 +195,9 @@ def find_item_loc(item, room, subrooms, roots, patterns, placement_chances):
                 item_subroom = find_coord(subrooms, roots, pattern_placement)
                 # Add the resulting obstacle to the subroom's obstacles
                 subrooms[item_subroom].place_obstacle((obstacle, target, item.name))
-        else:
-            assert False, "Bad place type: " + p
+                print("Found location for: " + p + ", " + d)
+                # Once the location is found, just stop.
+                return
     assert False, "No item placement found!"
 
 #TODO: doors should generate their own obstacle when they are created?
@@ -237,6 +240,9 @@ def make_subrooms(room, settings, patterns):
     subroom_leaves = find_leaves(subrooms, roots)
     # Fill the walls so that the item generation will know where to look
     make_subroom_walls(room.level, subroom_leaves)
+    # DEBUG: look at the level data
+    room.viz_cmap("./output/")
+    room.viz_level("./output/")
     # Generate item locations
     print("Generating item locations")
     placement_chances = settings["item_placement_chances"]
@@ -333,11 +339,13 @@ class Adjacency(object):
         for e_rect in self.entrances:
             for r in rects:
                 #TODO: is self.direction correct?
-                new_rects.append(r.cut(e_rect, self.direction, min_size))
+                new_rects.extend(r.cut(e_rect, self.direction, 1))
             rects = new_rects
         return rects
 
     #TODO: entrances to morph subrooms can be as small as 1...
+    #TODO: need to add an impassable where the adjacency intersects the
+    # wall of the room...
     def add_entrance(self, min_size, max_size):
         # The long axis of the adjacency is perpendicular to its direction
         axis = Coord(1,1) - self.direction
@@ -620,12 +628,12 @@ def embed_room_graph(room_graph, subroom_graph, min_entrance_size, max_entrance_
                     used_subrooms.add(first)
                     # Create a node in the second subroom
                     g.add_node(sf_name, data=e)
-                    subroon_nodes[second].append(sf_name)
+                    subroom_nodes[second].append(sf_name)
                     used_subrooms.add(second)
                 # Regardless of what type of node, connect them up
                 # TODO: update edge append instead!
-                g.add_edge(current_node, fs_name, data=itemset)
-                g.add_edge(fs_name, sf_name, data=itemset)
+                g.add_edge_append(current_node, fs_name, data=itemset)
+                g.add_edge_append(fs_name, sf_name, data=itemset)
                 current_node = fs_name
     return g, subroom_nodes, used_subrooms
 
@@ -677,11 +685,12 @@ def rectangularize(cmap, obstacles):
     current_id = 0
     # Sorts topmost leftmost
     positions = sorted(cmap.keys())
+    print(positions)
     # Find rectangles until the entire cmap is covered
     print("RECT: Finding rectangles")
     while len(positions) > 0:
         pos = positions[0]
-        rect = find_rect(cmap, pos)
+        rect = find_rect(positions, pos)
         for c in rect.as_list():
             #BUG: x not in list
             positions.remove(c)
@@ -743,37 +752,38 @@ def add_adjacency(r1, r1_set, r2, r2_set):
         else:
             pass
 
-def find_rect(cmap, pos):
-    """Find the largest rectangle that will fit into the given cmap at the given pos."""
-    assert pos in cmap
+#TODO: this is less efficient than search-based methods.
+def find_rect(positions, pos):
+    assert pos in positions
     print("FIND: finding best rectangle for " + str(pos))
+    # The current best rectangle
     best_rect = Rect(pos, pos + Coord(1,1))
-    # Find the largest x and y that we need to check for a rectangle
-    xmax = 0
-    while True:
-        c = pos + Coord(xmax, 0)
-        if c in cmap:
-            xmax += 1
-        else:
-            break
-    ymax = 0
-    while True:
-        c = pos + Coord(0, ymax)
-        if c in cmap:
-            ymax += 1
-        else:
-            break
-    max_rect = Rect(pos, pos + Coord(xmax, ymax))
-    max_area = 1
-    for c in max_rect.as_list():
-        # If the bottom right corner is in the map, then it's a valid rectangle
-        if pos + c in cmap:
-            r = Rect(pos, c + Coord(1,1))
-            area = r.area()
-            # If it's bigger than the current best rectangle, replace the current best
-            if area > max_area:
-                best_rect = r
-                max_area = area
+    # The set of all coords that represent the bottom left corner of a rectangle that contains pos
+    # and doesn't include squares not in positions
+    tried = set([pos])
+    # Whether or not we found a useful rectangle on this iteration
+    new = True
+    y_start = 1
+    n = 2
+    # While trying larger rectangles will produce results
+    while new:
+        new = False
+        start_pos = pos + Coord(0,1).scale(y_start)
+        # Move up the diagonal from start_pos and check each rectangle
+        for i in range(n):
+            p = start_pos + Coord(1,-1).scale(i)
+            l = p - Coord(1,0)
+            u = p - Coord(0,1)
+            check_left = l in tried or l.x < pos.x
+            check_up = u in tried or u.y < pos.y
+            if p in positions and check_left and check_up:
+                new = True
+                tried.add(p)
+                r = Rect(pos, p + Coord(1,1))
+                if r.area() > best_rect.area():
+                    best_rect = r
+        n += 1
+        y_start += 1
     return best_rect
 
 # Translates the (uncompressed) leveldata bytes to a level dictionary.

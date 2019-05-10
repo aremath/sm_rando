@@ -23,20 +23,30 @@ class BasicGraph(object):
         edge = Edge(node2, data)
         self.nodes[node1].edges.append(edge)
 
+    def add_edge_append(self, node1, node2, data):
+        if self.is_edge(node1, node2):
+            #TODO inefficient!
+            for edge in self.nodes[node1].edges:
+                if edge.terminal == node2:
+                    edge.data.append(data)
+        else:
+            self.add_edge(node1, node2, [data])
+
     def update_edge(self, node1, node2, data=None):
         """new data for the edge between n1 and n2"""
         if self.is_edge(node1, node2):
-            #TODO innefficient!
+            #TODO inefficient!
             for edge in self.nodes[node1].edges:
                 if edge.terminal == node2:
                     edge.data = data
         else:
             self.add_edge(node1, node2, data)
-
+    
+    #TODO: is this update_edge_append thing necessary?
     def update_edge_append(self, node1, node2, data):
         """Append data to the edge between n1 and n2"""
         if self.is_edge(node1, node2):
-            #TODO innefficient!
+            #TODO inefficient!
             for edge in self.nodes[node1].edges:
                 if edge.terminal == node2:
                     edge.data.append(data)

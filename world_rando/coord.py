@@ -47,7 +47,7 @@ class Coord(object):
     def __repr__(self):
         return "(" + str(self.x) + "," + str(self.y) + ")"
 
-    # stupid way to break priority ties
+    # Breaks priority ties
     # Uppermost leftmost tile is smallest
     def __lt__(self, other):
         if self.y < other.y:
@@ -115,6 +115,15 @@ class Coord(object):
             return self.y
         else:
             assert False, "Bad direction"
+
+    # Find the position of self mirrored by axis within
+    # a rectangle
+    def flip_in_rect(self, dims, axis):
+        p = Coord(1,1) - axis
+        max_index = dims.index(axis) - 1
+        self_index = self.index(axis)
+        new_index = max_index - self.index(axis)
+        return axis.scale(new_index) + self * p
 
 class Rect(object):
 
@@ -229,4 +238,15 @@ class Rect(object):
             out.append((rect, direction))
         return out
 
+    # If self is a rectangle that lies within the rectangle of (0,0) and dims, this
+    # returns a new rectangle which represents the new position (relative to the top left) after
+    # flipping the containing rectangle across axis.
+    def flip_in_rect(self, dims, axis):
+        start_flip = self.start.flip_in_rect(dims, axis)
+        end_flip = (self.end - Coord(1,1)).flip_in_rect(dims,axis)
+        p = Coord(1,1) - axis
+        other_start = end_flip * axis + start_flip * p
+        other_end = end_flip * p + start_flip * axis
+        other_end = other_end + Coord(1,1)
+        return Rect(other_start, other_end)
 
