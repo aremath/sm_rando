@@ -159,3 +159,6 @@ Adding other item nodes to the abstract map
 use (bfs_dist / euclidean dist) to create new paths
 
 Use patterns to recognize tiling errors?
+
+Randomize Samus Palette?
+Black/Red-paletted enemies that instakill?

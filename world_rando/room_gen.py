@@ -99,6 +99,7 @@ def choose_place_order(item, placement_chances):
         weights = placement_chances["default"]
     return weighted_random_order(["chozo", "pedestal", "hidden"], weights)
 
+#TODO: prefer searching the opposite direction from any doors entering the cmap tile (if possible)
 def find_item_loc(item, room, subrooms, roots, patterns, placement_chances):
     """Determines a random item location based on first choosing randomly the
     type of place (chozo statue, pedestal, (hidden)), then finding a location based on the
@@ -512,15 +513,15 @@ class SubroomNode(object):
         dp = div_point.index(direction)
         startpoint = self.rect.start.index(direction)
         endpoint = self.rect.start.index(direction)
-        if dp - startpoint < min_size:
-            return False
-        if endpoint - dp < min_size:
+        if dp - startpoint < min_size or endpoint - dp < min_size:
+            print("Cut rejected - too small")
             return False
         # a 2xX rectangle indicating where the walls of the proposed cut will appear
         cut_rect = Rect(div_point - d, obv_point + d)
         # Check obstacles:
         for o in self.obstacles:
             if o.obstacle_rect.intersects(cut_rect):
+                print("Cut rejected - intersects an obstacle")
                 return False
         return True
 
@@ -642,6 +643,8 @@ def make_subroom_walls(level, subroom_leaves):
         for a in leaf.adj:
             a.mk_wall(level)
 
+# Contintue to partition until EACH subroom fails a partition (because it is too small,
+# or intersects an obstacle)
 def subroom_partition(room, max_parts, min_partsize, obstacles):
     """Creates a partition of the room into subrooms."""
     # First, generate a greedy rectangularization of the concrete map for the room
