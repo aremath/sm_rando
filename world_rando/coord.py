@@ -152,10 +152,11 @@ class Rect(object):
                 l.append(Coord(x,y))
         return l
 
+    #BUG: sometimes not within bounds...
     def split(self, index, direction):
         div_point = self.start + direction.scale(index)
-        assert self.coord_within(div_point)
-        rect1 = Rect(self.start, div_point + (Coord(1,1) - direction) * rect.end)
+        assert self.coord_within(div_point), div_point
+        rect1 = Rect(self.start, div_point + (Coord(1,1) - direction) * (self.end - self.start))
         rect2 = Rect(div_point, self.end)
         return rect1, rect2
 

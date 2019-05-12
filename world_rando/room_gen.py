@@ -85,7 +85,7 @@ def make_rooms(room_tiles, cmap, paths, settings, patterns):
     room_graphs(rooms, tile_rooms, paths)
     # ... generate map data etc ...
     for i, r in rooms.items():
-        print("Generating room " + str(i))
+        print("BEGIN: Generating room " + str(i))
         r.level = level_of_cmap(r)
         make_subrooms(r, settings, patterns)
     return rooms
@@ -240,6 +240,8 @@ def make_subrooms(room, settings, patterns):
     max_parts = settings["max_room_partitions"]
     min_part_size = settings["min_room_partition_size"]
     roots, subrooms = subroom_partition(room, max_parts, min_part_size, door_obstacles)
+    print("Final subrooms:")
+    print_subrooms(subrooms)
     subroom_leaves = find_leaves(subrooms, roots)
     # DEBUG: view the map
     room.viz_cmap("./output/")
@@ -292,14 +294,21 @@ class Adjacency(object):
             self.entrances = []
 
     #TODO: self.impassables might not be correct
-    def split(self, id2, index, direction):
+    def split(self, id2, index, direction, new_id1, new_id2):
+        print("split_rect: ", self.rect)
+        print(index, direction)
         r1, r2 = self.rect.split(index, direction)
-        a1 = Adjacency(self.id1, id2, r1, self.direction, self.impassables)
-        a2 = Adjacency(self.id1, id2, r2, self.direction, self.impassables)
+        a1 = Adjacency(new_id1, id2, r1, self.direction, self.impassables)
+        a2 = Adjacency(new_id2, id2, r2, self.direction, self.impassables)
         return a1, a2
 
-    def is_between(self, id1, id2):
-        return (self.id1 == id1 and self.id2 == id2) or (self.id1 == id2 and self.id2 == id1)
+    def is_between(self, o_id1, o_id2):
+        a = (self.id1 == o_id1 and self.id2 == o_id2)
+        b = (self.id1 == o_id2 and self.id2 == o_id1)
+        print("between")
+        print(self.id1, self.id2)
+        print(a,b)
+        return a or b
 
     def get_other_id(self, subroom_id):
         if self.id1 == subroom_id:
@@ -307,15 +316,15 @@ class Adjacency(object):
         elif self.id2 == subroom_id:
             return self.id1
         else:
-            assert False, "This is not an adjacency of subroom_" + str(subroom_id)
+            assert False, "This is not an adjacency of subroom {}".format(subroom_id)
 
-    def replace_id(old_id, new_id):
+    def replace_id(self, old_id, new_id):
         if self.id1 == old_id:
             self.id1 = new_id
         elif self.id2 == old_id:
             self.id2 = new_id
         else:
-            assert False, "This is not an adjacency of subroom_" + str(subroom_id)
+            assert False, "This is not an adjacency of subroom {}".format(subroom_id)
 
     def add_impassable(self, impassable):
         self.impassables.append(impassable)
@@ -400,43 +409,57 @@ class SubroomNode(object):
         self.check_inbounds(index, direction)
         # Compute the rectangles that each child will take up
         rect1, rect2 = self.rect.split(index, direction)
+        print("SUBROOM: partitioning subroom {}".format(self.id))
+        print("rects: ", self.rect)
         # Compute the adjacencies that each child will have
         #TODO: can simplify this with Rect.within
         adj1 = []
         adj2 = []
-        for a in self.adjacencies:
+        for a in self.adj:
             # The other SubroomNode implicated in this adjacency
-            other = a.get_other_id(self.id)
+            o_id = a.get_other_id(self.id)
+            other = subrooms[o_id]
+            assert other.is_leaf()
             # child1 takes left/top adjacencies
             if a.direction == direction.neg():
+                # As long as adjacencies are always shared between neighbors,
+                # this will also update the neighbors' adjacency
+                a.replace_id(self.id, id1)
                 adj1.append(a)
-                # Reassign the old ajdancency for the neighbor
-                other.reassign_adj(self.id, id1)
             # child2 takes right/bottom adjacencies
-            if a.direction == direction:
+            elif a.direction == direction:
+                a.replace_id(self.id, id2)
                 adj2.append(a)
-                other.reassign_adj(self.id, id2)
             else:
-                # If it ends before the index, it belongs to child1
-                if a.rect.end.index(direction) < index:
+                # Find where the cut is being made
+                dp = self.div_point(index, direction)
+                d_index = dp.index(direction)
+                # If it ends before the cut point, it belongs to child1
+                if a.rect.end.index(direction) <= d_index:
+                    a.replace_id(self.id, id1)
                     adj1.append(a)
-                    other.reassign_adj(self.id, id1)
-                # If it starts after the index, it belongs to child2
-                elif a.rect.start.index(direction) > index:
-                    adj1.append(a)
-                    other.reassign_adj(self.id, id2)
+                # If it starts after the cut point, it belongs to child2
+                elif a.rect.start.index(direction) >= d_index:
+                    a.replace_id(self.id, id2)
+                    adj2.append(a)
                 # If neither, it must be split
                 else:
-                    a1, a2 = a.split(other, index, direction)
+                    # Where the cut is relative to the start of the adjacency
+                    index_within_adj = (dp - a.rect.start).index(direction)
+                    print(index, index_within_adj)
+                    # Make the cut
+                    a1, a2 = a.split(other.id, index_within_adj, direction, id1, id2)
                     adj1.append(a1)
                     adj2.append(a2)
-                    # Also split the neighbor's adjacency
+                    # Also replace the neighbor's adjacency
                     other.replace_adj(self.id, [a1, a2])
         # Add an adjacency between the two children along the newly created edge
         dp = self.div_point(index, direction)
         op = self.obv_point(index, direction)
-        adj1.append(Adjacency(id1, id2, Rect(dp - direction, op - direction), direction))
-        adj2.append(Adjacency(id1, id2, Rect(dp, op), direction))
+        a = Adjacency(id1, id2, Rect(dp - direction, op + direction), direction)
+        #print("between rect: ", a.rect)
+        adj1.append(a)
+        adj2.append(a)
         # Assign obstacles the same way as adjacencies
         obs1 = []
         obs2 = []
@@ -449,14 +472,17 @@ class SubroomNode(object):
                 assert False, "Obstacle split by subdivide: " + str(o)
         child1 = SubroomNode(id1, rect1, adj1, obs1)
         child2 = SubroomNode(id2, rect2, adj2, obs2)
-        self.children = [child1, child2]
+        self.children = [id1, id2]
+        subrooms[id1] = child1
+        subrooms[id2] = child2
 
     def is_leaf(self):
         return len(self.children) == 0
 
-    def find_adj(self, id):
+    def find_adj(self, other_id):
         """Find the adjacency with the given id"""
-        the_adj = [i for i in self.adj if i.is_between(self.id, id)]
+        the_adj = [i for i in self.adj if i.is_between(self.id, other_id)]
+        print("find_adj", [a.rect for a in the_adj])
         assert len(the_adj) == 1
         return the_adj[0]
 
@@ -487,13 +513,13 @@ class SubroomNode(object):
         for rect, direction in change_borders:
             adj_to_cut = [a for a in self.adj if a.direction == direction and rect.within(a.rect)]
             for a in adj_to_cut:
-                a.add_impassable(b)
+                a.add_impassable(rect)
 
     def div_point(self, index, direction):
         return self.rect.start + direction.scale(index)
 
     def obv_point(self, index, direction):
-        return self.div_point(index, direction) + (Coord(1,1) - direction) * self.rect.end
+        return self.div_point(index, direction) + ((Coord(1,1) - direction) * (self.rect.end - self.rect.start))
 
     def size(self):
         """Returns the total number of places a cut could be made in self."""
@@ -518,12 +544,15 @@ class SubroomNode(object):
         obv_point = self.obv_point(index, direction)
         dp = div_point.index(direction)
         startpoint = self.rect.start.index(direction)
-        endpoint = self.rect.start.index(direction)
+        endpoint = self.rect.end.index(direction)
+        print("SUBROOM: considering partition")
+        print(self.rect)
+        print(startpoint, dp, endpoint)
         if dp - startpoint < min_size or endpoint - dp < min_size:
             print("SUBROOM: Cut rejected - too small")
             return False
         # a 2xX rectangle indicating where the walls of the proposed cut will appear
-        cut_rect = Rect(div_point - d, obv_point + d)
+        cut_rect = Rect(div_point - direction, obv_point + direction)
         # Check obstacles:
         for o in self.obstacles:
             if o.obstacle_rect.intersects(cut_rect):
@@ -654,6 +683,13 @@ def make_subroom_walls(level, subroom_leaves):
         for a in leaf.adj:
             a.mk_wall(level)
 
+def print_subrooms(subrooms):
+    for s1 in subrooms.values():
+        if s1.is_leaf():
+            print("{} : {}".format(s1.id, s1.rect))
+            for a in s1.adj:
+                print("\t {} , {}, {}".format(a.id1, a.id2, a.rect))
+
 # Contintue to partition until EACH subroom fails a partition (because it is too small,
 # or intersects an obstacle)
 def subroom_partition(room, max_parts, min_partsize, obstacles):
@@ -663,6 +699,9 @@ def subroom_partition(room, max_parts, min_partsize, obstacles):
     current_id, roots, subrooms = rectangularize(room.cmap, obstacles)
     print("PART: Generating partitions")
     while True:
+        print("PART: subrooms")
+        print_subrooms(subrooms)
+        print("end subrooms")
         current_children = roots
         # Choose a partition to subdivide
         while len(current_children) != 0:
@@ -684,7 +723,7 @@ def subroom_partition(room, max_parts, min_partsize, obstacles):
             current_id += 1
             id2 = current_id
             current_id += 1
-            current_node.subdivide(index, direction, id1, id2)
+            current_node.subdivide(index, direction, id1, id2, subrooms)
         else:
             break
     return roots, subrooms
