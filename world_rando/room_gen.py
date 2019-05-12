@@ -185,17 +185,19 @@ def find_item_loc(item, room, subrooms, roots, patterns, placement_chances):
                 # Calculate the absolute positions based on the relative positions
                 pattern_placement = c + pattern_offset
                 item_placement = pattern_placement + rel_item_placement
-                obstacle = rel_obstacle.translate(pattern_placement)
-                target = rel_target.translate(pattern_placement)
+                obstacle_rect = rel_obstacle.translate(pattern_placement)
+                target_rect = rel_target.translate(pattern_placement)
                 # Actually make the necessary level edit
-                room.level = room.level.compose(pattern, offset=pattern_placement)
+                room.level = room.level.compose(pattern, collision_policy="overwrite", offset=pattern_placement)
                 # Tell the item where it is in the room and what its graphics should be.
                 item.room_pos = item_placement
                 item.graphic = item_graphic
                 #TODO: pattern placement might not necessarily be within the subroom?
                 item_subroom = find_coord(subrooms, roots, pattern_placement)
                 # Add the resulting obstacle to the subroom's obstacles
-                subrooms[item_subroom].place_obstacle((obstacle, target, item.name))
+                #TODO: item.name different from item.item_type
+                obstacle = Obstacle(item.item_type, obstacle_rect, target_rect)
+                subrooms[item_subroom].place_obstacle(obstacle)
                 print("Found location for: " + p + ", " + d)
                 # Once the location is found, just stop.
                 return
@@ -239,21 +241,24 @@ def make_subrooms(room, settings, patterns):
     min_part_size = settings["min_room_partition_size"]
     roots, subrooms = subroom_partition(room, max_parts, min_part_size, door_obstacles)
     subroom_leaves = find_leaves(subrooms, roots)
+    # DEBUG: view the map
+    room.viz_cmap("./output/")
     # Fill the walls so that the item generation will know where to look
     make_subroom_walls(room.level, subroom_leaves)
     # DEBUG: look at the level data
-    room.viz_cmap("./output/")
     room.viz_level("./output/")
     # Generate item locations
     print("Generating item locations")
     placement_chances = settings["item_placement_chances"]
     for i in room.items:
+        print("Item: " + i.item_type)
         find_item_loc(i, room, subrooms, roots, patterns, placement_chances)
     # Generate the graph
     print("Generating subroom adjacencies")
     subroom_graph = subroom_adjacency_graph(subroom_leaves)
     min_entrance_size = settings["min_room_entrance_size"]
     max_entrance_size = settings["max_room_entrance_size"]
+    #subroom_graph.visualize("./output/room" + str(room.room_id) + "subroom_graph")
     print("Embedding room graph")
     t = embed_room_graph(room.graph, subroom_graph, min_entrance_size, max_entrance_size)
     detailed_room_graph, subroom_nodes, used_subrooms = t
@@ -363,6 +368,7 @@ class Adjacency(object):
         self.entrances.append(entrance)
         return entrance
 
+    #BUG: index out of bounds!
     def mk_wall(self, level):
         for r in self.find_non_entrances():
             mk_default_rect(level, r)
@@ -478,7 +484,7 @@ class SubroomNode(object):
     def place_obstacle(self, obstacle):
         self.obstacles.append(obstacle)
         change_borders = obstacle.obstacle_rect.borders()
-        for direction, rect in change_borders:
+        for rect, direction in change_borders:
             adj_to_cut = [a for a in self.adj if a.direction == direction and rect.within(a.rect)]
             for a in adj_to_cut:
                 a.add_impassable(b)
@@ -514,15 +520,16 @@ class SubroomNode(object):
         startpoint = self.rect.start.index(direction)
         endpoint = self.rect.start.index(direction)
         if dp - startpoint < min_size or endpoint - dp < min_size:
-            print("Cut rejected - too small")
+            print("SUBROOM: Cut rejected - too small")
             return False
         # a 2xX rectangle indicating where the walls of the proposed cut will appear
         cut_rect = Rect(div_point - d, obv_point + d)
         # Check obstacles:
         for o in self.obstacles:
             if o.obstacle_rect.intersects(cut_rect):
-                print("Cut rejected - intersects an obstacle")
+                print("SUBROOM: Cut rejected - intersects an obstacle")
                 return False
+        print("SUBROOM: Cut accepted")
         return True
 
     def choose_cut(self):
@@ -541,12 +548,13 @@ def find_coord(subrooms, roots, coord):
     while True:
         candidates = [r for r in curr_roots if subrooms[r].rect.coord_within(coord)]
         assert len(candidates) == 1
-        candidate = candidates[0]
+        candidate_id = candidates[0]
+        candidate = subrooms[candidate_id]
         if candidate.is_leaf():
             break
         else:
             curr_roots = candidate.children
-    return candidate
+    return candidate_id
 
 def find_leaves(subrooms, roots):
     """Return a list of the ids of the leaves of the given subroom tree."""
@@ -569,16 +577,19 @@ def subroom_adjacency_graph(subroom_leaves):
     g = basicgraph.BasicGraph()
     # Add a node for each subroom and each obstacle that holds the target region of the obstacle
     for leaf in subroom_leaves:
-        g.add_node(leaf.id)
+        leaf_name = str(leaf.id)
+        g.add_node(leaf_name)
         # Add an edge between each obstacle and the leaf that contains it.
         for o in leaf.obstacles:
             g.add_node(o.name, data=o)
-            g.add_edge(leaf.id, o.name)
-            g.add_edge(o.name, leaf.id)
+            g.add_edge(leaf_name, o.name)
+            g.add_edge(o.name, leaf_name)
     # Once all the subrooms have been added, produce the adjacencies
     for leaf in subroom_leaves:
         for neighbor_adj in leaf.adj:
-            g.add_edge(leaf.id, neighbor_adj.get_other_id(leaf.id), data=neighbor_adj)
+            leaf_name = str(leaf.id)
+            other_name = str(neighbor_adj.get_other_id(leaf.id))
+            g.add_edge(leaf_name, other_name, data=neighbor_adj)
     return g
 
 def embed_room_graph(room_graph, subroom_graph, min_entrance_size, max_entrance_size):
@@ -688,7 +699,6 @@ def rectangularize(cmap, obstacles):
     current_id = 0
     # Sorts topmost leftmost
     positions = sorted(cmap.keys())
-    print(positions)
     # Find rectangles until the entire cmap is covered
     print("RECT: Finding rectangles")
     while len(positions) > 0:
@@ -743,7 +753,7 @@ def add_adjacency(r1, r1_set, r2, r2_set):
                 tl2 = tl_neighbor
             da = d.abs()
             # Perpendicular to da and also positive
-            pa = Coord(1,1) - d
+            pa = Coord(1,1) - d.abs()
             dist = 16 * len(neighbors)
             start = tl1 + da.scale(15)
             end = start + pa.scale(dist) + da.scale(2)
@@ -751,6 +761,7 @@ def add_adjacency(r1, r1_set, r2, r2_set):
             a = Adjacency(r1.id, r2.id, rect, da)
             r1.adj.append(a)
             r2.adj.append(a)
+            return
         # They do not border each other
         else:
             pass

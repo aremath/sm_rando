@@ -107,6 +107,7 @@ def less_naive_gen(dimensions, graph, elevators, settings):
     rooms = cmap.random_rooms_alt(room_size, bboxes)
     #TODO: Each room grabs the map tiles that are inside its bounding box!
     #TODO: Or could use a budgeted cellular automaton to fill in "corner" spaces with map tiles...
+    #TODO: Phantoon's room winds up in rooms, as do elevators, etc...
     return cmap, rooms, paths
 
 def random_node_place(graph, dimensions, up_es, down_es):

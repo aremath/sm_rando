@@ -94,7 +94,10 @@ class Level(object):
         for c in other.itercoords():
             nc = c + pos
             if self.in_bounds(nc) and nc in self:
-                if not other[c].matches(self[nc]):
+                # other can be put onto self by being made /more specific/
+                # if the specified are of self is a refinement of the entire
+                # other pattern, then it is a match.
+                if not self[nc].is_subtile(other[c]):
                     return False
             else:
                 return False
@@ -139,6 +142,13 @@ class Level(object):
                     assert False, "Collision in compose: " + str(c_mod)
                 elif collision_policy == "overwrite":
                     new_tiles[c_mod] = t
+                # Favor self in conflicts where self is a subtile of other.
+                # Otherwise error
+                elif collision_policy == "refine":
+                    if self[c_mod].is_subtile(t):
+                        continue
+                    else:
+                        assert False, "Collision in compose: " + str(c_mod)
                 else:
                     assert False, "Bad collision policy: " + collision_policy
             else:
@@ -206,8 +216,9 @@ class Tile(object):
     def __eq__(self, other):
         return self.texture == other.texture and self.tile_type == other.tile_type
 
-    def matches(self, other):
-        return self.texture.matches(other.texture) and self.tile_type.matches(other.tile_type)
+    # Is self a subtile of other
+    def is_subtile(self, other):
+        return self.texture.is_sub(other.texture) and self.tile_type.is_sub(other.tile_type)
     
     def reflect(self, axis):
         if self.texture.is_any:
@@ -267,7 +278,7 @@ class Texture(object):
     def __eq__(self, other):
         return self.index == other.index and self.flips == other.flips
 
-    def matches(self, other):
+    def is_sub(self, other):
         return self == other or other.is_any
 
     def reflect(self, axis):
@@ -288,7 +299,7 @@ class Type(object):
     def __eq__(self, other):
         return self.index == other.index and self.bts == other.bts
 
-    def matches(self, other):
+    def is_sub(self, other):
         return self == other or other.is_any
 
     def get_slope_info(self):

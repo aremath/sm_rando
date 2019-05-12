@@ -231,7 +231,10 @@ class Rect(object):
         u = Coord(-1,0)
         d = Coord(1,0)
         for direction in [l,u]:
-            rect = Rect(self.start + direction, self.start + (self.end - self.start) * direction.abs())
+            p = Coord(1,1) - direction.abs()
+            s = self.start + direction
+            e = self.start + (self.end - self.start) * p
+            rect = Rect(s, e)
             out.append((rect, direction))
         for direction in [r,d]:
             rect = Rect(self.start + (self.end - self.start) * direction, self.end + direction)
