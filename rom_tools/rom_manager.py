@@ -81,7 +81,7 @@ class RomManager(object):
 
     def mod_rom(self):
         """Modifies a pure rom to have the mods we need"""
-        # Skip ceres
+        # Skip Ceres
         self.write_to_new(Address(0x16ebb), b"\x05")
         # Make sand easier to jump out of without gravity
         self.write_to_new(Address(0x2348c), b"\x00")
@@ -250,3 +250,4 @@ class RomManager(object):
     def apply_patches(self, patches):
         for address, data in patches:
             self.write_to_new(address, data)
+

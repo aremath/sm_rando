@@ -46,7 +46,7 @@ def parse_patches(patch_file):
         memory_address = Address(int(memory_address, 16))
         patches.append((memory_address, data))
     f.close()
-    return item_locations
+    return patches
 
 def parse_doors(door_file, rom):
     """Use the door definitions files so that door nodes can be used to access
