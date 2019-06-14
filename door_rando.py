@@ -4,6 +4,10 @@ from door_rando.rando_algs import *
 from encoding import sm_global
 from rom_tools.rom_manager import *
 
+import door_rando.settings
+from misc import rng
+from misc import settings_parse
+
 import random
 import argparse
 import shutil
@@ -16,7 +20,6 @@ import sys
 #TODO: Sand pits don't always connect up - different sizes
 #TODO: Add grey door caps to the back side of boss rooms. Do this by finding the appropriate door in the actual level data to determine the position and facing of the door cap, then adding a new PLM to the room (reallocating the PLMs as necessary)
 #TODO: Door leading to top of bowling should not turn grey after you beat Phantoon.
-#TODO: Make the RNG seed work -> random dictionary word? Currently input seed is interpreted as a string, but the RNG seed is commonly an int, making copy/pasting the seed not work...
 #TODO: Is it possible to go back through bowling alley?
 #TODO: Make the create filename with the seed
 #TODO: Get rid of Drain?
@@ -68,14 +71,7 @@ def prepare_for_escape(graph):
     remove_external_edges(graph, "Climb_Room_R3")
     remove_external_edges(graph, "Climb_Room_L")
 
-def seed_rng(seed):
-    seed = args.seed
-    if seed is None:
-        seed = random.randrange(sys.maxsize)
-    random.seed(seed)
-    return seed
-
-if __name__ == "__main__":
+def get_args():
     parser = argparse.ArgumentParser(description="Welcome to the Super Metroid Door randomizer!")
     parser.add_argument("--clean", metavar="<filename>", required=True, help="The path to a clean rom file from the current directory.")
     parser.add_argument("--create", metavar="<filename>", required=True, help="The path to the rom file you want to create.")
@@ -84,10 +80,15 @@ if __name__ == "__main__":
     parser.add_argument("--starting_items", metavar="<item_list>", required=False, help="A list of items to start with: see Readme.md for details.")
     parser.add_argument("--graph", action="store_true", help="create a room graph spoiler file. You will need graphviz installed in your $PATH")
     parser.add_argument("--debug", action="store_true", required=False, help="print debug information while creating the room layout.")
+    parser.add_argument("--settings", metavar="<folder>", required=False, help="The path to a folder with settings files. Used for updating things like what items the randomizer will use")
     #TODO argument for which algorithm to use
-
     args = parser.parse_args()
-    seed = seed_rng(args.seed)
+    return args
+
+def main():
+    args = get_args()
+    seed = rng.seed_rng(args.seed)
+    print(args.settings)
     spoiler_file = open(args.create + ".spoiler.txt", "w")
 
     # Setup
@@ -147,7 +148,7 @@ if __name__ == "__main__":
         # Re-seed the rng for a new map (if we need to)
         if not completable and args.completable:
             print("Not Completable")
-            seed = seed_rng(None)
+            seed = rng.seed_rng(None)
 
     print("Completable: " + str(completable))
     print("RNG SEED - " + str(seed))
@@ -178,13 +179,16 @@ if __name__ == "__main__":
     # Save out the rom
     rom.save_and_close()
 
+if __name__ == "__main__":
+    main()
+
 #TODO: these are some things I noted earlier about the escape paths
 # find the escape path
 # TODO: am I really going to assume they picked up everything? this might make escape pretty hard...
 # TODO: find a way to disable grey doors during escape
 # TODO: might wanna make sure they don't have to, like, defeat crocomire during escape
 # or at least they have the time necessary to do so :P
-# - to do this: if there's a "problematic" node in the shortest escape path,
+# Instead: if there's a "problematic" node in the shortest escape path,
 # remove it from the graph and do another BFS. If there's no path, then award them time to beat that node
 # If there is another path, then just award them time to complete that path
 

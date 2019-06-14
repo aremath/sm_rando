@@ -108,7 +108,7 @@ def find_item_loc(item, room, subrooms, roots, patterns, placement_chances):
     places = choose_place_order(item, placement_chances)
     # Go through the places sequentially so that a pedestal positioning can be found if a chozo statue
     # positioning is not found.
-    for p in places:
+    for p in places + ["hailmary"]:
         if p == "chozo":
             #TODO: in the pattern files, the setup pattern is backwards from the normal pattern...
             # Here R means that the pattern faces in the "canonical" direction
@@ -146,8 +146,26 @@ def find_item_loc(item, room, subrooms, roots, patterns, placement_chances):
             rel_item_placement_r = Coord(0,0)
             item_graphic = "N"
         elif p == "hidden":
+            setup_pattern_l = patterns["hidden_setup_l"]
+            setup_pattern_r = patterns["hidden_setup_r"]
+            pattern_l = patterns["hidden_l"]
+            pattern_r = patterns["hidden_r"]
+            pattern_offset_r = Coord(0, 1)
+            rel_obstacle_r = Rect(Coord(0,0), Coord(2,1))
+            rel_target_r = Rect(Coord(0,-1), Coord(1,2))
+            rel_item_placement_r = Coord(0,0)
             item_graphic = "H"
-            assert False, "Not implemented!"
+        # Try a hail mary (place on a pedestal in midair) if nothing else worked.
+        elif p == "hailmary":
+            setup_pattern_l = patterns["hailmary_setup_l"]
+            setup_pattern_l = patterns["hailmary_setup_r"]
+            pattern_l = patterns["hailmary_l"]
+            pattern_r = patterns["hailmary_r"]
+            pattern_offset_r = Coord(0,0)
+            rel_obstacle_r = Rect(Coord(0,0), Coord(3,3))
+            rel_target_r = Rect(Coord(0,0), Coord(1,3))
+            rel_item_placement_r = Coord(1,0)
+            item_graphic = "N"
         else:
             assert False, "Bad place type: " + p
         # Choose the direction randomly (but fall through if no valid configuration is found
@@ -339,8 +357,10 @@ class Adjacency(object):
             for r in rects:
                 new_rects.append(r.cut(i_rect, i_direction, min_size))
             rects = new_rects
+        new_rects = []
         # Also cut them with the entrances since the new rect can't go on top
         # of the entrance
+        #TODO Technically it can...
         for e_rect in self.entrances:
             for r in rects:
                 #TODO: is self.direction correct?
@@ -365,8 +385,14 @@ class Adjacency(object):
         # The long axis of the adjacency is perpendicular to its direction
         axis = Coord(1,1) - self.direction
         passables = self.find_passables(min_size)
+        print("Self size:")
+        print(self.rect)
+        print("Passables:")
+        print(passables)
         weights = [p.area() for p in passables]
         p = random.choices(passables, weights)[0]
+        #TODO: this is not correct - the entrance we add should fit entirely within
+        # the passable we decided to use...
         adj_size = self.rect.size(axis)
         passable_size = p.size(axis)
         entrance_size = random.randrange(min_size, min(max_size, passable_size))
@@ -378,6 +404,8 @@ class Adjacency(object):
         return entrance
 
     #BUG: index out of bounds!
+    #TODO: only make the side of the wall that abuts the larger of the two rooms
+    # so that the smaller one gets some more space.
     def mk_wall(self, level):
         for r in self.find_non_entrances():
             mk_default_rect(level, r)
