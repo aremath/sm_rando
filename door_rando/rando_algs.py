@@ -19,7 +19,7 @@ import random
 #TODO: use connect_doors and make_door in the item quota??
 
 # New idea - give the player some items, then just randomly place the rest of the map
-def item_quota_rando(rooms, debug, starting_items=ItemSet()):
+def item_quota_rando(rooms, debug, starting_items, items_to_place):
     clean_rooms(rooms)
     check_door_totals(rooms)
     nrooms = len(rooms)
@@ -31,15 +31,14 @@ def item_quota_rando(rooms, debug, starting_items=ItemSet()):
     #TODO: copy?
     exits_to_connect = landing_site.doors
 
-    # keeps track of the current BFS state
+    # Keeps track of the current BFS state
     current_state = BFSItemsState("Landing_Site_R2", items_=starting_items)
     current_state.assignments = get_starting_assignments()
 
-    # keeps track of exits reachable from current node
+    # Keeps track of exits reachable from current node
     reachable_exits = []
 
-    # get a random order for items - used after we have assigned all of the items required to pass statues
-    items_to_place = map_items()
+    # Get a random order for items to place 
     random.shuffle(items_to_place)
 
     # get the list of items which have fixed locations (bosses, etc.)

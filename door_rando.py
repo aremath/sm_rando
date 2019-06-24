@@ -4,7 +4,7 @@ from door_rando.rando_algs import *
 from encoding import sm_global
 from rom_tools.rom_manager import *
 
-import door_rando.settings
+from door_rando import settings
 from misc import rng
 from misc import settings_parse
 
@@ -30,6 +30,7 @@ import sys
 #TODO: Boss rush mode!
 #TODO: Random number of missiles / supers / pbs per expansion?
 #TODO: timeout for the completability check...
+#TODO: _int_ nodes make it into the escape path?
 
 #TODO: is there a possibility for a door not to be in door_changes?
 def write_door_changes(door_changes, spoiler_file):
@@ -88,25 +89,27 @@ def get_args():
 def main():
     args = get_args()
     seed = rng.seed_rng(args.seed)
-    print(args.settings)
     spoiler_file = open(args.create + ".spoiler.txt", "w")
+    # Update the settings from JSON files
+    if args.settings is not None:
+        settings_parse.get_settings(settings.setting_paths, args.settings)
 
     # Setup
     # Copy it to remove Bombs
     # TODO: GET RID OF Bombs
     all_items = sm_global.items[:]
     all_items = ItemSet(all_items)
-    # escape timer vars
+
     escape_timer = 0
-    tourian_time = 60
-    time_per_node = 15
+
     starting_items = parse_starting_items(args.starting_items)
+    items_to_place = settings.items_to_item_list(settings.items)
 
     completable = False
     while not completable:
         #TODO: re-parsing rooms is quick and dirty...
         rooms = parse_rooms("encoding/dsl/rooms.txt")
-        door_changes, item_changes, graph, state = item_quota_rando(rooms, args.debug, starting_items)
+        door_changes, item_changes, graph, state = item_quota_rando(rooms, args.debug, starting_items, items_to_place[:])
         # Check completability - can reach statues?
         start_state = BFSState(state.node, state.items)
         end_state = BFSState("Statues_ET", ItemSet())
@@ -122,26 +125,14 @@ def main():
             if escape_path is None: 
                 completable = False
             else:
-                spoiler_file.write("Path to Escape:\n")
-                spoiler_file.write(str(escape_path))
-                # one minute to get out of tourian, then 30 seconds per room
+                # One minute to get out of tourian, then 30 seconds per room
                 #TODO: Is this fair? the player might need to farm and explore...
                 #TODO: Simple node-length means intermediate nodes / etc. will cause problems
                 # give the player time to defeat minibosses, or go through long cutscenes
                 for node in escape_path:
-                    if node == "Crocomire_T":
-                        escape_timer += (70 - 2*time_per_node)
-                    elif node == "Spore_Spawn_B":
-                        escape_timer += (45 - 2*time_per_node)
-                    elif node == "Golden_Torizo_R":
-                        escape_timer += (45 - 2*time_per_node)
-                    elif node == "Shaktool_L":
-                        escape_timer += (50 - 2*time_per_node)
-                    elif node == "Bowling_Alley_L2":
-                        escape_timer += (50 - 2*time_per_node)
-                escape_timer = tourian_time + time_per_node * len(escape_path)
-                spoiler_file.write("\n")
-                spoiler_file.write("Esape Timer: " + str(escape_timer) + " seconds\n")
+                    if node in settings.escape:
+                        escape_timer += (settings.escape[node] - 2*settings.escape["per_node"])
+                escape_timer += settings.escape["tourian"] + settings.escape["per_node"] * len(escape_path)
         # Accept the seed regardless if we don't care about completability
         if not args.completable:
             break
@@ -152,6 +143,13 @@ def main():
 
     print("Completable: " + str(completable))
     print("RNG SEED - " + str(seed))
+
+    spoiler_file.write("RNG Seed: {}\n".format(str(seed)))
+
+    spoiler_file.write("Path to Escape:\n")
+    spoiler_file.write(str(escape_path))
+    spoiler_file.write("\n")
+    spoiler_file.write("Esape Timer: {} seconds\n".format(escape_timer))
 
     spoiler_file.write("ITEMS:\n")
     write_item_assignments(item_changes, spoiler_file)

@@ -5,7 +5,7 @@ You need a Super Metroid [JU] ROM and Python 3.
 
 If you want to make spoiler graphs, you'll need [graphviz](https://graphviz.gitlab.io/) and the [graphviz python module](https://pypi.python.org/pypi/graphviz). You can install these using `pip`.
 
-Note that this is still a very rough draft - expect bugs and strange behavior.
+Note that this is still a rough draft - there may be bugs and strange behavior.
 
 ## Usage:
 Once you've downloaded the script, just point it at the rom you're interested in randomizing, like this:
@@ -52,7 +52,34 @@ Be careful when you're going through doors. Doors can easily drop you into Golde
 
 In general, Energy Tanks aren't technically required to cross most edges. Also, you only need one ammo of each type to cross those edges. If you're low on energy or ammo, dropping into an "off-logic" area of the game can often fill you up.
 
-When traveling through sand pits, try to stay centered to avoid a bug where you can get stuck in the wall.
+When traveling through sand pits, stay centered to avoid a bug where you can get stuck in the wall.
+
+## Advanced Usage
+If you are interested in fine-tuning the settings, you can edit things like what items will be placed and how much time you are allotted during escape using JSON files. If you read `door_rando/settings.py`, you can see what the syntax for the various settings dictionaries is. The `--settings` option allows you to specify where you are storing your custom settings files:
+
+    python door_rando.py --settings ../settings --clean ../sm_guinea_pig.smc --create ...
+
+It will look in `../settings/` for files named `items.set` and `escape.set` which edit the item placement and escape timings respectively. It will only take settings from files that are present. It expects your custom settings in JSON format. You can basically copy the syntax from the `settings.py` file like this:
+
+    {
+    "starting": 1,
+    "extra":    {"M": 22,
+                "S":  12,
+                "PB": 10,
+                "E":  14}
+    }
+
+This will reduce the number of times it places each normal item to once instead of the default of twice. Currently you can't specify that you want Hi-Jump Boots twice but X-Ray Scope only once. This `items.set` has a slight problem though -- it is only 79 items. If you try to run with this settings file, it will complain that you have not provided enough items. Make sure that your settings will place exactly 100 items.
+
+You can also edit the escape times in a similar fashion using a file named `escape.set` which goes into your settings folder along with `items.set`. Using this you can edit the time needed to escape Tourian, the time needed for each node (there are two nodes per room), and the time you need if it requires you to fight bosses during the escape. One thing to note is that it only replaces the keys it finds. If my `escape.set` looks like:
+
+    {
+    "tourian": 45
+    }
+
+Then this will lower the default Tourian escape time to 45s while keeping all of the other escape timings the same.
+
+As a final note, the current settings do not interact with the RNG used to decide the map. This means that you can use different settings with the same seed to create the same placement of rooms and progression items with a different amount and placement of ancillary items, as well as a different amount of time for escape.
 
 ## Known Bugs
 * There are sometimes graphical glitches entering some Crateria rooms, when loading a save to Landing Site, and when leaving Kraid. Pressing Start should clear up the Kraid ones. The others disappear when they go offscreen.
@@ -70,7 +97,6 @@ When traveling through sand pits, try to stay centered to avoid a bug where you 
 ## In Progress
 This is just a list of things I'm working on: bugs to fix, features to implement, etc. If you have an insight into how to make one of them happen, let me know!
 * Fix the boss screen scroll glitch / make the other side of the boss room a grey door.
-* Make the RNG seed easier to use: make the randomly generated seed possible to copy/paste
 * Make the algorithm better at avoiding softlocks.
 * Figure out what to do about Zebes awake-/asleep-ness
 * Make the spoiler file more descriptive and more useful

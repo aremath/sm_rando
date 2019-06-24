@@ -24,10 +24,11 @@ escape = {
 def items_to_item_list(items_d):
     items_to_place = []
     assert items_d["starting"] > 0, "Must place every item at least once!"
-    items_to_place.extend(items_d["starting"] * sm_global.starting_items)
+    items_to_place.extend(items_d["starting"] * sm_global.items)
     for ty, count in items_d["extra"].items():
         items_to_place.extend(count * [ty])
-    assert len(items_to_place) == 100, "Total items is not 100!"
+    assert len(items_to_place) == 100, "Total items is {}, not 100!".format(len(items_to_place))
     return items_to_place
 
-settings = [(items, "items.set"), (escape, "escape.set")]
+# Describes what files will edit which dictionary. A file not being present means that dict will not be edited.
+setting_paths = [(items, "items.set"), (escape, "escape.set")]
