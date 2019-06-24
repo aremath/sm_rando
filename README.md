@@ -69,7 +69,7 @@ It will look in `../settings/` for files named `items.set` and `escape.set` whic
                 "E":  14}
     }
 
-This will reduce the number of times it places each normal item to once instead of the default of twice. Currently you can't specify that you want Hi-Jump Boots twice but X-Ray Scope only once. This `items.set` has a slight problem though -- it is only 79 items. If you try to run with this settings file, it will complain that you have not provided enough items. Make sure that your settings will place exactly 100 items.
+This will reduce the number of times it places each normal item to once instead of the default of twice. If (for example) you want two Hi-Jumps, but not two of every other major item, you can keep `"starting"` at 1, and add a key `"HJ": 1` to the `"extra"` dictionary. As you might notice, this `items.set` has a slight problem -- it is only 79 items. If you try to run with this settings file, it will complain that you have not provided enough items. Make sure that your settings will place exactly 100 items.
 
 You can also edit the escape times in a similar fashion using a file named `escape.set` which goes into your settings folder along with `items.set`. Using this you can edit the time needed to escape Tourian, the time needed for each node (there are two nodes per room), and the time you need if it requires you to fight bosses during the escape. One thing to note is that it only replaces the keys it finds. If my `escape.set` looks like:
 
