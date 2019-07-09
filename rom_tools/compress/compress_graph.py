@@ -14,12 +14,12 @@ class CompressGraph(object):
         # Add all largest intervals to the graph
         for i in intervals:
             self.add_node(i)
-        #  list of node1, node1_s for fixing shorten connectivity
+        # List of node1, node1_s for fixing shorten connectivity
         shorts = []
         # Now consider shortenings and add edges
         for i1 in intervals:
             for i2 in intervals:
-                # both i1 and i2 may be used if i2 starts after i1
+                # Both i1 and i2 may be used if i2 starts after i1
                 if i1.start < i2.start:
                     # i1 must be shortened if i2 is to start
                     if i2.start < i1.end:
@@ -29,10 +29,10 @@ class CompressGraph(object):
                         self.chain(i1_s, i2, src)
                         shorts.append((i1, i1_s))
                     # They may both be used as-is - direct-copy the information in between.
-                    #else: #TODO
                     # Avoid making chains that are too large...
                     elif count_bits(i2.start-i1.end) <= 10:
                         self.chain(i1, i2, src)
+                    #else: #TODO
         # Fix up shortenings
         for i1, i2 in shorts:
             self.same_connectivity(i1, i2)
@@ -67,7 +67,7 @@ class CompressGraph(object):
             self.add_edge(i1, dci)
             self.add_edge(dci, i2)
 
-    def edge_weight(self, i1,i2):
+    def edge_weight(self, i1, i2):
         assert i2 in self.adj[i1]
         return i2.rep
 

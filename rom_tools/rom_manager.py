@@ -3,6 +3,7 @@ from . import areamap
 from .memory import *
 from .address import Address
 from .compress import decompress
+#from .compress import compress
 
 from shutil import copy2 as copy_file
 from hashlib import md5

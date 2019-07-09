@@ -3,7 +3,7 @@ from world_rando import concrete_map
 from world_rando import item_order_graph
 from world_rando import map_gen
 from world_rando import map_viz
-from rom_tools import romManager
+from rom_tools import rom_manager
 from encoding import sm_global
 import random
 import collections
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     print("Tiles: " + str(ntiles))
     print("Average room size: " + str(sum(room_dims)/len(room_dims)))
     print("Average path length: " + str(path_length/npaths))
-    rom = romManager.RomManager("../sm_guinea_pig_map_edit_copy.smc")
+    rom = rom_manager.RomManager("../sm_guinea_pig_map_edit_copy.smc")
     for region, rcmap in cmap.items():
         # put it on the ROM
         hidden, tiles = sm_global.region_map_locs[region]

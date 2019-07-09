@@ -203,10 +203,14 @@ class FakeInterval(Interval):
     def shorten(self, new_end):
         assert False, "No Shorten for fake intervals!"
 
-# true if i1 is a subinterval of i2
+# True if i1 is a subinterval of i2
 #   starts later than i2 and ends earlier than i2.
 def is_subinterval(i1, i2):
     return (i1.start >= i2.start) and (i1.end <= i2.end)
+
+# True if i1 is a strict subinterval of i2
+def is_strict_subinterval(i1, i2):
+    return is_subinterval(i1, i2) and (i1.start > i2.start or i1.end < i2.end)
 
 # i1 is worse than i2 if it takes up a smaller region and is represented with
 # strictly more bytes.
@@ -215,15 +219,36 @@ def is_subinterval(i1, i2):
 def is_worse(i1, i2):
     return is_subinterval(i1, i2) and i1.rep > i2.rep
 
+def is_worse(i1, i2):
+    # If i1 is not within i2, then it is not strictly worse
+    # i.e. there might be an optimal compression that uses i1 and not i2.
+    if not is_subinterval(i1, i2):
+        return False
+    # If i1 is within i2 and i1 saves less, then it is worse
+    else:
+        # The amount of bytes saved by using this interval
+        i1_save = i1.n - i1.rep
+        i2_save = i2.n - i2.rep
+        return i1_save < i2_save
+
 def filter_worse(intervals):
     new_intervals = []
-    for i1 in intervals:
+    bad_intervals = set()
+    for index1, interval1 in enumerate(intervals):
         irrelevant = False
-        for i2 in intervals:
-            if is_worse(i1,i2):
+        for index2, interval2 in enumerate(intervals):
+            # Do not need to check against irrelevant intervals
+            # since all of them are irrelevant compared to some relevant interval
+            # Also do not need to check an interval against itself.
+            if index2 in bad_intervals or index2 == index1:
+                continue
+            # Can stop once we find that it is irrelevant
+            if is_worse(interval1,interval2):
                 irrelevant = True
+                bad_intervals.add(index1)
+                break
         if not irrelevant:
-            new_intervals.append(i1)
+            new_intervals.append(interval1)
     return new_intervals
 
 def choose_best_interval(intervals):
