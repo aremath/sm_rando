@@ -267,8 +267,8 @@ L
 RT
 M1
 M2
-L -> M1					- MB
-(L M1) -> M2			- | B PB
+ALL -> M1					- MB
+ALL -> M2					- | B PB
 
 Brinstar_Map - 79C35
 R
