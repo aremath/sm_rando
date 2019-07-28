@@ -17,7 +17,7 @@ Bubble_Save			R		0x46e9
 Business_Save		R		0x46f7
 Crocomire_Save		L		0x4705
 Lower_Elevator_Save	R		0x4713
-Red_Keyhunter_Save	L		0x4721
+Red_Kihunter_Save	L		0x4721
 Wrecked_Save		L		0x491d
 Glass_Tunnel_Save	L		0x4919
 Maridia_First_Save	L		0x4927

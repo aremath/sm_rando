@@ -86,7 +86,7 @@ Bowling_Path - 79461
 L
 R
 
-Crateria_Keyhunters - 7948C
+Crateria_Kihunters - 7948C
 L
 R					- PB
 B					- PB
@@ -309,7 +309,7 @@ ALL <-> CB				- | B PB
 L5 <-> ALL				- PB
 ALL -> L3				- PB
 
-Pre-Spore_Keyhunters - 79D9C
+Pre-Spore_Kihunters - 79D9C
 L
 T
 
@@ -346,7 +346,7 @@ MB
 PB
 ALL <-> PB				- X
 ALL <-> MB				- X
-L <-> (EB R)			- PB
+L <-> ALL				- & PB E
 
 # Old MB room constraints
 #L <-> PB				- | B PB
@@ -354,9 +354,9 @@ L <-> (EB R)			- PB
 #PB <-> (EB R MB)		- PB
 
 Construction_Zone - 79F11
-L1						- M
+L1
 L2
-R
+R						- M
 ALL <-> L2				- MB
 
 Blue_Brinstar_Energy - 79F64
@@ -410,6 +410,7 @@ Pink_Hoppers - 7A130
 L
 R
 L -> R					- WB
+R -> L					- | CB S
 
 Hopper_Energy - 7A15B
 L
@@ -504,13 +505,13 @@ Warehouse_Energy - 7A4B1
 R						- | M S B PB
 E
 
-Warehouse_Keyhunters - 7A4DA
+Warehouse_Kihunters - 7A4DA
 B
 R1
 R2
 M
 ALL <-> R1				- B
-ALL -> M				- & PB SB
+ALL -> M				- PB
 
 Baby_Kraid - 7A521
 L						- | CB SB
@@ -1006,7 +1007,7 @@ PB
 L -> (T PB)						- X
 ALL <-> ALL						- V
 
-Red_Keyhunter_Shaft - 7B585
+Red_Kihunter_Shaft - 7B585
 L
 R1
 R2
@@ -1064,7 +1065,7 @@ ALL -> E						- | PB S
 L2 <-> (L1 R)					- E
 
 
-Red_Keyhunter_Save - 7B741
+Red_Kihunter_Save - 7B741
 L
 
 # WRECKED SHIP
@@ -1381,6 +1382,7 @@ L1 -> ALL					- PB
 T -> L1						- | B PB (& GS SA)
 ALL -> R					- GS
 R -> ALL					- | GS HJ
+ALL -> T					- GS
 
 Butterfly_Room - 7D5EC
 TS							- X

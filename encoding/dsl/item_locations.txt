@@ -37,7 +37,7 @@ Morph_Ball_Room_MB			0x786de				N
 Morph_Ball_Room_PB			0x7874c				N
 Blue_Brinstar_Energy_M		0x78798				N
 Blue_Brinstar_Energy_E		0x7879e				H
-Green_Brinstar_Energy_E		0x787C2				N
+Green_Brinstar_Energy_E		0x787c2				N
 Etecoon_Supers_S			0x787d0				N
 Waterway_Energy_E			0x787fa				N
 First_Missile_M				0x78802				C
@@ -50,7 +50,7 @@ Alpha_Power_Bombs_PB		0x7890e				C
 Alpha_Power_Bombs_M			0x78914				N
 Spazer_Spazer				0x7896e				C
 Warehouse_Energy_E			0x7899c				H
-Warehouse_Keyhunters_M		0x789ec				H
+Warehouse_Kihunters_M		0x789ec				H
 Varia_Suit_V				0x78aca				C
 # ?
 Cathedral_M					0x78ae4				H
@@ -68,7 +68,7 @@ Grapple_Yump_M				0x78c2a				N
 Grapple_G					0x78c36				C
 Bubble_Reserve_RT			0x78c3e				C
 Bubble_Reserve_M			0x78c44				H
-Bubble_Missiles_M			0x78c66				N
+Bubble_Missiles_M			0x78c52				N
 Bubble_Mountain_M			0x78c66				N
 Go_Fast_M					0x78c74				H
 Speed_Booster_SB			0x78c82				C
@@ -87,7 +87,7 @@ Lower_Firefleas_E			0x79184				N
 Wrecked_Ship_Main_M			0x7c265				N
 Bowling_Alley_RT			0x7c2e9				C
 Bowling_Alley_M				0x7c2ef				N
-Beep_Boop_M					0x7c2ef				N
+Beep_Boop_M					0x7c319				N
 Wrecked_Ship_Energy_E		0x7c337				N
 Wrecked_Ship_Supers_S		0x7c357				N
 Beep_Boop_Supers_S			0x7c365				N
