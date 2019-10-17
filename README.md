@@ -29,7 +29,7 @@ Another useful command-line option is `--starting_items`. This command edits wha
 This example gives you Bombs, 10 Super Missiles, 500 Energy, and Wave Beam on starting the game (why you'd want bombs without morph ball beats me). The quotes around the list of items you want to start with are important.
 The algorithm will take your starting items into account when deciding if a seed is completable and deciding what rooms to place where.
 This means that the same seed with different starting items can produce different results! The names for all the items are in `encoding/rooms.txt`.
-Currently, I haven't figured out a way to edit your starting missiles, or your starting reserve tanks. The program will give you a warning about that, and not give you those items.
+There isn't a simple way to edit your starting reserve tanks. The program will give you a warning if you try to add a starting item that isn't implemented, and not give you that item.
 
 If you have graphviz, the `--graph` command-line option will also generate a room graph showing the ways the rooms are connected in this seed. Minibosses are colored green, bosses are colored red, Samus' ship is colored blue, the golden statues room is colored yellow, and the end of Tourian escape (and the beginning of the rest of escape) is colored purple.
 

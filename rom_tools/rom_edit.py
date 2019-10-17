@@ -190,7 +190,8 @@ beam_codes = {
 ammo_addrs = {
     "E"  : Address(0xb2ce),
     "S"  : Address(0xb2e0),
-    "PB" : Address(0xb2e9)
+    "PB" : Address(0xb2e9),
+    "M"  : Address(0xb2d7)
 }
 
 # takes an item definition as a string
