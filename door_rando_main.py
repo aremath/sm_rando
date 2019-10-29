@@ -13,6 +13,7 @@ import argparse
 import shutil
 import sys
 
+#TODO: Timeout
 #TODO: A better file structure would keep all the rando algorithms that produce door changes and item changes somewhere else
 # this file should just be the executable
 #TODO: Fix Zip Tube by removing the door ASM from the doors that lead into it in vanilla, and adding the same ASM to the doors that lead into it on the randomized ROM
@@ -30,7 +31,7 @@ import sys
 #TODO: Boss rush mode!
 #TODO: Random number of missiles / supers / pbs per expansion?
 #TODO: timeout for the completability check...
-#TODO: _int_ nodes make it into the escape path?
+#TODO: extraneous _int_ nodes make it into the escape path
 
 #TODO: is there a possibility for a door not to be in door_changes?
 def write_door_changes(door_changes, spoiler_file):
@@ -72,7 +73,8 @@ def prepare_for_escape(graph):
     remove_external_edges(graph, "Climb_Room_R3")
     remove_external_edges(graph, "Climb_Room_L")
 
-def get_args():
+def get_args(arg_list):
+    #print(arg_list)
     parser = argparse.ArgumentParser(description="Welcome to the Super Metroid Door randomizer!")
     parser.add_argument("--clean", metavar="<filename>", required=True, help="The path to a clean rom file from the current directory.")
     parser.add_argument("--create", metavar="<filename>", required=True, help="The path to the rom file you want to create.")
@@ -83,11 +85,11 @@ def get_args():
     parser.add_argument("--debug", action="store_true", required=False, help="print debug information while creating the room layout.")
     parser.add_argument("--settings", metavar="<folder>", required=False, help="The path to a folder with settings files. Used for updating things like what items the randomizer will use")
     #TODO argument for which algorithm to use
-    args = parser.parse_args()
+    args = parser.parse_args(arg_list)
     return args
 
-def main():
-    args = get_args()
+def main(arg_list):
+    args = get_args(arg_list)
     seed = rng.seed_rng(args.seed)
     spoiler_file = open(args.create + ".spoiler.txt", "w")
     # Update the settings from JSON files
@@ -114,6 +116,7 @@ def main():
         start_state = BFSState(state.node, state.items)
         end_state = BFSState("Statues_ET", ItemSet())
         path_to_statues = graph.check_completability(start_state, end_state)
+        escape_path = None
         completable = path_to_statues is not None
         if completable:
             # Check completability - can escape?
@@ -144,18 +147,27 @@ def main():
     print("Completable: " + str(completable))
     print("RNG SEED - " + str(seed))
 
+    # Write the seed
     spoiler_file.write("RNG Seed: {}\n".format(str(seed)))
 
+    # Write the escape path
     spoiler_file.write("Path to Escape:\n")
     spoiler_file.write(str(escape_path))
     spoiler_file.write("\n")
     spoiler_file.write("Esape Timer: {} seconds\n".format(escape_timer))
 
+    # Write the path to the statues (including every boss)
+    spoiler_file.write("Path to Statues:\n")
+    spoiler_file.write(str(path_to_statues))
+    spoiler_file.write("\n")
+
+    # Write the items, doors etc.
     spoiler_file.write("ITEMS:\n")
     write_item_assignments(item_changes, spoiler_file)
 
     spoiler_file.write("DOORS:\n")
     write_door_changes(door_changes, spoiler_file)
+    spoiler_file.close()
 
     # Make the spoiler graph
     if args.graph:
@@ -177,8 +189,13 @@ def main():
     # Save out the rom
     rom.save_and_close()
 
+    # Collect output info
+    out = {}
+    out["seed"] = str(seed)
+    return out
+
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
 
 #TODO: these are some things I noted earlier about the escape paths
 # find the escape path
