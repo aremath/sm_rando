@@ -73,15 +73,15 @@ class BFSItemsState(object):
     def copy(self):
         return BFSItemsState(self.node, self.wildcards.copy(), self.items.copy(), self.assignments.copy())
 
-    # two states are equal if they can cross the same set of edges
+    # Two states are equal if they can cross the same set of edges
     def __eq__(self, other):
         return self.node == other.node and self.items == other.items and len(self.wildcards) == len(other.wildcards)
 
-    # an item set is leq another if it has at most the same items and at most the same number of wildcards
+    # An item set is leq another if it has at most the same items and at most the same number of wildcards
     def __le__(self, other):
         return self.node == other.node and self.items <= other.items and len(self.wildcards) <= len(other.wildcards)
 
-    # strictly less than means also either strictly fewer items or strictly fewer wildcards (or both)
+    # Strictly less than means also either strictly fewer items or strictly fewer wildcards (or both)
     def __lt__(self, other):
         return self <= other and (self.items < other.items or len(self.wildcards) < len(other.wildcards))
 
@@ -91,15 +91,15 @@ class BFSItemsState(object):
     def __repr__(self):
         return self.node + "\n\t" + str(self.items) + "\n\t" + str(self.wildcards) + "\n"
 
-    # does other make progress relative to self?
-    # if it's at another node with maybe better items
-    # or if it's at the same node with strictly better items
+    # Does other make progress relative to self?
+    # If it's at another node with maybe better items
+    # Or if it's at the same node with strictly better items
     #TODO: this isn't right?
     def is_progress(self, other):
         return self < other or (self.node != other.node and self.items <= other.items and len(self.wildcards) + len(self.items) <= len(other.wildcards) + len(other.items))
-    # a node is progress if it's the same node with either more items or more wildcards
-    # or it's a different node with at least the same items
-    # and the total number of items and wilcards is at least as large.
+    # A node is progress if it's the same node with either more items or more wildcards
+    # Or it's a different node with at least the same items
+    # And the total number of items and wilcards is at least as large.
 
 #TODO: have graph implement __getitem__ instead of the clunky name_nodes
 # + maybe merge so that the node's edges are part of the node class?
@@ -266,12 +266,10 @@ class ConstraintGraph(object):
         """Finds a satsifying assignment of items to reach end from start. finished[end] will wind up with
         a list of (unassigned but reached items, item set needed, and possible item assignments). Each assignment
         is a dictionary, where key = item node name, and value = string value for item assigned there. Currently does
-        not allow items to be fixed, but an already-assigned items dictionary can be passed, and if every item there is in
-        items, then the behavior should be correct."""
+        not allow items to be fixed, but an already-assigned items dictionary can be passed."""
 
         #TODO: I think there's a way to make finished store less stuff - after all, we are only interested in keeping the
         # elements with a maximal number of wildcards for each item set.
-        #TODO: do we need offers? - just interested in finding a completable assignment
 
         # key - node name
         # key - item set
@@ -309,17 +307,18 @@ class ConstraintGraph(object):
                 final_state = state
                 break
             node_data = self.name_node[state.node].data
-            # in addition to fixed items, pass an assigments list and check it
+            # In addition to fixed items, pass an assigments list and check it
             if isinstance(node_data, Item):
-                # if we don't already have this item, pick it up
+                # If we don't already have this item, pick it up as a wildcard
                 if state.node not in wildcards and state.node not in assignments:
                     wildcards.add(state.node)
-                    # if there's not already an entry for this item set with at least as many wildcards, then add it
+                    # If there's not already an entry for this item set with at least as many wildcards, then add it
                     if not is_finished(state):
                         finished[state.node][state.items.copy()].append((wildcards.copy(), assignments.copy()))
                         queue.put(state.copy())
-                    # there's no need to process edges - picking up that item won't prevent you from crossing an edge
+                    # There's no need to process edges - picking up that item won't prevent you from crossing an edge
                     continue
+                # If we don't have the item but it was already assigned, pick it up as a fixed item
                 elif state.node in assignments:
                     if assignments[state.node] not in items:
                         state.items |= ItemSet([assignments[state.node]])
@@ -328,31 +327,31 @@ class ConstraintGraph(object):
                             queue.put(state.copy())
                         continue
             elif isinstance(node_data, Boss):
-                # if we haven't defeated this boss yet, do so
+                # If we haven't defeated this boss yet, do so (as a fixed item)
                 if node_data.type not in items:
                     state.items |= ItemSet([node_data.type])
                     if not is_finished(state):
                         finished[state.node][state.items.copy()].append((wildcards.copy(), assignments.copy()))
                         queue.put(state.copy())
-                    # there's no need to process edges - defeating that boss will allow you to cross strictly more edges
+                    # There's no need to process edges - defeating that boss will allow you to cross strictly more edges
                     continue
-            # now cross edges
+            # Now cross edges
             for edge in self.node_edges[state.node]:
-                # for each set, use some wildcards to cross it, then add that node with those assignments to the queue
+                # For each set, use some wildcards to cross it, then add that node with those assignments to the queue
                 for item_set in edge.items.sets:
-                    # items in item set that we don't already have
+                    # Items in item set that we don't already have
                     need_items = item_set - state.items
-                    # if we have enough wildcards to satisfy need_items and there are no fixed items that we do not already have
+                    # Can cross the edge if we have enough wildcards to satisfy need_items and there are no fixed items that we do not already have (i.e. bosses)
                     if len(need_items) <= len(wildcards) and len(need_items & fixed_items) == 0:
                         wildcards_copy = wildcards.copy()
                         items_copy = state.items.copy()
                         assignments_copy = assignments.copy()
-                        # make an assignment that allows crossing that edge
+                        # Make an assignment that allows crossing that edge
                         for item in need_items:
                             wildcard = wildcards_copy.pop()
                             assignments_copy[wildcard] = item
                             items_copy.add(item)
-                        # if there's not already an entry for this item set with at least as many wildcards, then add it
+                        # If there's not already an entry for this item set with at least as many wildcards, then add it
                         if not is_finished(BFSItemsState(edge.terminal, wildcards_copy, items_copy, assignments)):
                             # make sure finished has different pointers than queue!
                             finished[edge.terminal][items_copy].append((wildcards_copy.copy(), assignments_copy.copy()))
