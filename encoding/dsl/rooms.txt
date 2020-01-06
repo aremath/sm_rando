@@ -160,7 +160,7 @@ L
 ET
 
 Bomb_Torizo - 79804
-L 						- M
+L
 Bombs
 
 BT_Flyway - 79879
@@ -248,7 +248,7 @@ S
 Brinstar_Map_Entrance - 79B9D
 L
 R						- | B PB
-L <-> R					- | B
+L <-> R					- | B PB
 
 # I'm not satisfied with this encoding - 
 # it doesn't force you to leave the room if you
@@ -303,8 +303,7 @@ M2
 CB
 L1 <-> ALL				- | B PB
 ALL -> R3				- X
-R3 -> ALL				- & MB S
-ALL <-> R4				- | B PB SPB
+R3 -> ALL				- & (| B PB) S
 ALL <-> CB				- | B PB
 L5 <-> ALL				- PB
 ALL -> L3				- PB
@@ -367,7 +366,7 @@ M
 L2 <-> M				- MB
 L1 -> ALL				- | B PB
 ALL -> L1				- PB
-ALL -> E				- & PB SB
+ALL -> E				- | HJ SB
 
 Noob_Bridge - 79FBA
 L
@@ -449,7 +448,7 @@ ALL -> R1				- | IB (& SJ SA)
 Red_Brinstar_Firefleas - 7A293
 L						- M
 R
-L <-> R					- | G (& HJ V E) SJ
+L <-> R					- | G SJ
 
 X-Ray - 7A2CE
 R
@@ -514,8 +513,8 @@ ALL <-> R1				- B
 ALL -> M				- PB
 
 Baby_Kraid - 7A521
-L						- | CB SB
-R						- | CB SB
+L						- | CB SB M S
+R						- | CB SB M S
 
 Kraid_Eye_Door - 7A56B
 L
@@ -576,7 +575,7 @@ ALL -> M				- MB
 Cathedral_Entrance - 7A7B3
 L
 R						- M
-L -> R					- | HJ SB
+L -> R					- | HJ SJ SB
 L <-> R					- V
 
 Business_Center - 7A7DE
@@ -645,11 +644,9 @@ T -> L						- Crocomire
 L -> Crocomire				- X
 ALL -> Crocomire			- CB
 
-# You can get stuck in the 2-block high ceiling
 Hi_Jump - 7A9E5
 R
 HJ
-R -> HJ						- MB
 
 Crocomire_Escape - 7AA0E
 L
@@ -657,7 +654,7 @@ R
 M
 L -> (R M)						- X
 R -> L							- S
-R -> (L M)						- | SJ HJ G
+R -> (L M)						- | SJ (& SB HJ) G
 ALL <-> ALL						- V
 
 Hi_Jump_Energy - 7AA41
@@ -665,7 +662,7 @@ L
 R
 M
 E
-(L M) -> (E R)					- B
+(L M) -> (E R)					- | B PB
 (E R) -> (L M)					- MB
 L <-> M							- MB
 
@@ -752,7 +749,7 @@ Go_Fast - 7ACF0
 L
 R								- M
 M
-R -> L							- SB
+R -> L							- | SB GS
 ALL <-> ALL						- V
 
 Speed_Booster - 7AD18
@@ -933,14 +930,13 @@ ALL <-> ALL						- V
 Golden_Recharge - 7B305
 L
 
-# not sure what the ridley requirements should be...
 Ridley - 7B32E
 L
 R
 Ridley
 ALL <-> ALL						- V
 L <-> R							- Ridley
-ALL -> Ridley					- & S CB
+ALL -> Ridley					- & S CB PLB E
 
 Lower_Norfair_Farm - 7B37A
 L								- | M S
@@ -962,8 +958,8 @@ L
 R
 M
 L -> (R M)						- X
-(R M) -> L						- | S M
-L -> M							- | B PB SA
+(R M) -> L						- & CB E
+R -> M							- | B PB SA
 ALL <-> ALL						- V
 
 Pillars - 7B457
@@ -1118,13 +1114,12 @@ Electric_Room_of_Death - 7CBD5
 L1								- M
 L2
 R
-(L1 L2) -> R					- | SJ HJ GS
+ALL -> L2						- | SJ HJ GS
 
-# it's possible to reach the etank with no items :D
 Wrecked_Ship_Energy - 7CC27
 R
 E
-R -> E							- Phantoon
+R -> E							- & Phantoon (| G SJ GS)
 
 Basement - 7CC6F
 L
