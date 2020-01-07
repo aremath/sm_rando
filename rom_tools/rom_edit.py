@@ -254,3 +254,35 @@ def make_start_ammo(ammos, rom):
         ammo_bytes = ammo_amount.to_bytes(1, byteorder='little')
         rom.write_to_new(ammo_addrs[ammo_type], ammo_bytes)
 
+# Patch to make the item in the old mother brain room appear when zebes is asleep
+# offset should be free space in bank 8F
+# which starts at PC address 0x7e99a
+def make_old_mb_work(offset, rom):
+    a_awake = Address(0x8f83d0, mode="snes")
+    a_asleep = Address(0x8f83b6, mode="snes")
+    item_offset = Address(30)
+    # Only copy 18 to remove the grey door
+    old_plms = rom.read_from_clean(a_asleep, 18)
+    item_plm = rom.read_from_clean(a_awake + item_offset, 6)
+    new_plms = old_plms + item_plm + b"\x00\x00"
+    # Write the PLM set
+    rom.write_to_new(offset, new_plms)
+    # Write the pointer to the PLM set in the Old MB room header
+    ptr = offset.as_snes_bytes(2)
+    rom.write_to_new(Address(0x79781), ptr)
+    return offset + Address(len(new_plms))
+
+def make_morph_room_work(offset, rom):
+    pass
+
+# Turns crateria map room into a Golden 4 room
+# in order to make it easier to find golden 4
+def two_g4s(door_offset, rom):
+    pass
+
+# Catchall to apply small changes to the ROM that have to do with making the various logical changes work
+def logic_improvements(rom):
+    # Free space in bank 8f
+    free_8f = Address(0x7e99a)
+    free_8f = make_old_mb_work(free_8f, rom)
+

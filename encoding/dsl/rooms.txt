@@ -150,10 +150,10 @@ ALL <-> R1 				- | B PB
 ALL <-> R2				- | B PB
 
 Old_Mother_Brain - 7975C
-L						- X
+L
 R
 M
-(L R) -> M				- X
+(L R) -> M				- | SA B PB
 
 Blue_Brinstar_Elevator - 797B5
 L

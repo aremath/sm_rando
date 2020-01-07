@@ -177,6 +177,8 @@ def main(arg_list):
     # Now that we have the door changes and the item changes, implement them!
     # First, make the new rom file:
     rom = RomManager(args.clean, args.create)
+
+    # Make the rest of the necessary changes
     rom.set_escape_timer(escape_timer)
     if args.starting_items is not None:
         make_starting_items(args.starting_items, rom)
@@ -185,6 +187,10 @@ def main(arg_list):
     make_items(item_changes, rom)
     make_doors(door_changes, rom)
     make_saves(door_changes, rom)
+
+    # Logic improvements must happen last since they may
+    # copy PLMs, which can be edited via prior changes
+    logic_improvements(rom)
 
     # Save out the rom
     rom.save_and_close()
