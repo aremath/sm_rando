@@ -263,7 +263,8 @@ def make_old_mb_work(offset, rom):
     item_offset = Address(30)
     # Only copy 18 to remove the grey door
     old_plms = rom.read_from_clean(a_asleep, 18)
-    item_plm = rom.read_from_clean(a_awake + item_offset, 6)
+    # Read from new in case the item type was changed
+    item_plm = rom.read_from_new(a_awake + item_offset, 6)
     new_plms = old_plms + item_plm + b"\x00\x00"
     # Write the PLM set
     rom.write_to_new(offset, new_plms)
@@ -273,7 +274,24 @@ def make_old_mb_work(offset, rom):
     return offset + Address(len(new_plms))
 
 def make_morph_room_work(offset, rom):
-    pass
+    # First the address of the PLM list
+    a_awake = Address(0x8f86e6, mode="snes")
+    # Then the address of the PLM list pointer
+    awake_ptr = Address(0x79edf)
+    a_asleep = Address(0x8f867e, mode="snes")
+    asleep_ptr = Address(0x79ec5)
+    mb_offset = Address(96)
+    # Read form new in case the item type was changed
+    base_plms = rom.read_from_new(a_awake, 108)
+    mb_plm = rom.read_from_new(a_asleep + mb_offset, 6)
+    new_plms = base_plms + mb_plm + b"\x00\x00"
+    # Write the PLM set
+    rom.write_to_new(offset, new_plms)
+    # Update the pointers
+    ptr = offset.as_snes_bytes(2)
+    rom.write_to_new(awake_ptr, ptr)
+    rom.write_to_new(asleep_ptr, ptr)
+    return offset + Address(len(new_plms))
 
 # Turns crateria map room into a Golden 4 room
 # in order to make it easier to find golden 4
@@ -284,5 +302,9 @@ def two_g4s(door_offset, rom):
 def logic_improvements(rom):
     # Free space in bank 8f
     free_8f = Address(0x7e99a)
+    max_8f = Address(0x80000)
     free_8f = make_old_mb_work(free_8f, rom)
+    assert free_8f < max_8f
+    free_8f = make_morph_room_work(free_8f, rom)
+    assert free_8f < max_8f
 

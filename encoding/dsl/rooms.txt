@@ -343,8 +343,7 @@ R
 EB
 MB
 PB
-ALL <-> PB				- X
-ALL <-> MB				- X
+ALL -> PB				- PB
 L <-> ALL				- & PB E
 
 # Old MB room constraints
@@ -1262,7 +1261,7 @@ Pseudo_Plasma_Spark - 7D1DD
 L
 B
 M
-ALL -> L						- | GS (| HJ IB)
+ALL -> L						- | GS (& HJ IB)
 
 # technically you can get from L2 R2 -> L1 R1 without high jump or space jump if you have ice beam, but it's a little inconsistent.
 Crab_Hole - 7D21C
@@ -1331,8 +1330,8 @@ Oasis - 7D48E
 L
 R
 T							- S
-(L R) -> T					- | PB SA (& SPB B)
-T -> (L R)					- | B PB SA
+(L R) -> T					- & GS (| PB SA (& SPB B))
+T -> (L R)					- | B PB (& GS SA)
 
 East_Sand_Hall - 7D4C2
 L
@@ -1351,8 +1350,8 @@ ALL -> (M RT)				- & SPB GS (| HJ B)
 East_Sand_Hole - 7D51E
 TS							- X
 BS
-M							- | GS HJ
-PB							- GS
+M							- GS
+PB							- & MB GS
 
 West_Sand_Pit - 7D54D
 TS							- X

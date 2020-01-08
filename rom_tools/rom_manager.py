@@ -103,8 +103,6 @@ class RomManager(object):
         self.apply_ips("patches/g4_skip.ips")
         self.apply_ips("patches/max_ammo_display.ips")
         self.apply_ips("patches/wake_zebes.ips")
-        #TODO: why does this break everything?
-        #self.apply_ips("patches/introskip_doorflags.ips")
 
     def set_escape_timer(self, time):
         # Change escape timer
