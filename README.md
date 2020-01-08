@@ -1,4 +1,4 @@
-# Super Metroid World Randomizer Version 0.0.4
+# Super Metroid World Randomizer Version 0.0.5
 Door and item randomization of Super Metroid. If you've played route rando before, it is kind of like that.
 
 You need a Super Metroid [JU] ROM and Python 3.
@@ -32,6 +32,8 @@ This means that the same seed with different starting items can produce differen
 There isn't a simple way to edit your starting reserve tanks. The program will give you a warning if you try to add a starting item that isn't implemented, and not give you that item.
 
 If you have graphviz, the `--graph` command-line option will also generate a room graph showing the ways the rooms are connected in this seed. Minibosses are colored green, bosses are colored red, Samus' ship is colored blue, the golden statues room is colored yellow, and the end of Tourian escape (and the beginning of the rest of escape) is colored purple.
+
+The `--g8` command-line option changes the Crateria map station into another copy of the Golden 4 room in order to make Tourian slightly easier to find. Note, however, that leaving Tourian by the elevator leaves you in the actual Golden 4 room. This change does not currently impact the logic.
 
 Finally, the `--debug` option will let you see the generated door transitions as they are created. If you don't include `--debug` you will see a neat progress bar that shows how many of the rooms have been placed.
 
@@ -86,7 +88,6 @@ As a final note, the current settings do not interact with the RNG used to decid
 * If you enter Crocomire, Shaktool, and a couple of other boss rooms through the wrong door, the screen glitches out. Don't panic! If you can navigate the room without being able to see, you should be able to shoot the door and make it back out.
 * The Zip Tube room in Maridia does not appear in the randomizer because the player can't move after going through it! I need to do some door ASM edits to get it to work, and there are some higher priorities.
 * Sometimes you get stuck in the wall when moving from one sand pit to another.
-* The room where you get morph ball is weird - The items might not appear until Zebes is awake, but might disappear if you visit it before Zebes is awake. As far as the logic is concerned, the items in the morph ball room are never reachable.
 
 ## You Can Help!
 * If you notice a bug, or have some advice, open an issue on the github, and I'll try to check it periodically and make improvements. I'm somewhat busy, so I might not be able to consistently provide support, but I'll do what I can.
@@ -98,7 +99,6 @@ As a final note, the current settings do not interact with the RNG used to decid
 This is just a list of things I'm working on: bugs to fix, features to implement, etc. If you have an insight into how to make one of them happen, let me know!
 * Fix the boss screen scroll glitch / make the other side of the boss room a grey door.
 * Make the algorithm better at avoiding softlocks.
-* Figure out what to do about Zebes awake-/asleep-ness
 * Make the spoiler file more descriptive and more useful
 * Keep your ammo after the Mother Brain fight.
 

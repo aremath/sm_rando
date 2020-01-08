@@ -84,6 +84,7 @@ def get_args(arg_list):
     parser.add_argument("--graph", action="store_true", help="create a room graph spoiler file. You will need graphviz installed in your $PATH")
     parser.add_argument("--debug", action="store_true", required=False, help="print debug information while creating the room layout.")
     parser.add_argument("--settings", metavar="<folder>", required=False, help="The path to a folder with settings files. Used for updating things like what items the randomizer will use")
+    parser.add_argument("--g8", action="store_true", required=False, help="If set, will change the Crateria map room into a second copy of the G4 room.")
     #TODO argument for which algorithm to use
     args = parser.parse_args(arg_list)
     return args
@@ -190,7 +191,7 @@ def main(arg_list):
 
     # Logic improvements must happen last since they may
     # copy PLMs, which can be edited via prior changes
-    logic_improvements(rom)
+    logic_improvements(rom, args.g8)
 
     # Save out the rom
     rom.save_and_close()

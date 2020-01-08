@@ -295,11 +295,32 @@ def make_morph_room_work(offset, rom):
 
 # Turns crateria map room into a Golden 4 room
 # in order to make it easier to find golden 4
-def two_g4s(door_offset, rom):
-    pass
+def two_g4s(offset, rom):
+    g4_ptr = Address(0x7a66a)
+    crateria_map_ptr = Address(0x79994)
+    # Standard 1-state room header is 39 bytes
+    g4_header = rom.read_from_clean(g4_ptr, 39)
+    # Write the g4 room header over the crateria map room header
+    rom.write_to_new(crateria_map_ptr, g4_header)
+    # Create the new door list
+    # Door1 is the actual crateria map door
+    door1 = Address(0x818c2e, mode="snes")
+    # Door2 and Door3 are stolen from G4 and leads to Tourian (extra door for elevator)
+    door2 = Address(0x819222, mode="snes")
+    door3 = Address(0x8188fc, mode="snes")
+    d1b = door1.as_snes_bytes(2)
+    d2b = door2.as_snes_bytes(2)
+    d3b = door3.as_snes_bytes(2)
+    doors = d1b + d2b + d3b
+    rom.write_to_new(offset, doors)
+    # Write the pointer to the new doors inside the header
+    doors_ptr_loc = Address(0x7999d)
+    doors_ptr = offset.as_snes_bytes(2)
+    rom.write_to_new(doors_ptr_loc, doors_ptr)
+    return offset + Address(len(doors))
 
 # Catchall to apply small changes to the ROM that have to do with making the various logical changes work
-def logic_improvements(rom):
+def logic_improvements(rom, g4):
     # Free space in bank 8f
     free_8f = Address(0x7e99a)
     max_8f = Address(0x80000)
@@ -307,4 +328,7 @@ def logic_improvements(rom):
     assert free_8f < max_8f
     free_8f = make_morph_room_work(free_8f, rom)
     assert free_8f < max_8f
+    if g4:
+        free_8f = two_g4s(free_8f, rom)
+        assert free_8f < max_8f
 
