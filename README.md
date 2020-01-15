@@ -35,6 +35,8 @@ If you have graphviz, the `--graph` command-line option will also generate a roo
 
 The `--g8` command-line option changes the Crateria map station into another copy of the Golden 4 room in order to make Tourian slightly easier to find. Note, however, that leaving Tourian by the elevator leaves you in the actual Golden 4 room. This change does not currently impact the logic.
 
+The `--hard_mode` command-line option will switch to the harder logic preset, potentially requiring a lot of difficult tricks to complete a seed.
+
 Finally, the `--debug` option will let you see the generated door transitions as they are created. If you don't include `--debug` you will see a neat progress bar that shows how many of the rooms have been placed.
 
 The randomizer also provides a spoiler file with the same name as your rom but with `.spoiler.txt` appended. This spoiler file is a work in progress: right now it only contains the shortest path to escape Zebes and the list of door changes.
