@@ -85,6 +85,7 @@ def get_args(arg_list):
     parser.add_argument("--debug", action="store_true", required=False, help="print debug information while creating the room layout.")
     parser.add_argument("--settings", metavar="<folder>", required=False, help="The path to a folder with settings files. Used for updating things like what items the randomizer will use")
     parser.add_argument("--g8", action="store_true", required=False, help="If set, will change the Crateria map room into a second copy of the G4 room.")
+    parser.add_argument("--hard_mode", action="store_true", required=False, help="Enables hard mode logic for all rooms.")
     #TODO argument for which algorithm to use
     args = parser.parse_args(arg_list)
     return args
@@ -111,7 +112,10 @@ def main(arg_list):
     completable = False
     while not completable:
         #TODO: re-parsing rooms is quick and dirty...
-        rooms = parse_rooms("encoding/dsl/rooms.txt")
+        if args.hard_mode:
+            rooms = parse_rooms("encoding/dsl/rooms_hard.txt")
+        else:
+            rooms = parse_rooms("encoding/dsl/rooms.txt")
         door_changes, item_changes, graph, state = item_quota_rando(rooms, args.debug, starting_items, items_to_place[:])
         # Check completability - can reach statues?
         start_state = BFSState(state.node, state.items)
