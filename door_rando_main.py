@@ -119,6 +119,7 @@ def main(arg_list):
         door_changes, item_changes, graph, state = item_quota_rando(rooms, args.debug, starting_items, items_to_place[:])
         # Check completability - can reach statues?
         start_state = BFSState(state.node, state.items)
+        # This takes too long
         #start_state = BFSState("Landing_Site_R2", ItemSet())
         end_state = BFSState("Statues_ET", ItemSet())
         path_to_statues = graph.check_completability(start_state, end_state)
