@@ -99,6 +99,8 @@ class RomManager(object):
         # Fix chozo/hidden morph item actually giving spring ball
         self.write_to_new(Address(0x268ce), b"\x04")
         self.write_to_new(Address(0x26e02), b"\x04")
+        # Fix screw attack selection
+        self.write_to_new(Address(0x134c5), b"\x0c")
         # Apply other IPSs #TODO: make sure this works!
         self.apply_ips("patches/g4_skip.ips")
         self.apply_ips("patches/max_ammo_display.ips")

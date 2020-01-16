@@ -1371,6 +1371,7 @@ BS1
 BS2
 M
 S
+(BS1 BS2) -> ALL			- X
 ALL -> (M S)				- & GS SB
 L1 -> ALL					- PB
 (R BS1 BS2 M S L2) -> L1	- & GS (| PB B SA)

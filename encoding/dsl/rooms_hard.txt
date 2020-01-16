@@ -1373,6 +1373,7 @@ BS1
 BS2
 M
 S
+(BS1 BS2) -> ALL			- X
 ALL -> (M S)				- GS
 L1 -> ALL					- PB
 ALL -> L1					- PB
