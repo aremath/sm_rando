@@ -132,6 +132,7 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
                     print("Placing " + chosen_entrance + " at " + chosen_exit[:-5])
                 #TODO: don't break after placing statues
                 if chosen_entrance == "Statues_L":
+                    #print("PLACED STATUES")
                     break
                 # Pick a path-through to follow and update the current state.
                 current_state = choose_random_state(paths_through)

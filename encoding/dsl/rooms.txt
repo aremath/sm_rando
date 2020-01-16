@@ -1401,7 +1401,7 @@ L1 -> R2					- GS
 L2 -> R1					- X
 R1 -> L2					- GS
 
-# what's going on here??
+# Not used in the logic, but is an actual room in the game, so included here.
 Pants_Right - 7D69A
 L
 R
@@ -1442,6 +1442,7 @@ R
 E
 BS1
 BS2
+(BS1 BS2) -> ALL			- X
 L -> R						- | (& GS (| B PB SPB SB)) (& HJ SPB)
 L -> E						- & MB (| GS HJ)
 R -> (E L BS1 BS2)			- | (& HJ SPB) (& GS (| B PB SPB))

@@ -1435,6 +1435,7 @@ R
 E
 BS1
 BS2
+(BS1 BS2) -> ALL			- X
 L -> R						- | (& GS (| B PB SPB SB MB)) (& HJ MB) SPB
 L -> E						- & MB (| GS HJ)
 R -> (E L BS1 BS2)			- | (& HJ MB) (& GS (| B PB SPB SB MB)) SPB

@@ -139,16 +139,16 @@ def clean_rooms(rooms):
     """remove some rooms we don't want to change from the dictionary of rooms"""
     #TODO: this doesn't quite work... poping a room means I don't want to randomize any of its doors
 
-    # get rid of pants_right - we're not using it: the cases in rom_edit will handle this.
+    # Get rid of pants_right - we're not using it: the cases in rom_edit will handle this.
     rooms.pop("Pants_Right")
-    # don't randomize Ceres
+    # Don't randomize Ceres
     rooms.pop("Ceres_Entrance")
     rooms.pop("Ceres_1")
     rooms.pop("Ceres_2")
     rooms.pop("Ceres_3")
     rooms.pop("Ceres_4")
     rooms.pop("Ceres_Ridley")
-    # don't randomize tourian or escape
+    # Don't randomize tourian or escape
     rooms.pop("Tourian_Elevator")
     rooms.pop("Metroid_Can_He_Crawl?")
     rooms.pop("Metroid_The_Return_of_Samus")
@@ -167,7 +167,7 @@ def clean_rooms(rooms):
     rooms.pop("Escape_2")
     rooms.pop("Escape_3")
     rooms.pop("Tourian_Save")
-    #TODO - until I figure out what's wrong there...
+    # Remove Zip Tube until I get the door asm to work properly
     rooms.pop("Zip_Tube")
 
     #TODO: this doesn't quite work either - the resulting graph is messed up!

@@ -148,7 +148,7 @@ def parse_saves(save_file):
 
 def make_saves(door_changes, rom):
     door_from, _ = parse_doors("encoding/dsl/door_defns.txt", rom)
-    # The last 4 bytes comprise the pointer
+    # The last 2 bytes comprise the pointer
     door_from = {node: addr.as_snes_bytes(2) for node, addr in door_from.items()}
     save_locs = parse_saves("encoding/dsl/saves.txt")
     for ldoor, rdoor in door_changes:
