@@ -539,7 +539,8 @@ L
 Statues - 7A66A
 L
 ET
-L <-> ET				- & Kraid Phantoon Draygon Ridley
+Statues
+L <-> (ET Statues)		- & Kraid Phantoon Draygon Ridley
 
 Warehouse_Entrance - 7A6A1
 L

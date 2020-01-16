@@ -1,7 +1,8 @@
-
 from .alg_support import *
 from misc.progress_bar import *
+
 import random
+import itertools
 
 #TODO: Room Orientation randomization???? (far future)
 #TODO: This doesn't always take the "right" path-through. For example,
@@ -99,6 +100,8 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
 
         if len(reachable_exits.keys()) == 0:
             # if there aren't any reachable exits, place the rest of the rooms at random - hopefully there's a path to statues :)
+            if debug:
+                print("No reachable exits")
             break
             #assert False, "No reachable exits: \n" + str(door_changes) + "\n" + str(current_assignments)
         
@@ -119,6 +122,9 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
             # Find an entrance that matches - TODO - for loop - all entrances that match
             if len(room.doors[room_direction]) == 0:
                 continue
+            if room_name == "Statues" and debug:
+                print("Considering Statues")
+                print(exit_state)
             chosen_entrance = random.choice(room.doors[room_direction])
             #TODO: where to start the BFS?
             entrance_state = BFSItemsState(chosen_entrance, exit_state.wildcards, exit_state.items, exit_state.assignments)
@@ -126,14 +132,10 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
             paths_through = filter_paths(paths_through, entrance_state, room_dummy_exits)
             # If there is at least one path-through - take one
             if len(paths_through) > 0:
-                #print current_assignments
-                #print current_wildcards
                 if debug:
                     print("Placing " + chosen_entrance + " at " + chosen_exit[:-5])
-                #TODO: don't break after placing statues
-                if chosen_entrance == "Statues_L":
-                    #print("PLACED STATUES")
-                    break
+                    if chosen_entrance == "Statues_L":
+                        print("PLACED STATUES")
                 # Pick a path-through to follow and update the current state.
                 current_state = choose_random_state(paths_through)
                 # Remove "dummy"
@@ -407,7 +409,7 @@ def choose_random_state(finished):
     """chooses a random state from finished"""
     
     #TODO: quick and dirty fix
-    # filter out empty entries of finished
+    # Filter out empty entries of finished
     finished = to_states(finished)
     finished = from_states(finished)
 
@@ -415,4 +417,22 @@ def choose_random_state(finished):
     items = random.choice(list(finished[node].keys()))
     wildcards, assignments = random.choice(finished[node][items])
     return BFSItemsState(node, wildcards, items, assignments)
+
+def all_states(finished):
+    """Finds all the BFSItemsStates in finished"""
+    # Filter out empty entries
+    finished = to_states(finished)
+    finished = from_states(finished)
+
+    states = []
+    nodes = list(finished.keys())
+    for n in nodes:
+        items = list(finished[n].keys())
+        for i in items:
+            # Wildcard, Assignment pairs
+            was = finished[n][i]
+            for w,a in was:
+                s = BFSItemsState(n, w, i, a)
+                states.append(s)
+    return states
 

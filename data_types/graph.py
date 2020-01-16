@@ -269,8 +269,9 @@ class ConstraintGraph(object):
         not allow items to be fixed, but an already-assigned items dictionary can be passed."""
 
         #TODO: I think there's a way to make finished store less stuff - after all, we are only interested in keeping the
-        # elements with a maximal number of wildcards for each item set.
-
+        # elements with a maximal NUMBER of wildcards for each item set.
+        #TODO: finished should be a list of BFSItemsState?
+        
         # key - node name
         # key - item set
         # value - list of tuples of (wildcards (set), assignments (key - node, value - item assignment))
@@ -300,6 +301,7 @@ class ConstraintGraph(object):
         queue.put(start_state)
         while queue.qsize() > 0:
             state = queue.get()
+            #print("State: {}".format(state))
             wildcards = state.wildcards
             items = state.items
             assignments = state.assignments
@@ -341,8 +343,10 @@ class ConstraintGraph(object):
                 for item_set in edge.items.sets:
                     # Items in item set that we don't already have
                     need_items = item_set - state.items
+                    #print("Need items: {}".format(need_items))
                     # Can cross the edge if we have enough wildcards to satisfy need_items and there are no fixed items that we do not already have (i.e. bosses)
                     if len(need_items) <= len(wildcards) and len(need_items & fixed_items) == 0:
+                        #print("Can cross")
                         wildcards_copy = wildcards.copy()
                         items_copy = state.items.copy()
                         assignments_copy = assignments.copy()
@@ -350,7 +354,8 @@ class ConstraintGraph(object):
                         for item in need_items:
                             wildcard = wildcards_copy.pop()
                             assignments_copy[wildcard] = item
-                            items_copy.add(item)
+                            items_copy = items_copy.add(item)
+                        #print("Items: {}, wildcards: {}".format(items_copy, wildcards_copy))
                         # If there's not already an entry for this item set with at least as many wildcards, then add it
                         if not is_finished(BFSItemsState(edge.terminal, wildcards_copy, items_copy, assignments)):
                             # make sure finished has different pointers than queue!
@@ -400,7 +405,7 @@ class ConstraintGraph(object):
 
     def __repr__(self):
         self_str = ""
-        for node_name, edges in self.node_edges.iteritems():
+        for node_name, edges in self.node_edges.items():
             self_str += node_name + "\n"
             for edge in edges:
                 self_str += "\t" + str(edge.terminal) + "\t" + str(edge.items) + "\n"

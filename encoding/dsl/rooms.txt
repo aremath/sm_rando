@@ -541,7 +541,8 @@ L
 Statues - 7A66A
 L
 ET
-L <-> ET				- & Kraid Phantoon Draygon Ridley
+Statues
+L <-> (ET Statues)		- & Kraid Phantoon Draygon Ridley
 
 Warehouse_Entrance - 7A6A1
 L
@@ -933,9 +934,9 @@ Ridley - 7B32E
 L
 R
 Ridley
-ALL <-> ALL						- V
 L <-> R							- Ridley
 ALL -> Ridley					- & S CB PLB E
+ALL <-> ALL						- V
 
 Lower_Norfair_Farm - 7B37A
 L								- | M S

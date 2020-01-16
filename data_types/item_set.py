@@ -38,6 +38,7 @@ item_mapping = {
     "Drain" : 1 << 32,
     "Shaktool" : 1 << 33,
     "START" : 1 << 34,
+    "Statues" : 1 << 35,
 }
 
 class ItemSet(object):
