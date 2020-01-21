@@ -123,10 +123,11 @@ def main(arg_list):
         #start_state = BFSState("Landing_Site_R2", ItemSet())
         end_state = BFSState("Statues_ET", ItemSet())
         path_to_statues = graph.check_completability(start_state, end_state)
-        final_path = path + path_to_statues
+        final_path = path_to_statues
         escape_path = None
         completable = path_to_statues is not None
         if completable:
+            final_path = path + path_to_statues
             # Check completability - can escape?
             items = all_items | ItemSet(["Kraid", "Phantoon", "Draygon", "Ridley"])
             prepare_for_escape(graph)
