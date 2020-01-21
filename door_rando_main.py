@@ -92,7 +92,6 @@ def get_args(arg_list):
 def main(arg_list):
     args = get_args(arg_list)
     seed = rng.seed_rng(args.seed)
-    print(str(seed))
     spoiler_file = open(args.create + ".spoiler.txt", "w")
     # Update the settings from JSON files
     if args.settings is not None:

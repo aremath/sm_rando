@@ -255,7 +255,7 @@ L <-> R					- | B PB
 # start at R and go to L, then want to go back to R
 Early_Supers - 79BC8
 L
-R
+R						- M
 S
 M
 M -> R					- X

@@ -30,8 +30,10 @@
 
 from .minsetset import *
 from .item_set import *
+from .orderedset import *
+
 import collections
-from queue import *
+import random
 
 #TODO: now that node, item set are both hashable... hash this?
 #TODO: alter graph so that the edge list is part of the node data structure?
@@ -272,13 +274,10 @@ class ConstraintGraph(object):
 
         #TODO: I think there's a way to make finished store less stuff - after all, we are only interested in keeping the
         # elements with a maximal NUMBER of wildcards for each item set.
-        #TODO: finished should be a set of BFSItemsState?
-        
-        # key - node name
-        # key - item set
-        # value - list of tuples of (wildcards (set), assignments (key - node, value - item assignment))
-        #finished = collections.defaultdict(lambda: collections.defaultdict(list))
-        finished = set()
+        # Set of BFSItemsState
+        # Ordered so that you can randomly choose from it without relying
+        # on the internal hash function which is randomly salted.
+        finished = OrderedSet()
 
         # Key - BFSItemsState (antecessor)
         # Value - BFSItemsState (predecessor)
@@ -354,7 +353,9 @@ class ConstraintGraph(object):
                         assignments_copy = assignments.copy()
                         # Make an assignment that allows crossing that edge
                         for item in need_items:
-                            wildcard = wildcards_copy.pop()
+                            # Use random instead of pop to prevent hashing shenanigans
+                            wildcard = random.choice(list(wildcards_copy))
+                            wildcards_copy.remove(wildcard)
                             assignments_copy[wildcard] = item
                             items_copy = items_copy.add(item)
                         new_state = BFSItemsState(edge.terminal, wildcards_copy, items_copy, assignments_copy)

@@ -64,6 +64,7 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
         # Wildcard BFS to find reachable exits
         o, bfs_finished, _, _ = current_graph.BFS_items(current_state, None, fixed_items)
         reachable_exits = [s for s in bfs_finished if s.node in dummy_exits]
+        #print(reachable_exits)
 
         #TODO: Consider multiple backtracks?
         # CONSIDER BACKTRACKING:
@@ -100,6 +101,7 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
             # Otherwise, repair the damage to the graph and keep going
             else:
                 current_graph.remove_node(intermediate)
+
         if len(reachable_exits) == 0:
             # if there aren't any reachable exits, place the rest of the rooms at random - hopefully there's a path to statues :)
             if debug:
@@ -149,9 +151,9 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
                             print("PLACED STATUES")
                             statues_state = exit_state.copy()
                             statues_state.node = chosen_exit[:-5]
+                    #print("PATHS: {}".format(paths_through))
                     # Pick a path-through to follow and update the current state.
-                    current_state = random.choice(paths_through)
-                    #current_state = choose_random_state(paths_through)
+                    current_state = random.choice(list(paths_through))
                     # Remove "dummy"
                     current_state.node = current_state.node[:-5]
 
@@ -380,7 +382,7 @@ def basic_rando(rooms):
     random.shuffle(items_to_place)
 
     # get a random order for rooms
-    rooms_to_place = rooms.keys()
+    rooms_to_place = list(rooms.keys())
     random.shuffle(rooms_to_place)
 
     door_changes = []
