@@ -106,7 +106,8 @@ class RomManager(object):
         self.apply_ips("patches/max_ammo_display.ips")
         self.apply_ips("patches/wake_zebes.ips")
         # Fix sand rooms so that you can't get stuck
-        self.apply_ips("patches/no_sand_bs.ips")
+        #TODO: find out what is wrong with this
+        #self.apply_ips("patches/no_sand_bs.ips")
 
     def set_escape_timer(self, time):
         # Change escape timer
