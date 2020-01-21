@@ -99,41 +99,7 @@ def filter_paths(paths_through, state, room_exits):
         else:
             return False
 
-    return filter_finished(is_path, paths_through)
-
-def to_states(items_finished):
-    """takes a BFS_items result and converts it into a list of states"""
-    states = []
-    for node, idc in items_finished.items():
-        for items, wilds in idc.items():
-            for wild in wilds:
-                states.append(BFSItemsState(node, wild[0], items, wild[1]))
-    return states
-
-def from_states(bfs_states):
-    """takes a list of BFSItemsStates and converts it to a BFS_items result"""
-    finished = collections.defaultdict(lambda: collections.defaultdict(list))
-    for state in bfs_states:
-        finished[state.node][state.items].append((state.wildcards, state.assignments))
-    return finished
-
-#TODO: filter the to_states list so that only pareto-maximal elements are kept ?
-# - want to use states that keep wildcards instead of items
-# - want to use states that pick up wildcards instead of leaving them
-def filter_finished(pred, finished):
-    """filters the bfs_items result to all states matching pred"""
-    states = to_states(finished)
-    states = filter(pred, states)
-    return from_states(states)
-
-def print_finished(finished):
-    "prints a BFS_Items finished table"
-    for node in finished:
-        print(node)
-        for iset in finished[node]:
-            print("\t" + str(iset))
-            for wildcards, assignments in finished[node][iset]:
-                print("\t\t" + str(wildcards) + "\t" + str(assignments))
+    return list(filter(is_path, paths_through))
 
 def clean_rooms(rooms):
     """remove some rooms we don't want to change from the dictionary of rooms"""
@@ -237,8 +203,11 @@ def check_backtrack(graph, current_state, backtrack_node, dummy_exits, fixed_ite
             graph.add_edge(backtrack_node, intermediate, backtrack_node_constraints)
             graph.add_edge(intermediate, current_state.node)
     # Find the reachable exits under the new scheme (start from current node, to ensure you can get to backtrack exit)
-    backtrack_finished, _, _ = graph.BFS_items(current_state, fixed_items=fixed_items)
-    backtrack_exits = {exit: backtrack_finished[exit] for exit in dummy_copy if len(backtrack_finished[exit]) != 0}
+    backtrack_offers, backtrack_finished, _, _ = graph.BFS_items(current_state, fixed_items=fixed_items)
+    backtrack_exits = [s for s in backtrack_finished if s.node in dummy_copy]
     # Return the intermediate so that the alg can remove it if this backtrack wasn't used
-    return backtrack_exits, dummy_copy, intermediate
+    return backtrack_offers, backtrack_exits, dummy_copy, intermediate
 
+def augment_offers(offers, other_offers):
+    for k,v in other_offers.items():
+        offers[k] = v

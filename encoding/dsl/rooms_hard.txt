@@ -305,7 +305,7 @@ R3 -> ALL				- & (| B PB) S
 ALL <-> R4				- | MB
 ALL <-> CB				- | B PB
 L5 <-> ALL				- PB
-ALL -> L3				- PB
+ALL <-> L3				- PB
 
 Pre-Spore_Kihunters - 79D9C
 L

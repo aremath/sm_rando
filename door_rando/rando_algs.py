@@ -15,9 +15,6 @@ import itertools
 # and no "check if there's a dummy exit" cases
 
 #TODO: figure out where / why this is getting stuck
-#TODO: keep the state at the end to help with the final BFS
-#TODO: see if the item quota idea actually works??
-#TODO: use connect_doors and make_door in the item quota??
 
 # New idea - give the player some items, then just randomly place the rest of the map
 def item_quota_rando(rooms, debug, starting_items, items_to_place):
@@ -49,8 +46,10 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
     # Initialize changes
     door_changes = []
     item_changes = []
-    # keeps track of placed but not assigned item nodes
+    # Keeps track of placed but not assigned item nodes
     unassigned_item_nodes = []
+    #
+    path = []
     # make dummy exit nodes for landing_site
     # these dummy exits serve to let the BFS search not just reachable doors, but enterable doors.
     current_graph, dummy_exits = dummy_exit_graph(current_graph, exits_to_connect)
@@ -60,11 +59,11 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
 
     #TODO: maybe doing this places too many items too early?
     while len(rooms_to_place) > 0:
+        # To record the current state and remember the path
+        start_state = current_state.copy()
         # Wildcard BFS to find reachable exits
-        bfs_finished, _, _ = current_graph.BFS_items(current_state, None, fixed_items)
-        #print_finished(bfs_finished)
-        # Dict comprehension - entries of bfs_finished that are dummy exits and actually have a path to them.
-        reachable_exits = {exit: bfs_finished[exit] for exit in dummy_exits if len(bfs_finished[exit]) != 0}
+        o, bfs_finished, _, _ = current_graph.BFS_items(current_state, None, fixed_items)
+        reachable_exits = [s for s in bfs_finished if s.node in dummy_exits]
 
         #TODO: Consider multiple backtracks?
         # CONSIDER BACKTRACKING:
@@ -74,12 +73,12 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
         # If we haven't already connected the current exit and if there is a valid backtracking exit
         if current_state.node in exits_to_connect[current_direction] and len(exits_to_connect[door_hookups[current_direction]]) > 0:
             backtrack_exit = random.choice(exits_to_connect[door_hookups[current_direction]])
-            backtrack_finished, dummy_copy, intermediate = check_backtrack(current_graph, current_state, backtrack_exit, dummy_exits, fixed_items)
+            backtrack_o, backtrack_finished, dummy_copy, intermediate = check_backtrack(current_graph, current_state, backtrack_exit, dummy_exits, fixed_items)
 
             #TODO: greater than or equal to?
             #TODO: how much of this should be in check_backtracks? technically all of this could be moved
             # If there are more reachable exits by backtracking, do so!
-            if len(backtrack_finished.keys()) > len(reachable_exits.keys()):
+            if len(backtrack_finished) > len(reachable_exits):
                 # Those dummy exits aren't there anymore
                 # Remove the actual dummy exits from the graph
                 if current_state.node + "dummy" in dummy_exits:
@@ -93,21 +92,22 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
                 exits_to_connect[door_hookups[current_direction]].remove(backtrack_exit)
                 # Update door changes
                 door_changes.append((current_state.node, backtrack_exit))
-                # Set reachable exits so that the next part works
+                # Set reachable exits we got from backtracking
                 reachable_exits = backtrack_finished
+                o = backtrack_o
+                if debug:
+                    print("\tBacktrack connecting {} to {}".format(current_state.node, backtrack_exit))
             # Otherwise, repair the damage to the graph and keep going
             else:
                 current_graph.remove_node(intermediate)
-
-        if len(reachable_exits.keys()) == 0:
+        if len(reachable_exits) == 0:
             # if there aren't any reachable exits, place the rest of the rooms at random - hopefully there's a path to statues :)
             if debug:
                 print("No reachable exits")
             break
             #assert False, "No reachable exits: \n" + str(door_changes) + "\n" + str(current_assignments)
         
-        #exit_state = choose_random_state(reachable_exits)
-        exit_states = all_states(reachable_exits)
+        exit_states = reachable_exits
         random.shuffle(exit_states)
         found = False
         # Keep trying until we exhaust the list of exit states too
@@ -139,7 +139,7 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
                 chosen_entrance = random.choice(room.doors[room_direction])
                 #TODO: where to start the BFS?
                 entrance_state = BFSItemsState(chosen_entrance, exit_state.wildcards, exit_state.items, exit_state.assignments)
-                paths_through, _, _ = room_graph.BFS_items(entrance_state, None, fixed_items)
+                room_o, paths_through, _, _ = room_graph.BFS_items(entrance_state, None, fixed_items)
                 paths_through = filter_paths(paths_through, entrance_state, room_dummy_exits)
                 # If there is at least one path-through - take one. We are going to definitely place this room.
                 if len(paths_through) > 0:
@@ -150,7 +150,8 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
                             statues_state = exit_state.copy()
                             statues_state.node = chosen_exit[:-5]
                     # Pick a path-through to follow and update the current state.
-                    current_state = choose_random_state(paths_through)
+                    current_state = random.choice(paths_through)
+                    #current_state = choose_random_state(paths_through)
                     # Remove "dummy"
                     current_state.node = current_state.node[:-5]
 
@@ -187,6 +188,16 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
                     if not debug:
                         print_progress_bar(nrooms_placed, nrooms, prefix=progress_prefix)
                     found = True
+                    # The last element will always be a dummy node
+                    path_to_room = bfs_items_backtrack(start_state, exit_state, o)[:-1]
+                    n_path_to_room = [s.node for s in path_to_room]
+                    path_in_room = bfs_items_backtrack(entrance_state, current_state, room_o)
+                    n_path_in_room = [s.node for s in path_in_room]
+                    local_path = n_path_to_room + n_path_in_room
+                    # The local_paths always contain the same node at start and end
+                    path += local_path[1:]
+                    if debug:
+                        print("\tUsing {}".format(local_path))
 
         # We're done with the loop over states and didn't find anything :(
         if not found:
@@ -303,7 +314,7 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
         final_state = current_state
     else:
         final_state = statues_state
-    return door_changes, item_changes, current_graph, final_state
+    return door_changes, item_changes, current_graph, final_state, path
 
 #UNFINISHED:
 def completable_rando(rooms):
