@@ -22,6 +22,10 @@ class OrderedSet(collections.MutableSet):
             curr = end[1]
             curr[2] = end[1] = self.map[key] = [key, curr, end]
 
+    def copy(self):
+        c = OrderedSet(self)
+        return c
+
     def discard(self, key):
         if key in self.map:        
             key, prev, next = self.map.pop(key)

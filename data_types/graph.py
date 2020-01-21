@@ -66,7 +66,7 @@ class BFSState(object):
 class BFSItemsState(object):
 
     #TODO: argument order??
-    def __init__(self, node_, wildcards_=set(), items_=ItemSet(), assignments_={}):
+    def __init__(self, node_, wildcards_=OrderedSet(), items_=ItemSet(), assignments_={}):
         self.node = node_
         self.items = items_
         self.wildcards = wildcards_
