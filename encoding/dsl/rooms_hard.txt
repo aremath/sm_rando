@@ -254,7 +254,7 @@ L <-> R					- | B PB
 # start at R and go to L, then want to go back to R
 Early_Supers - 79BC8
 L
-R
+R						- M
 S
 M
 M -> R					- X
@@ -305,7 +305,7 @@ R3 -> ALL				- & (| B PB) S
 ALL <-> R4				- | MB
 ALL <-> CB				- | B PB
 L5 <-> ALL				- PB
-ALL -> L3				- PB
+ALL <-> L3				- PB
 
 Pre-Spore_Kihunters - 79D9C
 L
@@ -343,7 +343,7 @@ MB
 PB
 L -> PB					- & (| B PB) E
 L -> (EB MB R)			- & PB E
-R -> PB					- PB
+(EB R) -> PB			- PB
 R -> L					- & PB E
 
 # Old MB room constraints
@@ -539,7 +539,8 @@ L
 Statues - 7A66A
 L
 ET
-L <-> ET				- & Kraid Phantoon Draygon Ridley
+Statues
+L <-> (ET Statues)		- & Kraid Phantoon Draygon Ridley
 
 Warehouse_Entrance - 7A6A1
 L
@@ -1372,6 +1373,7 @@ BS1
 BS2
 M
 S
+(BS1 BS2) -> ALL			- X
 ALL -> (M S)				- GS
 L1 -> ALL					- PB
 ALL -> L1					- PB
@@ -1435,6 +1437,7 @@ R
 E
 BS1
 BS2
+(BS1 BS2) -> ALL			- X
 L -> R						- | (& GS (| B PB SPB SB MB)) (& HJ MB) SPB
 L -> E						- & MB (| GS HJ)
 R -> (E L BS1 BS2)			- | (& HJ MB) (& GS (| B PB SPB SB MB)) SPB

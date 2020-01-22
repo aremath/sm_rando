@@ -1,7 +1,8 @@
-
 from .alg_support import *
 from misc.progress_bar import *
+
 import random
+import itertools
 
 #TODO: Room Orientation randomization???? (far future)
 #TODO: This doesn't always take the "right" path-through. For example,
@@ -14,9 +15,6 @@ import random
 # and no "check if there's a dummy exit" cases
 
 #TODO: figure out where / why this is getting stuck
-#TODO: keep the state at the end to help with the final BFS
-#TODO: see if the item quota idea actually works??
-#TODO: use connect_doors and make_door in the item quota??
 
 # New idea - give the player some items, then just randomly place the rest of the map
 def item_quota_rando(rooms, debug, starting_items, items_to_place):
@@ -25,6 +23,7 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
     check_door_totals(rooms)
     nrooms = len(rooms)
     nrooms_placed = 0
+    statues_state = None
     progress_prefix = "Placing Rooms:"
     # Start at landing site
     landing_site = rooms.pop("Landing_Site")
@@ -47,8 +46,10 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
     # Initialize changes
     door_changes = []
     item_changes = []
-    # keeps track of placed but not assigned item nodes
+    # Keeps track of placed but not assigned item nodes
     unassigned_item_nodes = []
+    #
+    path = []
     # make dummy exit nodes for landing_site
     # these dummy exits serve to let the BFS search not just reachable doors, but enterable doors.
     current_graph, dummy_exits = dummy_exit_graph(current_graph, exits_to_connect)
@@ -58,11 +59,12 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
 
     #TODO: maybe doing this places too many items too early?
     while len(rooms_to_place) > 0:
+        # To record the current state and remember the path
+        start_state = current_state.copy()
         # Wildcard BFS to find reachable exits
-        bfs_finished, _, _ = current_graph.BFS_items(current_state, None, fixed_items)
-        #print_finished(bfs_finished)
-        # Dict comprehension - entries of bfs_finished that are dummy exits and actually have a path to them.
-        reachable_exits = {exit: bfs_finished[exit] for exit in dummy_exits if len(bfs_finished[exit]) != 0}
+        o, bfs_finished, _, _ = current_graph.BFS_items(current_state, None, fixed_items)
+        reachable_exits = [s for s in bfs_finished if s.node in dummy_exits]
+        #print(reachable_exits)
 
         #TODO: Consider multiple backtracks?
         # CONSIDER BACKTRACKING:
@@ -72,12 +74,12 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
         # If we haven't already connected the current exit and if there is a valid backtracking exit
         if current_state.node in exits_to_connect[current_direction] and len(exits_to_connect[door_hookups[current_direction]]) > 0:
             backtrack_exit = random.choice(exits_to_connect[door_hookups[current_direction]])
-            backtrack_finished, dummy_copy, intermediate = check_backtrack(current_graph, current_state, backtrack_exit, dummy_exits, fixed_items)
+            backtrack_o, backtrack_finished, dummy_copy, intermediate = check_backtrack(current_graph, current_state, backtrack_exit, dummy_exits, fixed_items)
 
             #TODO: greater than or equal to?
             #TODO: how much of this should be in check_backtracks? technically all of this could be moved
             # If there are more reachable exits by backtracking, do so!
-            if len(backtrack_finished.keys()) > len(reachable_exits.keys()):
+            if len(backtrack_finished) > len(reachable_exits):
                 # Those dummy exits aren't there anymore
                 # Remove the actual dummy exits from the graph
                 if current_state.node + "dummy" in dummy_exits:
@@ -91,94 +93,120 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
                 exits_to_connect[door_hookups[current_direction]].remove(backtrack_exit)
                 # Update door changes
                 door_changes.append((current_state.node, backtrack_exit))
-                # Set reachable exits so that the next part works
+                # Set reachable exits we got from backtracking
                 reachable_exits = backtrack_finished
+                o = backtrack_o
+                if debug:
+                    print("\tBacktrack connecting {} to {}".format(current_state.node, backtrack_exit))
             # Otherwise, repair the damage to the graph and keep going
             else:
                 current_graph.remove_node(intermediate)
 
-        if len(reachable_exits.keys()) == 0:
+        if len(reachable_exits) == 0:
             # if there aren't any reachable exits, place the rest of the rooms at random - hopefully there's a path to statues :)
+            if debug:
+                print("No reachable exits")
             break
             #assert False, "No reachable exits: \n" + str(door_changes) + "\n" + str(current_assignments)
         
-        exit_state = choose_random_state(reachable_exits)
-        chosen_exit = exit_state.node
-        # Update with the choices we made to use that path
-        chosen_direction = door_direction(chosen_exit[:-5])
-
-        # Find a room with a path-through
+        exit_states = reachable_exits
+        random.shuffle(exit_states)
         found = False
-        # Shuffle them to eliminate the extra work of getting re-testing of bad rooms
-        random.shuffle(rooms_to_place)
-        for room_name in rooms_to_place:
-            room = rooms[room_name]
-            # Add dummy exit nodes
-            room_graph, room_dummy_exits = dummy_exit_graph(room.graph, room.doors)
-            room_direction = door_hookups[chosen_direction]
-            # Find an entrance that matches - TODO - for loop - all entrances that match
-            if len(room.doors[room_direction]) == 0:
-                continue
-            chosen_entrance = random.choice(room.doors[room_direction])
-            #TODO: where to start the BFS?
-            entrance_state = BFSItemsState(chosen_entrance, exit_state.wildcards, exit_state.items, exit_state.assignments)
-            paths_through, _, _ = room_graph.BFS_items(entrance_state, None, fixed_items)
-            paths_through = filter_paths(paths_through, entrance_state, room_dummy_exits)
-            # If there is at least one path-through - take one
-            if len(paths_through) > 0:
-                #print current_assignments
-                #print current_wildcards
-                if debug:
-                    print("Placing " + chosen_entrance + " at " + chosen_exit[:-5])
-                #TODO: don't break after placing statues
-                if chosen_entrance == "Statues_L":
-                    break
-                # Pick a path-through to follow and update the current state.
-                current_state = choose_random_state(paths_through)
-                # Remove "dummy"
-                current_state.node = current_state.node[:-5]
-
-                # Connect the two rooms at chosen_exit , chosen_entrance
-                # For now, add every item node: we don't know which ones will end up being assigned.
-                unassigned_item_nodes.extend(room.item_nodes)
-
-                # Update dummy exits!
-                if chosen_entrance + "dummy" in room_dummy_exits:
-                    room_graph.remove_node(chosen_entrance + "dummy")
-                    room_dummy_exits.remove(chosen_entrance + "dummy")
-                if chosen_exit in dummy_exits:
-                    current_graph.remove_node(chosen_exit)
-                    dummy_exits.remove(chosen_exit)
-                chosen_exit = chosen_exit[:-5]
-                dummy_exits.extend(room_dummy_exits)
-
-                # Update exits_to_connect
-                # Add all the exits of the new room
-                # TODO: It would be nice to just add these two dicts together using a defined +
-                for direction, doors in room.doors.items():
-                    exits_to_connect[direction].extend(doors)
-                # Now get rid of the two doors we just hooked up
-                exits_to_connect[chosen_direction].remove(chosen_exit)
-                exits_to_connect[room_direction].remove(chosen_entrance)
-
-                # Add the graph of the other room
-                current_graph.add_room(chosen_exit, chosen_entrance, room_graph)
-
-                door_changes.append((chosen_exit, chosen_entrance))
-                # The room has been placed
-                rooms_to_place.remove(room_name)
-                nrooms_placed += 1
-                if not debug:
-                    print_progress_bar(nrooms_placed, nrooms, prefix=progress_prefix)
-                found = True
+        # Keep trying until we exhaust the list of exit states too
+        # LOOP over exit states, trying to place a room at one of them
+        for exit_state in exit_states:
+            if found:
                 break
+            chosen_exit = exit_state.node
+            # Update with the choices we made to use that path
+            chosen_direction = door_direction(chosen_exit[:-5])
 
-        # Otherwise, try another room
-        #TODO: if there's no room with a path-through, consider backtracking?
+            # Find a room with a path-through
+            # Shuffle them to eliminate the extra work of getting re-testing of bad rooms
+            random.shuffle(rooms_to_place)
+            # LOOP over rooms trying to place each one at the chosen exit state
+            for room_name in rooms_to_place:
+                if found:
+                    break
+                room = rooms[room_name]
+                # Add dummy exit nodes
+                room_graph, room_dummy_exits = dummy_exit_graph(room.graph, room.doors)
+                room_direction = door_hookups[chosen_direction]
+                # Find an entrance that matches - TODO - for loop - all entrances that match
+                if len(room.doors[room_direction]) == 0:
+                    continue
+                if room_name == "Statues" and debug:
+                    print("Considering Statues")
+                    print(exit_state)
+                chosen_entrance = random.choice(room.doors[room_direction])
+                #TODO: where to start the BFS?
+                entrance_state = BFSItemsState(chosen_entrance, exit_state.wildcards, exit_state.items, exit_state.assignments)
+                room_o, paths_through, _, _ = room_graph.BFS_items(entrance_state, None, fixed_items)
+                paths_through = filter_paths(paths_through, entrance_state, room_dummy_exits)
+                # If there is at least one path-through - take one. We are going to definitely place this room.
+                if len(paths_through) > 0:
+                    if debug:
+                        print("Placing " + chosen_entrance + " at " + chosen_exit[:-5])
+                        if chosen_entrance == "Statues_L":
+                            print("PLACED STATUES")
+                            statues_state = exit_state.copy()
+                            statues_state.node = chosen_exit[:-5]
+                    #print("PATHS: {}".format(paths_through))
+                    # Pick a path-through to follow and update the current state.
+                    current_state = random.choice(list(paths_through))
+                    # Remove "dummy"
+                    current_state.node = current_state.node[:-5]
+
+                    # Connect the two rooms at chosen_exit , chosen_entrance
+                    # For now, add every item node: we don't know which ones will end up being assigned.
+                    unassigned_item_nodes.extend(room.item_nodes)
+
+                    # Update dummy exits!
+                    if chosen_entrance + "dummy" in room_dummy_exits:
+                        room_graph.remove_node(chosen_entrance + "dummy")
+                        room_dummy_exits.remove(chosen_entrance + "dummy")
+                    if chosen_exit in dummy_exits:
+                        current_graph.remove_node(chosen_exit)
+                        dummy_exits.remove(chosen_exit)
+                    chosen_exit = chosen_exit[:-5]
+                    dummy_exits.extend(room_dummy_exits)
+
+                    # Update exits_to_connect
+                    # Add all the exits of the new room
+                    # TODO: It would be nice to just add these two dicts together using a defined +
+                    for direction, doors in room.doors.items():
+                        exits_to_connect[direction].extend(doors)
+                    # Now get rid of the two doors we just hooked up
+                    exits_to_connect[chosen_direction].remove(chosen_exit)
+                    exits_to_connect[room_direction].remove(chosen_entrance)
+
+                    # Add the graph of the other room
+                    current_graph.add_room(chosen_exit, chosen_entrance, room_graph)
+
+                    door_changes.append((chosen_exit, chosen_entrance))
+                    # The room has been placed
+                    rooms_to_place.remove(room_name)
+                    nrooms_placed += 1
+                    if not debug:
+                        print_progress_bar(nrooms_placed, nrooms, prefix=progress_prefix)
+                    found = True
+                    # The last element will always be a dummy node
+                    path_to_room = bfs_items_backtrack(start_state, exit_state, o)[:-1]
+                    n_path_to_room = [s.node for s in path_to_room]
+                    path_in_room = bfs_items_backtrack(entrance_state, current_state, room_o)
+                    n_path_in_room = [s.node for s in path_in_room]
+                    local_path = n_path_to_room + n_path_in_room
+                    # The local_paths always contain the same node at start and end
+                    path += local_path[1:]
+                    if debug:
+                        print("\tUsing {}".format(local_path))
+
+        # We're done with the loop over states and didn't find anything :(
         if not found:
             if debug:
-                print("No rooms with a path-through")
+                print("No states with a path-through")
             break
+        #### End condition: all exit states and rooms have been exhausted
 
     # RANDOM PLACEMENT:
     unassigned_item_nodes = [node for node in unassigned_item_nodes if node not in current_state.assignments]
@@ -282,7 +310,13 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
     else:
         # Dirty hack to get it to finish...
         print_progress_bar(nrooms, nrooms, prefix=progress_prefix)
-    return door_changes, item_changes, current_graph, current_state
+    # If statues was placed as a room with a path-through, then it will be more accurate
+    # to search from this state rather than some later state which may be at a softlock location
+    if statues_state is None:
+        final_state = current_state
+    else:
+        final_state = statues_state
+    return door_changes, item_changes, current_graph, final_state, path
 
 #UNFINISHED:
 def completable_rando(rooms):
@@ -348,7 +382,7 @@ def basic_rando(rooms):
     random.shuffle(items_to_place)
 
     # get a random order for rooms
-    rooms_to_place = rooms.keys()
+    rooms_to_place = list(rooms.keys())
     random.shuffle(rooms_to_place)
 
     door_changes = []
@@ -406,7 +440,7 @@ def choose_random_state(finished):
     """chooses a random state from finished"""
     
     #TODO: quick and dirty fix
-    # filter out empty entries of finished
+    # Filter out empty entries of finished
     finished = to_states(finished)
     finished = from_states(finished)
 
@@ -414,4 +448,22 @@ def choose_random_state(finished):
     items = random.choice(list(finished[node].keys()))
     wildcards, assignments = random.choice(finished[node][items])
     return BFSItemsState(node, wildcards, items, assignments)
+
+def all_states(finished):
+    """Finds all the BFSItemsStates in finished"""
+    # Filter out empty entries
+    finished = to_states(finished)
+    finished = from_states(finished)
+
+    states = []
+    nodes = list(finished.keys())
+    for n in nodes:
+        items = list(finished[n].keys())
+        for i in items:
+            # Wildcard, Assignment pairs
+            was = finished[n][i]
+            for w,a in was:
+                s = BFSItemsState(n, w, i, a)
+                states.append(s)
+    return states
 

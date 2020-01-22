@@ -9,7 +9,7 @@ item_types = items[:]
 item_types.remove("B")
 item_types = item_types + ["Bombs"]
 boss_types = bosses + minibosses + ["Ceres_Ridley"]
-special_types = ["Drain", "Shaktool", "START"]
+special_types = ["Drain", "Shaktool", "START", "Statues"]
 
 door_types = ["L", "R", "B", "T", "ET", "EB", "TS", "BS", "LMB", "RMB"]
 

@@ -101,8 +101,8 @@ As a final note, the current settings do not interact with the RNG used to decid
 This is just a list of things I'm working on: bugs to fix, features to implement, etc. If you have an insight into how to make one of them happen, let me know!
 * Fix the boss screen scroll glitch / make the other side of the boss room a grey door.
 * Make the algorithm better at avoiding softlocks.
-* Make the spoiler file more descriptive and more useful
 * Keep your ammo after the Mother Brain fight.
+* Use START+SELECT to soft-reset to the ship (as in ALTTP)
 
 ## Acknowledgements
 Thanks to everyone who helped with this project. If you listened to me harp about completability or graphs, you know who you are and thank you for putting up with me, and giving me support and ideas.

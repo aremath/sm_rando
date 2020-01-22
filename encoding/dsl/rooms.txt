@@ -255,7 +255,7 @@ L <-> R					- | B PB
 # start at R and go to L, then want to go back to R
 Early_Supers - 79BC8
 L
-R
+R						- M
 S
 M
 M -> R					- X
@@ -306,7 +306,7 @@ ALL -> R3				- X
 R3 -> ALL				- & (| B PB) S
 ALL <-> CB				- | B PB
 L5 <-> ALL				- PB
-ALL -> L3				- PB
+ALL <-> L3				- PB
 
 Pre-Spore_Kihunters - 79D9C
 L
@@ -541,7 +541,8 @@ L
 Statues - 7A66A
 L
 ET
-L <-> ET				- & Kraid Phantoon Draygon Ridley
+Statues
+L <-> (ET Statues)		- & Kraid Phantoon Draygon Ridley
 
 Warehouse_Entrance - 7A6A1
 L
@@ -933,9 +934,9 @@ Ridley - 7B32E
 L
 R
 Ridley
-ALL <-> ALL						- V
 L <-> R							- Ridley
 ALL -> Ridley					- & S CB PLB E
+ALL <-> ALL						- V
 
 Lower_Norfair_Farm - 7B37A
 L								- | M S
@@ -1370,6 +1371,7 @@ BS1
 BS2
 M
 S
+(BS1 BS2) -> ALL			- X
 ALL -> (M S)				- & GS SB
 L1 -> ALL					- PB
 (R BS1 BS2 M S L2) -> L1	- & GS (| PB B SA)
@@ -1401,7 +1403,7 @@ L1 -> R2					- GS
 L2 -> R1					- X
 R1 -> L2					- GS
 
-# what's going on here??
+# Not used in the logic, but is an actual room in the game, so included here.
 Pants_Right - 7D69A
 L
 R
@@ -1442,6 +1444,7 @@ R
 E
 BS1
 BS2
+(BS1 BS2) -> ALL			- X
 L -> R						- | (& GS (| B PB SPB SB)) (& HJ SPB)
 L -> E						- & MB (| GS HJ)
 R -> (E L BS1 BS2)			- | (& HJ SPB) (& GS (| B PB SPB))

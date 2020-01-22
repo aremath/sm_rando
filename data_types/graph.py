@@ -30,8 +30,10 @@
 
 from .minsetset import *
 from .item_set import *
+from .orderedset import *
+
 import collections
-from queue import *
+import random
 
 #TODO: now that node, item set are both hashable... hash this?
 #TODO: alter graph so that the edge list is part of the node data structure?
@@ -64,7 +66,7 @@ class BFSState(object):
 class BFSItemsState(object):
 
     #TODO: argument order??
-    def __init__(self, node_, wildcards_=set(), items_=ItemSet(), assignments_={}):
+    def __init__(self, node_, wildcards_=OrderedSet(), items_=ItemSet(), assignments_={}):
         self.node = node_
         self.items = items_
         self.wildcards = wildcards_
@@ -90,6 +92,10 @@ class BFSItemsState(object):
 
     def __repr__(self):
         return self.node + "\n\t" + str(self.items) + "\n\t" + str(self.wildcards) + "\n"
+
+    # Only the number of wildcards matters
+    def __hash__(self):
+        return hash((self.node, len(self.wildcards), self.items))
 
     # Does other make progress relative to self?
     # If it's at another node with maybe better items
@@ -186,11 +192,10 @@ class ConstraintGraph(object):
         final_state = None
 
         # queue to hold node, item pairs
-        queue = Queue()
+        queue = [start_state]
 
-        queue.put(start_state)
-        while queue.qsize() > 0:
-            state = queue.get().copy()
+        while len(queue) > 0:
+            state = queue.pop(0).copy()
             node = state.node
             items = state.items
             # we've reached the goal with at least the right items
@@ -215,7 +220,7 @@ class ConstraintGraph(object):
                     if items not in finished[edge.terminal]:
                         offers[edge.terminal][items] = state.copy()
                         finished[edge.terminal].add(items)
-                        queue.put(BFSState(edge.terminal, items))       
+                        queue.append(BFSState(edge.terminal, items))       
         return offers, finished, final_state is not None, final_state
 
     def BFS_target(self, start_state, end_state=None):
@@ -232,11 +237,10 @@ class ConstraintGraph(object):
         final_state = None
 
         # queue to hold node, item pairs
-        queue = Queue()
+        queue = [start_state]
 
-        queue.put(start_state)
-        while queue.qsize() > 0:
-            state = queue.get().copy()
+        while len(queue) > 0:
+            state = queue.pop(0).copy()
             # we've reached the goal with at least the right items
             if end_state is not None and start_state >= end_state:
                 final_state = state
@@ -250,7 +254,7 @@ class ConstraintGraph(object):
                     if items not in finished[edge.terminal]:
                         offers[edge.terminal][items] = state
                         finished[edge.terminal].add(items)
-                        queue.put(BFSState(edge.terminal, items))
+                        queue.append(BFSState(edge.terminal, items))
             # make an offer to pick up an item or defeat a boss
             node_data = self.name_node[node].data
             if isinstance(node_data, Item) or isinstance(node_data, Boss):
@@ -259,7 +263,7 @@ class ConstraintGraph(object):
                 if new_items not in finished[node]:
                     offers[node][new_items] = state
                     finished[node].add(new_items)
-                    queue.put(BFSState(node, new_items))
+                    queue.append(BFSState(node, new_items))
         return offers, finished, final_state is not None, final_state
 
     def BFS_items(self, start_state, end_state=None, fixed_items=ItemSet()):
@@ -269,24 +273,20 @@ class ConstraintGraph(object):
         not allow items to be fixed, but an already-assigned items dictionary can be passed."""
 
         #TODO: I think there's a way to make finished store less stuff - after all, we are only interested in keeping the
-        # elements with a maximal number of wildcards for each item set.
+        # elements with a maximal NUMBER of wildcards for each item set.
+        # Set of BFSItemsState
+        # Ordered so that you can randomly choose from it without relying
+        # on the internal hash function which is randomly salted.
+        finished = OrderedSet()
 
-        # key - node name
-        # key - item set
-        # value - list of tuples of (wildcards (set), assignments (key - node, value - item assignment))
-        finished = collections.defaultdict(lambda: collections.defaultdict(list))
-
-        def is_finished(state):
-            count = 0
-            for x in finished[state.node][state.items]:
-                if len(x[0]) >= len(state.wildcards):
-                    count += 1
-            return count > 0
+        # Key - BFSItemsState (antecessor)
+        # Value - BFSItemsState (predecessor)
+        offers = {}
 
         # what items we actually needed to reach the end...
         final_state = None
 
-        queue = Queue()
+        queue = [start_state]
 
         # queue search terms are:
         #       - node name
@@ -296,43 +296,46 @@ class ConstraintGraph(object):
         # however two search terms are equal if the number of wildcards and the
         # obtained items are the same - that's why finished just includes the number
         # - add start node to the finished list
-        finished[start_state.node][start_state.items].append((start_state.wildcards.copy(), start_state.assignments.copy()))
-        queue.put(start_state)
-        while queue.qsize() > 0:
-            state = queue.get()
+        #finished[start_state.node][start_state.items].append((start_state.wildcards.copy(), start_state.assignments.copy()))
+        finished.add(start_state)
+        while len(queue) > 0:
+            state = queue.pop(0)
+            #print("State: {}".format(state))
+            node = state.node
             wildcards = state.wildcards
             items = state.items
             assignments = state.assignments
             if end_state is not None and state >= end_state:
                 final_state = state
                 break
-            node_data = self.name_node[state.node].data
+            node_data = self.name_node[node].data
             # In addition to fixed items, pass an assigments list and check it
             if isinstance(node_data, Item):
                 # If we don't already have this item, pick it up as a wildcard
-                if state.node not in wildcards and state.node not in assignments:
-                    wildcards.add(state.node)
-                    # If there's not already an entry for this item set with at least as many wildcards, then add it
-                    if not is_finished(state):
-                        finished[state.node][state.items.copy()].append((wildcards.copy(), assignments.copy()))
-                        queue.put(state.copy())
+                if node not in wildcards and node not in assignments:
+                    new_state = BFSItemsState(node, wildcards | set([state.node]), items, assignments)
+                    if new_state not in finished:
+                        finished.add(new_state)
+                        offers[new_state] = state
+                        queue.append(new_state)
                     # There's no need to process edges - picking up that item won't prevent you from crossing an edge
                     continue
                 # If we don't have the item but it was already assigned, pick it up as a fixed item
-                elif state.node in assignments:
-                    if assignments[state.node] not in items:
-                        state.items |= ItemSet([assignments[state.node]])
-                        if not is_finished(state):
-                            finished[state.node][state.items.copy()].append((wildcards.copy(), assignments.copy()))
-                            queue.put(state.copy())
-                        continue
+                elif node in assignments and assignments[node] not in items:
+                    new_state = BFSItemsState(node, wildcards, items | ItemSet([assignments[node]]), assignments)
+                    if new_state not in finished:
+                        finished.add(new_state)
+                        offers[new_state] = state
+                        queue.append(new_state)
+                    continue
             elif isinstance(node_data, Boss):
                 # If we haven't defeated this boss yet, do so (as a fixed item)
                 if node_data.type not in items:
-                    state.items |= ItemSet([node_data.type])
-                    if not is_finished(state):
-                        finished[state.node][state.items.copy()].append((wildcards.copy(), assignments.copy()))
-                        queue.put(state.copy())
+                    new_state = BFSItemsState(node, wildcards, items | ItemSet([node_data.type]), assignments)
+                    if new_state not in finished:
+                        finished.add(new_state)
+                        offers[new_state] = state
+                        queue.append(new_state)
                     # There's no need to process edges - defeating that boss will allow you to cross strictly more edges
                     continue
             # Now cross edges
@@ -340,23 +343,29 @@ class ConstraintGraph(object):
                 # For each set, use some wildcards to cross it, then add that node with those assignments to the queue
                 for item_set in edge.items.sets:
                     # Items in item set that we don't already have
-                    need_items = item_set - state.items
+                    need_items = item_set - items
+                    #print("Need items: {}".format(need_items))
                     # Can cross the edge if we have enough wildcards to satisfy need_items and there are no fixed items that we do not already have (i.e. bosses)
                     if len(need_items) <= len(wildcards) and len(need_items & fixed_items) == 0:
+                        #print("Can cross")
                         wildcards_copy = wildcards.copy()
                         items_copy = state.items.copy()
                         assignments_copy = assignments.copy()
                         # Make an assignment that allows crossing that edge
                         for item in need_items:
-                            wildcard = wildcards_copy.pop()
+                            # Use random instead of pop to prevent hashing shenanigans
+                            wildcard = random.choice(list(wildcards_copy))
+                            wildcards_copy.remove(wildcard)
                             assignments_copy[wildcard] = item
-                            items_copy.add(item)
+                            items_copy = items_copy.add(item)
+                        new_state = BFSItemsState(edge.terminal, wildcards_copy, items_copy, assignments_copy)
+                        #print("Items: {}, wildcards: {}".format(items_copy, wildcards_copy))
                         # If there's not already an entry for this item set with at least as many wildcards, then add it
-                        if not is_finished(BFSItemsState(edge.terminal, wildcards_copy, items_copy, assignments)):
-                            # make sure finished has different pointers than queue!
-                            finished[edge.terminal][items_copy].append((wildcards_copy.copy(), assignments_copy.copy()))
-                            queue.put(BFSItemsState(edge.terminal, wildcards_copy, items_copy, assignments_copy))
-        return finished, final_state is not None, final_state
+                        if new_state not in finished:
+                            finished.add(new_state)
+                            offers[new_state] = state
+                            queue.append(new_state)
+        return offers, finished, final_state is not None, final_state
 
     #TODO: is this really useful?
     def check_completability(self, start_state, end_state):
@@ -400,7 +409,7 @@ class ConstraintGraph(object):
 
     def __repr__(self):
         self_str = ""
-        for node_name, edges in self.node_edges.iteritems():
+        for node_name, edges in self.node_edges.items():
             self_str += node_name + "\n"
             for edge in edges:
                 self_str += "\t" + str(edge.terminal) + "\t" + str(edge.items) + "\n"
@@ -470,5 +479,23 @@ def bfs_backtrack(start_state, end_state, bfs_offers):
         state =  bfs_offers[state.node][state.items]
     # put the current node (which is the start node) now that we've reached it
     path.insert(0, state.node)
+    return path
+
+def bfs_items_backtrack(start_state, end_state, bfs_offers):
+    """Backtracks BFS offers for BFS_items."""
+    path = []
+    state = end_state
+    while state != start_state:
+        path.insert(0, state)
+        try:
+            state = bfs_offers[state]
+        # Because of the weird hashing function for BFSItemsStates, 
+        # it is possible that there is a matching (equal) state that does not hash the same
+        # In this case, we assume the offer came from the equal state.
+        except KeyError:
+            preds = [v for (k,v) in bfs_offers.items() if k == state]
+            state = preds[0]
+    # Put the current node (which is the start state) now that we've reached it
+    path.insert(0, state)
     return path
 

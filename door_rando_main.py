@@ -24,7 +24,6 @@ import sys
 #TODO: Is it possible to go back through bowling alley?
 #TODO: Make the create filename with the seed
 #TODO: Get rid of Drain?
-#TODO: Old Mother Brain badness before zebes awake + other things with zebes waking up (last missiles)
 #TODO: Fix brinstar elevator stupid things?
 #TODO: Randomize ceres within ceres, tourian within tourian?
 #   - general "keep the same area" randomization?
@@ -116,14 +115,18 @@ def main(arg_list):
             rooms = parse_rooms("encoding/dsl/rooms_hard.txt")
         else:
             rooms = parse_rooms("encoding/dsl/rooms.txt")
-        door_changes, item_changes, graph, state = item_quota_rando(rooms, args.debug, starting_items, items_to_place[:])
+        door_changes, item_changes, graph, state, path = item_quota_rando(rooms, args.debug, starting_items, items_to_place[:])
         # Check completability - can reach statues?
         start_state = BFSState(state.node, state.items)
+        # This takes too long
+        #start_state = BFSState("Landing_Site_R2", ItemSet())
         end_state = BFSState("Statues_ET", ItemSet())
         path_to_statues = graph.check_completability(start_state, end_state)
+        final_path = path_to_statues
         escape_path = None
         completable = path_to_statues is not None
         if completable:
+            final_path = path + path_to_statues
             # Check completability - can escape?
             items = all_items | ItemSet(["Kraid", "Phantoon", "Draygon", "Ridley"])
             prepare_for_escape(graph)
@@ -163,7 +166,7 @@ def main(arg_list):
 
     # Write the path to the statues (including every boss)
     spoiler_file.write("Path to Statues:\n")
-    spoiler_file.write(str(path_to_statues))
+    spoiler_file.write(str(final_path))
     spoiler_file.write("\n")
 
     # Write the items, doors etc.
