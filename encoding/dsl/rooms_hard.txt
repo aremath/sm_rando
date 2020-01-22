@@ -1178,6 +1178,8 @@ R2
 ALL -> R1						- X
 R1 -> ALL						- S
 
+#Took out special case to make climbing up without SPB possible
+#(R3) -> R1						- | GS (& HJ CB IB) (& HJ SPB)
 Main_Street - 7CFC9
 R1
 RMB2
@@ -1186,10 +1188,9 @@ R4								- M
 B
 M
 S
-(R1 R3 R4 B) -> M				- & GS SB
+ALL -> M						- & GS SB
 (R1 R3 R4 B M) <-> (S RMB2)		- X
-(R3) -> R1						- | GS (& HJ CB IB) (& HJ SPB)
-(B R3 R4) -> R3					- | GS (& HJ CB IB S) (& HJ SPB)
+(B R4) -> (R1 R3)				- | GS (& HJ CB IB S) (& HJ SPB)
 RMB2 -> S						- MB
 
 #Don't want people to softlock by falling down the left side, so double SPB-Jump is in logic to get back up
