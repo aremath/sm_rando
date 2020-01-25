@@ -1351,6 +1351,8 @@ ALL -> RT				- & HJ (| B PB SPB MB)
 East_Sand_Hole - 7D51E
 TS							- X
 BS
+M
+PB
 ALL -> M					- | GS HJ
 ALL -> PB					- | (& GS MB) (SPB)
 
