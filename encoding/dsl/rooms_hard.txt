@@ -77,8 +77,7 @@ M2
 M3
 ALL -> M3								- MB
 (R1 R2 R3 M1) -> (L2 R6 M2 M3)			- & S MB
-R3 -> ALL								- | B PB SPB
-ALL -> R3								- | B PB SPB
+ALL <-> R3								- | B PB SPB
 (L2 R5 R6 M3) -> (R1 R2 R3 M1 M2) 		- X
 
 Bowling_Path - 79461
@@ -365,7 +364,7 @@ M
 L2 <-> M				- MB
 L1 -> ALL				- | B PB (& SA MB)
 ALL -> L1				- PB
-ALL -> E                - | HJ SB SPB
+ALL -> E                - | HJ SB SPB B
 
 Noob_Bridge - 79FBA
 L
@@ -784,8 +783,7 @@ ALL <-> ALL						- V
 Volcano_Room - 7AE32
 L1
 L2
-L2 -> L1						- MB
-L1 -> L2						- MB
+L2 <-> L1						- MB
 ALL <-> ALL						- V
 
 Kronic_Boost - 7AE74
@@ -1116,6 +1114,7 @@ R
 E
 R -> E							- Phantoon
 
+#Could add (& MB SB) to ALL<->R but might be a bit too tricky?
 Basement - 7CC6F
 L
 T
@@ -1324,9 +1323,8 @@ West_Sand_Hall - 7D461
 L
 R
 TS							- X
-R -> L						- | (& HJ E) GS
+R <-> L						- | (& HJ E) GS
 TS -> ALL					- | (& HJ E) GS
-L -> R						- | (& HJ E) GS
 
 Oasis - 7D48E
 L
@@ -1353,8 +1351,10 @@ ALL -> RT				- & HJ (| B PB SPB MB)
 East_Sand_Hole - 7D51E
 TS							- X
 BS
-M							- | GS HJ
-PB							- | (& GS MB) (SPB)
+M
+PB
+ALL -> M					- | GS HJ
+ALL -> PB					- | (& GS MB) (SPB)
 
 West_Sand_Pit - 7D54D
 TS							- X
@@ -1378,7 +1378,7 @@ S
 ALL -> (M S)				- GS
 L1 -> ALL					- PB
 ALL -> L1					- PB
-ALL->T						- | HJ SPB (& G MB)
+ALL -> T					- | HJ SPB (& G MB)
 
 Butterfly_Room - 7D5EC
 TS							- X
@@ -1500,7 +1500,7 @@ L
 Cactus_Hallway - 7D9FE
 L
 R
-L -> R						- GS
+L -> R						- | GS (& HJ SPB) (& HJ IB)
 
 Cactus_Alley - 7DA2B
 L
