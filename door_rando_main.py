@@ -85,6 +85,7 @@ def get_args(arg_list):
     parser.add_argument("--settings", metavar="<folder>", required=False, help="The path to a folder with settings files. Used for updating things like what items the randomizer will use")
     parser.add_argument("--g8", action="store_true", required=False, help="If set, will change the Crateria map room into a second copy of the G4 room.")
     parser.add_argument("--hard_mode", action="store_true", required=False, help="Enables hard mode logic for all rooms.")
+    parser.add_argument("--noescape", action="store_true", required=False, help="If set, cannot soft-reset during the escape sequence.")
     #TODO argument for which algorithm to use
     args = parser.parse_args(arg_list)
     return args
@@ -190,6 +191,12 @@ def main(arg_list):
     rom.set_escape_timer(escape_timer)
     if args.starting_items is not None:
         make_starting_items(args.starting_items, rom)
+
+    # Apply teleportation patch
+    if args.noescape:
+        rom.apply_ips("patches/teleport_noescape.ips")
+    else:
+        rom.apply_ips("patches/teleport.ips")
 
     # Then make the necessary changes
     make_items(item_changes, rom)

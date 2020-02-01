@@ -36,10 +36,10 @@ hijack:
 
 teleport:
     ; Check if the escape sequence is active -- if it's active, don't allow teleportation
-    ;TODO: this way to check escape does not work!
-    ;LDA $7ED281
-    ;AND #$0040
-    ;BNE +
+    ; This check is only enabled in the noescape version.
+    LDA $7E0943
+    CMP #$0000
+    BNE +
     LDA #$0000
     ; Set the area index to 0 (Crateria)
     STA $7E079F
@@ -49,7 +49,7 @@ teleport:
     LDA #$0006
     STA $7E0998
     JSR stop_all_sounds
-    ;+
+    +
     RTS
 
 stop_all_sounds:
