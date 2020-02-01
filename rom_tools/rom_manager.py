@@ -105,6 +105,7 @@ class RomManager(object):
         self.apply_ips("patches/g4_skip.ips")
         self.apply_ips("patches/max_ammo_display.ips")
         self.apply_ips("patches/wake_zebes.ips")
+        self.apply_ips("patches/teleport.ips")
         # Fix sand rooms so that you can't get stuck
         #TODO: find out what is wrong with this
         #self.apply_ips("patches/no_sand_bs.ips")
