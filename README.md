@@ -1,5 +1,5 @@
-# Super Metroid World Randomizer Version 0.0.5
-Door and item randomization of Super Metroid. If you've played route rando before, it is kind of like that.
+# Super Metroid World Randomizer Version 0.1.0
+Door and item randomization of Super Metroid.
 
 You need a Super Metroid [JU] ROM and Python 3.
 
@@ -44,8 +44,11 @@ The randomizer also provides a spoiler file with the same name as your rom but w
 ## Miscellaneous Information
 The bottom of the output from `door_rando.py` will tell you whether your seed is completable (and what the seed is, just to confirm). If you get a `Completable: False`, do not expect to be able to complete the game!
 
-Emphasis on completable! These seeds will troll you, and it's very east to softlock. I'm working on making this less common, but for now I recommend caution and a lot of save states. Another way to approach this problem is to load the ROM into a [multitroid](www.multitroid.com) instance so that you can play with friends or at least reset without losing progress if you are playing by yourself. The short answer as to why there are so many softlocks is that I can check completability with a relatively simple search algorithm that works very quickly. Checking whether a node can be a softlock is much more complicated since I would have to consider all possible paths that reach that node with different item sets. This is computationally infeasible and there isn't an easy way to fix it even if the algorithm finds a softlock location.
+Emphasis on completable! These seeds will troll you, and it's very east to softlock. While this is an issue, you can press Start+Select together to soft-reset to Samus' spaceship. This feature is disabled during the escape sequence. The short answer as to why there are so many softlocks is that I can check completability with a relatively simple search algorithm that works very quickly. Checking whether a node can be a softlock is much more complicated since I would have to consider all possible paths that reach that node with different item sets. This is computationally infeasible and there isn't an easy way to fix it even if the algorithm finds a softlock location.
+
 There will also likely be parts where both ammo and energy will be a major concern. I'm also working on tweaking the drop rates to make this less of a problem, but you might want to use the `--starting_items` option or SMILE to start with some extra e-tanks.
+
+Finally, you can load the ROM into a [multitroid](www.multitroid.com) instance and play with friends! This makes the game both faster to complete and more fun!
 
 ## Advice
 One simple heuristic that can get you far in figuring out at least the beginnings of these seeds is that the logic will place items "near" where you need to use them. If you get supers early on, then the next item is likely to be behind a Super Missile door. If you find yourself in an area with a lot of missile expansions, it might be worth it to backtrack and try a different part of the map.
@@ -102,7 +105,6 @@ This is just a list of things I'm working on: bugs to fix, features to implement
 * Fix the boss screen scroll glitch / make the other side of the boss room a grey door.
 * Make the algorithm better at avoiding softlocks.
 * Keep your ammo after the Mother Brain fight.
-* Use START+SELECT to soft-reset to the ship (as in ALTTP)
 
 ## Acknowledgements
 Thanks to everyone who helped with this project. If you listened to me harp about completability or graphs, you know who you are and thank you for putting up with me, and giving me support and ideas.

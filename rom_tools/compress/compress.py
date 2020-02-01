@@ -121,10 +121,10 @@ def greedy_compress(src, min_size=2, debug=False):
         rc = intervals.find_rel_address_copy_at(src, i, min_size)
         if debug and len(rc) > 0:
             print(rc[0])
-        intervals = bf + wf + sf + ac + xc + rc
+        all_intervals = bf + wf + sf + ac + xc + rc
         # If there's an interval to choose, use the one that saves the most bytes
-        if len(intervals) != 0:
-            interval = intervals.choose_best_interval(intervals)
+        if len(all_intervals) != 0:
+            interval = intervals.choose_best_interval(all_intervals)
             # Directcopy the bytes before this interval starts
             if last_end < i:
                 dc = intervals.DirectCopyInterval(last_end, i, src[last_end:i])
