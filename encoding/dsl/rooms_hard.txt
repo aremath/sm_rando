@@ -341,9 +341,10 @@ EB
 MB
 PB
 L -> PB					- & (| B PB) E
+PB -> L					- | B PB
 L -> (EB MB R)			- & PB E
-(EB R) -> PB			- PB
-R -> L					- & PB E
+(EB MB R) <-> PB		- PB
+(EB MB R) -> L			- PB
 
 # Old MB room constraints
 #L <-> PB				- | B PB
