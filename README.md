@@ -37,21 +37,23 @@ The `--g8` command-line option changes the Crateria map station into another cop
 
 The `--hard_mode` command-line option will switch to the harder logic preset, potentially requiring a lot of difficult tricks to complete a seed.
 
-Finally, the `--debug` option will let you see the generated door transitions as they are created. If you don't include `--debug` you will see a neat progress bar that shows how many of the rooms have been placed.
+The `--debug` option will let you see the generated door transitions as they are created. If you don't include `--debug` you will see a neat progress bar that shows how many of the rooms have been placed.
 
-The randomizer also provides a spoiler file with the same name as your rom but with `.spoiler.txt` appended. This spoiler file is a work in progress: right now it only contains the shortest path to escape Zebes and the list of door changes.
+The `--noescape` option disables soft-resetting during the escape sequence. This comes with some danger as if you softlock during escape you will have to reset to your save before Mother Brain. That said, the escape sequence is a lot of fun in door randomizer, so this option can make for an exciting final sequence.
+
+The randomizer also provides a spoiler file with the same name as your rom but with `.spoiler.txt` appended.
 
 ## Miscellaneous Information
 The bottom of the output from `door_rando.py` will tell you whether your seed is completable (and what the seed is, just to confirm). If you get a `Completable: False`, do not expect to be able to complete the game!
 
-Emphasis on completable! These seeds will troll you, and it's very east to softlock. While this is an issue, you can press Start+Select together to soft-reset to Samus' spaceship. This feature is disabled during the escape sequence. The short answer as to why there are so many softlocks is that I can check completability with a relatively simple search algorithm that works very quickly. Checking whether a node can be a softlock is much more complicated since I would have to consider all possible paths that reach that node with different item sets. This is computationally infeasible and there isn't an easy way to fix it even if the algorithm finds a softlock location.
+While each completable seed should have a path that allows you to complete the game, it is possible to become stuck by using a different path. While this is an issue, you can press Start+Select together to soft-reset to Samus' spaceship. This feature can be disabled during the escape sequence by using the `--noescape` option. The short answer as to why there are so many softlocks is that I can check completability with a relatively simple search algorithm that works very quickly. Checking whether a node can be a softlock is much more complicated since I would have to consider all possible paths that reach that node with different item sets. This is computationally infeasible and even if the algorithm could detect a softlock location, it might not be easy to rearrange the rooms in order to fix it.
 
-There will also likely be parts where both ammo and energy will be a major concern. I'm also working on tweaking the drop rates to make this less of a problem, but you might want to use the `--starting_items` option or SMILE to start with some extra e-tanks.
+There will also likely be parts where both ammo and energy will be a major concern. You may want to use the `--starting_items` option or SMILE to start with some extra e-tanks.
 
 Finally, you can load the ROM into a [multitroid](www.multitroid.com) instance and play with friends! This makes the game both faster to complete and more fun!
 
 ## Advice
-One simple heuristic that can get you far in figuring out at least the beginnings of these seeds is that the logic will place items "near" where you need to use them. If you get supers early on, then the next item is likely to be behind a Super Missile door. If you find yourself in an area with a lot of missile expansions, it might be worth it to backtrack and try a different part of the map.
+One simple heuristic that can get you far in figuring out these seeds is that the logic will often place items "near" where you need to use them. If you get supers early on, then the next item is likely to be behind a Super Missile door. If you find yourself in an area with a lot of missile expansions, it might be worth it to backtrack and try a different part of the map.
 
 If you're wondering if a given door is on the logic, read `encoding/rooms.txt`. It's long, and the syntax is a little weird, but all of the logic is there as to whether you're "allowed" to cross a given edge with your items. For the most part, I require you to do some wall jumping and some basic suitless stuff, but "speedrun tech" like Green Gate Glitch, Shortcharge, or Mockball isn't required. You can do a little more suitless Maridia than usual, since sand no longer traps you if you don't have Gravity Suit.
 
@@ -59,7 +61,7 @@ Be careful when you're going through doors. Doors can easily drop you into Golde
 
 In general, Energy Tanks aren't technically required to cross most edges. Also, you only need one ammo of each type to cross those edges. If you're low on energy or ammo, dropping into an "off-logic" area of the game can often fill you up.
 
-When traveling through sand pits, stay centered to avoid a bug where you can get stuck in the wall.
+When traveling through sand pits, stay centered to avoid getting stuck in the wall. (I will try to fix this at some point...)
 
 ## Advanced Usage
 If you are interested in fine-tuning the settings, you can edit things like what items will be placed and how much time you are allotted during escape using JSON files. If you read `door_rando/settings.py`, you can see what the syntax for the various settings dictionaries is. The `--settings` option allows you to specify where you are storing your custom settings files:
@@ -96,9 +98,8 @@ As a final note, the current settings do not interact with the RNG used to decid
 
 ## You Can Help!
 * If you notice a bug, or have some advice, open an issue on the github, and I'll try to check it periodically and make improvements. I'm somewhat busy, so I might not be able to consistently provide support, but I'll do what I can.
-* If you're interested, one task that I probably won't get around to for a while is writing a "speedrun" version of rooms.txt. Feel free to include some High-Jump-less Lava Dive :). However, Make sure that your strats are contained within a single room. You can't use speedbooster to cross Coliseum if you can't charge a shinespark in the room before. I tried to make the encoding of rooms.txt fairly straightforward to understand, but if you have a question, I'm happy to help.
-* If you have some romhacking advice, I'm new at this! Let me know if there are some cool features you've thought of!
-* If you notice a problem with `rooms.txt`, let me know! Without a proper spoiler it's hard to know when the logic is asking you to do something is possible, but I'd like to know about it if I generated a seed that I told you was completable, but actually wasn't.
+* Let me know if there are some cool features you've thought up!
+* If you notice a problem with `rooms.txt`, let me know! I would like to know when it generates a seed that was marked as completable, but actually wasn't. The best thing to do would be to create an issue on the github page and include the spoiler file as well as where you could no longer make progress.
 
 ## In Progress
 This is just a list of things I'm working on: bugs to fix, features to implement, etc. If you have an insight into how to make one of them happen, let me know!

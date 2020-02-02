@@ -36,8 +36,9 @@ hijack:
 
 teleport:
     ; Check if the escape sequence is active -- if it's active, don't allow teleportation
-    LDA $7ED281
-    AND #$0040
+    ; This check is only enabled in the noescape version.
+    LDA $7E0943
+    CMP #$0000
     BNE +
     LDA #$0000
     ; Set the area index to 0 (Crateria)
