@@ -1,4 +1,4 @@
-# Super Metroid World Randomizer Version 0.1.0
+# Super Metroid World Randomizer Version 0.1.1
 Door and item randomization of Super Metroid.
 
 You need a Super Metroid [JU] ROM and Python 3.
@@ -39,14 +39,16 @@ The `--hard_mode` command-line option will switch to the harder logic preset, po
 
 The `--debug` option will let you see the generated door transitions as they are created. If you don't include `--debug` you will see a neat progress bar that shows how many of the rooms have been placed.
 
-The `--noescape` option disables soft-resetting during the escape sequence. This comes with some danger as if you softlock during escape you will have to reset to your save before Mother Brain. That said, the escape sequence is a lot of fun in door randomizer, so this option can make for an exciting final sequence.
+The `--noescape` option disables soft-resetting during the escape sequence. This comes with some danger as if you softlock during escape you will have to reset to your save before Mother Brain. That said, the escape sequence is a lot of fun in door randomizer, so this option can make for an exciting final sequence. To console you, Start+Select will refill your ammo during escape.
 
 The randomizer also provides a spoiler file with the same name as your rom but with `.spoiler.txt` appended.
 
 ## Miscellaneous Information
 The bottom of the output from `door_rando.py` will tell you whether your seed is completable (and what the seed is, just to confirm). If you get a `Completable: False`, do not expect to be able to complete the game!
 
-While each completable seed should have a path that allows you to complete the game, it is possible to become stuck by using a different path. While this is an issue, you can press Start+Select together to soft-reset to Samus' spaceship. This feature can be disabled during the escape sequence by using the `--noescape` option. The short answer as to why there are so many softlocks is that I can check completability with a relatively simple search algorithm that works very quickly. Checking whether a node can be a softlock is much more complicated since I would have to consider all possible paths that reach that node with different item sets. This is computationally infeasible and even if the algorithm could detect a softlock location, it might not be easy to rearrange the rooms in order to fix it.
+While each completable seed should have a path that allows you to complete the game, it is possible to become stuck by using a different path. To get unstuck, you can press Start+Select together to soft-reset to Samus' spaceship. This feature can be disabled during the escape sequence by using the `--noescape` option.
+
+The short answer as to why there are so many softlocks is that I can check completability with a relatively simple search algorithm that works very quickly. Checking whether a node can be a softlock is much more complicated since I would have to consider all possible paths that reach that node with different item sets. This is computationally infeasible and even if the algorithm could detect a softlock location, it might not be easy to rearrange the rooms in order to fix it.
 
 There will also likely be parts where both ammo and energy will be a major concern. You may want to use the `--starting_items` option or SMILE to start with some extra e-tanks.
 
@@ -105,7 +107,7 @@ As a final note, the current settings do not interact with the RNG used to decid
 This is just a list of things I'm working on: bugs to fix, features to implement, etc. If you have an insight into how to make one of them happen, let me know!
 * Fix the boss screen scroll glitch / make the other side of the boss room a grey door.
 * Make the algorithm better at avoiding softlocks.
-* Keep your ammo after the Mother Brain fight.
+* Fix sand pits.
 
 ## Acknowledgements
 Thanks to everyone who helped with this project. If you listened to me harp about completability or graphs, you know who you are and thank you for putting up with me, and giving me support and ideas.
