@@ -194,7 +194,7 @@ def main(arg_list):
 
     # Apply teleportation patch
     if args.noescape:
-        rom.apply_ips("patches/teleport_noescape.ips")
+        rom.apply_ips("patches/teleport_refill.ips")
     else:
         rom.apply_ips("patches/teleport.ips")
 
