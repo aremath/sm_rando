@@ -439,7 +439,7 @@ L2						- PB
 L3						- S
 R1
 R2
-ALL <-> L1				- PB
+ALL <-> L2				- PB
 (L3 R2) -> (L1 L2 R1)	- | HJ SJ IB
 ALL -> R1				- | IB (& SJ SA)
 
