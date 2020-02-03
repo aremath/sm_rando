@@ -1190,7 +1190,7 @@ M
 S
 ALL -> M						- & GS SB
 (R1 R3 R4 B M) <-> (S RMB2)		- X
-(B R4) -> (R1 R3)				- | GS (& HJ CB IB S) (& HJ SPB)
+ALL -> (R1 R3)					- | GS (& HJ CB IB S) (& HJ SPB)
 RMB2 -> S						- MB
 
 #Don't want people to softlock by falling down the left side, so double SPB-Jump is in logic to get back up
@@ -1346,8 +1346,8 @@ TS							- X
 BS
 M
 RT
-ALL -> M				- & HJ (| B PB SPB MB)
-ALL -> RT				- & HJ (| B PB SPB MB)
+ALL -> M					- & HJ (| B PB SPB MB)
+ALL -> RT					- & HJ (| B PB SPB MB)
 
 East_Sand_Hole - 7D51E
 TS							- X
@@ -1379,7 +1379,7 @@ S
 ALL -> (M S)				- GS
 L1 -> ALL					- PB
 ALL -> L1					- PB
-ALL -> T					- | HJ SPB (& G MB)
+ALL -> (T R)				- | HJ SPB GS (& G MB)
 
 Butterfly_Room - 7D5EC
 TS							- X
