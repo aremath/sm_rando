@@ -86,12 +86,16 @@ def get_args(arg_list):
     parser.add_argument("--g8", action="store_true", required=False, help="If set, will change the Crateria map room into a second copy of the G4 room.")
     parser.add_argument("--hard_mode", action="store_true", required=False, help="Enables hard mode logic for all rooms.")
     parser.add_argument("--noescape", action="store_true", required=False, help="If set, cannot soft-reset during the escape sequence.")
+    parser.add_argument("--logfile", metavar="<filename>", required=False, help="The path to a log file to use for standard out")
     #TODO argument for which algorithm to use
     args = parser.parse_args(arg_list)
     return args
 
 def main(arg_list):
     args = get_args(arg_list)
+    # Hijack stdout for output
+    if args.logfile is not None:
+        sys.stdout = open(args.logfile, "w")
     seed = rng.seed_rng(args.seed)
     spoiler_file = open(args.create + ".spoiler.txt", "w")
     # Update the settings from JSON files

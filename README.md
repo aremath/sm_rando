@@ -41,6 +41,8 @@ The `--debug` option will let you see the generated door transitions as they are
 
 The `--noescape` option disables soft-resetting during the escape sequence. This comes with some danger as if you softlock during escape you will have to reset to your save before Mother Brain. That said, the escape sequence is a lot of fun in door randomizer, so this option can make for an exciting final sequence. To console you, Start+Select will refill your ammo during escape.
 
+The `--logfile <filename>` option pipes all of the output to a specified file. It does not play well with the progress bars.
+
 The randomizer also provides a spoiler file with the same name as your rom but with `.spoiler.txt` appended.
 
 ## Miscellaneous Information
