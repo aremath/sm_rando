@@ -251,7 +251,7 @@ def make_start_items(items, rom):
 def make_start_ammo(ammos, rom):
     # ammos is a list of tuples of (ammo type, amount)
     for ammo_type, ammo_amount in ammos:
-        ammo_bytes = ammo_amount.to_bytes(1, byteorder='little')
+        ammo_bytes = ammo_amount.to_bytes(2, byteorder='little')
         rom.write_to_new(ammo_addrs[ammo_type], ammo_bytes)
 
 # Patch to make the item in the old mother brain room appear when zebes is asleep
