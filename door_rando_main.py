@@ -206,6 +206,7 @@ def main(arg_list):
     make_items(item_changes, rom)
     make_doors(door_changes, rom)
     make_saves(door_changes, rom)
+    fix_skyscroll(door_changes, rom)
 
     # Logic improvements must happen last since they may
     # copy PLMs, which can be edited via prior changes

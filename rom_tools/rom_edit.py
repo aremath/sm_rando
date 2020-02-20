@@ -157,6 +157,60 @@ def make_saves(door_changes, rom):
         if rdoor in save_locs:
             rom.write_to_new(save_locs[rdoor], door_from[ldoor])
 
+skyscroll = {
+    # Landing Site:
+    # 8946: Gauntlet_Entrance_R -> Landing_Site_L1
+    # $8F:B76A
+    # 896A: Parlor_R1 -> Landing_Site_L2
+    # $8F:B775
+    # 89B2: Crateria_Power_Bombs_L -> Landing_Site_R1
+    # $8F:B780
+    # 8AC6: Crateria_Tube_L -> Landing_Site_R2
+    # $8F:B78B
+    # 88FE ?
+    # 890A ?
+    "Landing_Site_L1": Address(0x8fb76c, mode="snes"),
+    "Landing_Site_L2": Address(0x8fb777, mode="snes"),
+    "Landing_Site_R1": Address(0x8fb782, mode="snes"),
+    "Landing_Site_R2": Address(0x8fb78d, mode="snes"),
+    # West Ocean
+    # 8A12: Bowling_Path_L -> West_Ocean_R3
+    # $8F:B7AE
+    # 8AEA: Moat_R -> West_Ocean_L2
+    # $8F:B7B9
+    # A18C: Bowling_Alley_L1 -> West_Ocean_R2
+    # $8F:B7C4
+    # A1B0: Wrecked_Ship_Entrance_L -> West_Ocean_R6
+    # $8F:B7CF
+    # A1E0: Attic_L -> West_Ocean_R1
+    # $8F:B7DA
+    # A300: Gravity_L -> West_Ocean_R5
+    # $8F:B7E5
+    "West_Ocean_R3": Address(0x8fb7b0, mode="snes"),
+    "West_Ocean_L2": Address(0x8fb7bb, mode="snes"),
+    "West_Ocean_R2": Address(0x8fb7c6, mode="snes"),
+    "West_Ocean_R6": Address(0x8fb7d1, mode="snes"),
+    "West_Ocean_R1": Address(0x8fb7dc, mode="snes"),
+    "West_Ocean_R5": Address(0x8fb7e7, mode="snes"),
+    # East Ocean
+    # 8A7E: Forgotten_Highway_L -> East_Ocean_R
+    # $8F:B7F2
+    # A264: Electric_Room_of_Death_R -> East_Ocean_L
+    # $8F:B7FD
+    "East_Ocean_R": Address(0x8fb7f4, mode="snes"),
+    "East_Ocean_L": Address(0x8fb7ff, mode="snes"),
+        }
+
+def fix_skyscroll(door_changes, rom):
+    door_from, _ = parse_doors("encoding/dsl/door_defns.txt", rom)
+    # The last 2 bytes comprise the pointer
+    door_from = {node: addr.as_snes_bytes(2) for node, addr in door_from.items()}
+    for ldoor, rdoor in door_changes:
+        if ldoor in skyscroll:
+            rom.write_to_new(skyscroll[ldoor], door_from[rdoor])
+        if rdoor in skyscroll:
+            rom.write_to_new(skyscroll[rdoor], door_from[ldoor])
+
 # pay attention to endianness
 # key - item name
 # value - item byte code for starting the game with that item
