@@ -35,6 +35,8 @@ If you have graphviz, the `--graph` command-line option will also generate a roo
 
 The `--g8` command-line option changes the Crateria map station into another copy of the Golden 4 room in order to make Tourian slightly easier to find. Note, however, that leaving Tourian by the elevator leaves you in the actual Golden 4 room. This change does not currently impact the logic.
 
+The `--doubleboss` command-line option adds an additional copy of each major boss room to the map (and removes the Maridia map station). Each boss only needs to be defeated once, so this option should make seeds faster to complete.
+
 The `--hard_mode` command-line option will switch to the harder logic preset, potentially requiring a lot of difficult tricks to complete a seed.
 
 The `--debug` option will let you see the generated door transitions as they are created. If you don't include `--debug` you will see a neat progress bar that shows how many of the rooms have been placed.

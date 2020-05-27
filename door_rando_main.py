@@ -130,7 +130,6 @@ def main(arg_list):
             for b in second_boss_rooms:
                 if b in rooms:
                     del rooms[b]
-            assert False
         door_changes, item_changes, graph, state, path = item_quota_rando(rooms, args.debug, starting_items, items_to_place[:])
         # Check completability - can reach statues?
         start_state = BFSState(state.node, state.items)
