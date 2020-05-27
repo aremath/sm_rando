@@ -1,7 +1,7 @@
 import graphviz
 from functools import reduce
 
-boss_rooms = ["Kraid", "Ridley", "Draygon", "Phantoon"]
+boss_rooms = ["Kraid", "Ridley", "Draygon", "Phantoon", "Kraid2", "Draygon2", "Ridley2", "Phantoon2"]
 miniboss_rooms = ["Spore Spawn", "Botwoon", "Crocomire", "Bomb Torizo", "Golden Torizo"]
 
 def make_spoiler_graph(door_connections, spoiler_filename):

@@ -84,6 +84,7 @@ def get_args(arg_list):
     parser.add_argument("--debug", action="store_true", required=False, help="print debug information while creating the room layout.")
     parser.add_argument("--settings", metavar="<folder>", required=False, help="The path to a folder with settings files. Used for updating things like what items the randomizer will use")
     parser.add_argument("--g8", action="store_true", required=False, help="If set, will change the Crateria map room into a second copy of the G4 room.")
+    parser.add_argument("--doubleboss", action="store_true", required=False, help="If set, adds a second copy of each boss room. Each boss still only needs to be defeated once.")
     parser.add_argument("--hard_mode", action="store_true", required=False, help="Enables hard mode logic for all rooms.")
     parser.add_argument("--noescape", action="store_true", required=False, help="If set, cannot soft-reset during the escape sequence.")
     parser.add_argument("--logfile", metavar="<filename>", required=False, help="The path to a log file to use for standard out")
@@ -120,6 +121,16 @@ def main(arg_list):
             rooms = parse_rooms("encoding/dsl/rooms_hard.txt")
         else:
             rooms = parse_rooms("encoding/dsl/rooms.txt")
+        # Phantoon means an extra L door - mercilessly destroy the maridia map station
+        if args.doubleboss:
+            del rooms["Maridia_Map"]
+        # Remove the double boss rooms
+        else:
+            second_boss_rooms = ["Kraid2", "Phantoon2", "Draygon2", "Ridley2"]
+            for b in second_boss_rooms:
+                if b in rooms:
+                    del rooms[b]
+            assert False
         door_changes, item_changes, graph, state, path = item_quota_rando(rooms, args.debug, starting_items, items_to_place[:])
         # Check completability - can reach statues?
         start_state = BFSState(state.node, state.items)
@@ -202,15 +213,15 @@ def main(arg_list):
     else:
         rom.apply_ips("patches/teleport.ips")
 
+    extra_from, extra_to = logic_improvements(rom, args.g8, args.doubleboss)
     # Then make the necessary changes
     make_items(item_changes, rom)
-    make_doors(door_changes, rom)
-    make_saves(door_changes, rom)
-    fix_skyscroll(door_changes, rom)
+    make_doors(door_changes, rom, extra_from, extra_to)
+    make_saves(door_changes, rom, extra_from)
+    fix_skyscroll(door_changes, rom, extra_from)
 
     # Logic improvements must happen last since they may
     # copy PLMs, which can be edited via prior changes
-    logic_improvements(rom, args.g8)
 
     # Save out the rom
     rom.save_and_close()

@@ -49,6 +49,9 @@ class Address(object):
     
     def bank(self):
         return (byte_ops.pc_to_snes(self.pc_addr) & 0xff0000) >> 16
+    
+    def copy(self):
+        return Address(self.pc_addr)
 
     def copy_increment(self,inc):
         ad = self.as_pc() + inc

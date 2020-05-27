@@ -526,6 +526,14 @@ L -> Kraid				- CB
 R -> Kraid				- X
 L <-> R					- Kraid
 
+Kraid2 - 7A59F
+L						- Kraid
+R
+Kraid
+L -> Kraid				- CB
+R -> Kraid				- X
+L <-> R					- Kraid
+
 Statue_Corridor - 7A5ED
 L
 R
@@ -931,6 +939,14 @@ ALL <-> ALL						- V
 L <-> R							- Ridley
 ALL -> Ridley					- & CB IB MB
 
+Ridley2 - 7B32E
+L
+R
+Ridley
+ALL <-> ALL						- V
+L <-> R							- Ridley
+ALL -> Ridley					- & CB IB MB
+
 Lower_Norfair_Farm - 7B37A
 L								- | M S
 R
@@ -1126,6 +1142,11 @@ Wrecked_Ship_Map - 7CCCB
 R
 
 Phantoon - 7CD13
+L								- Phantoon
+Phantoon
+L -> Phantoon					- CB
+
+Phantoon2 - 7CD13
 L								- Phantoon
 Phantoon
 L -> Phantoon					- CB
@@ -1516,7 +1537,15 @@ R
 Draygon
 R -> L						- Draygon
 L -> R						- & Draygon (& GS (| HJ SJ (& SB E)))
-ALL -> Draygon				- & GS E S MB (| CB G) 
+ALL -> Draygon				- & GS E S MB (| CB G)
+
+Draygon2 - 7DA60
+L
+R
+Draygon
+R -> L						- Draygon
+L -> R						- & Draygon (& GS (| HJ SJ (& SB E)))
+ALL -> Draygon				- & GS E S MB (| CB G)
 
 Tourian_Elevator - 7DAAE
 EB

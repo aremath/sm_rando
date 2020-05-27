@@ -78,16 +78,19 @@ def parse_doors(door_file, rom):
 # then heading through Parlor L1 will bring you out at Crocomire Speedway R1.
 # The opposite is write(door_from["Crocomire_Speedway_R1"], door_to["Parlor_L1"])
 
-def make_doors(door_list, rom):
+def make_doors(door_list, rom, extra_from, extra_to):
     """Make the doors specified by door_list in write_rom, using the memory locations from clean_rom."""
-    # door_list is a list of tuples (d1, d2), where d1 and d2 are the names of door nodes.
+    # Door_list is a list of tuples (d1, d2), where d1 and d2 are the names of door nodes.
     # this connects door1 to door2, and vice versa.
 
-    # first, get the door dictionary
+    # First, get the door dictionary
     door_from, door_to = parse_doors("encoding/dsl/door_defns.txt", rom)
+    # Merge in bonus doors that were generated on the fly
+    door_from = {**door_from, **extra_from}
+    door_to = {**door_to, **extra_to}
 
     for door1, door2 in door_list:
-        # special-case the pants room!
+        # Special-case the pants room!
         if door1 == "Pants_R1":
             rom.write_to_new(door_from[door1], door_to[door2])
             rom.write_to_new(door_from[door2], door_to["Pants_Right_R"])
@@ -97,7 +100,7 @@ def make_doors(door_list, rom):
             rom.write_to_new(door_from[door1], door_to["Pants_Right_R"])
             rom.write_to_new(door_from["Pants_Right_R"], door_to[door1])
         else:
-            # skip doors that don't exist
+            # Skip doors that don't exist
             #TODO: only certain TS and BS doors
             if door1 in door_from and door2 in door_to:
                 rom.write_to_new(door_from[door1], door_to[door2])
@@ -146,8 +149,9 @@ def parse_saves(save_file):
         save_locs[save_room + "_" + save_door] = offset
     return save_locs
 
-def make_saves(door_changes, rom):
+def make_saves(door_changes, rom, extra_from):
     door_from, _ = parse_doors("encoding/dsl/door_defns.txt", rom)
+    door_from = {**door_from, **extra_from}
     # The last 2 bytes comprise the pointer
     door_from = {node: addr.as_snes_bytes(2) for node, addr in door_from.items()}
     save_locs = parse_saves("encoding/dsl/saves.txt")
@@ -201,8 +205,9 @@ skyscroll = {
     "East_Ocean_L": Address(0x8fb7ff, mode="snes"),
         }
 
-def fix_skyscroll(door_changes, rom):
+def fix_skyscroll(door_changes, rom, extra_from):
     door_from, _ = parse_doors("encoding/dsl/door_defns.txt", rom)
+    door_from = {**door_from, **extra_from}
     # The last 2 bytes comprise the pointer
     door_from = {node: addr.as_snes_bytes(2) for node, addr in door_from.items()}
     for ldoor, rdoor in door_changes:
@@ -373,11 +378,62 @@ def two_g4s(offset, rom):
     rom.write_to_new(doors_ptr_loc, doors_ptr)
     return offset + Address(len(doors))
 
+# Allocate a new copy of a room with its own doors. Used to implement multiple boss rooms.
+def room_copy(room_info, free_8f, free_83, rom):
+    original_header, original_door_names, new_door_names, room_header_size = room_info
+    n_doors = len(new_door_names)
+    # First allocate the doors and get the door pointers
+    door_ptrs = []
+    for i in range(n_doors):
+        p = free_83.copy()
+        door_ptrs.append(p)
+        free_83 += Address(12)
+    # Now allocate and copy the room header
+    header_address = free_8f.copy()
+    free_8f += Address(room_header_size)
+    header_data = rom.read_from_clean(original_header, room_header_size)
+    rom.write_to_new(header_address, header_data)
+    # Now allocate and write the door list
+    door_list_address = free_8f.copy()
+    for i in range(n_doors):
+        p = free_8f.copy()
+        rom.write_to_new(p, door_ptrs[i].as_snes_bytes(2))
+        free_8f += Address(2)
+    # Write the pointer to the door list in the room header
+    rom.write_to_new(header_address + Address(9), door_list_address.as_snes_bytes(2))
+    # Create the new door entries
+    # Key - Door name
+    # Value - Door location
+    door_from = {}
+    for i,p in enumerate(door_ptrs):
+        door_from[new_door_names[i]] = p
+    # Key - Door name
+    # Value - Door data
+    door_to = {}
+    # To fill in door_to, need the original door data for doors that lead into the room
+    #TODO: call this only once instead of every time we need them!!
+    _, global_door_to = parse_doors("encoding/dsl/door_defns.txt", rom)
+    for i in range(n_doors):
+        door_data = global_door_to[original_door_names[i]]
+        # Replace the room header pointer in the door data
+        new_door_data = header_address.as_snes_bytes(2) + door_data[2:]
+        door_to[new_door_names[i]] = new_door_data
+    return free_8f, free_83, door_from, door_to
+
+# Door order matters!
+kraid_info = (Address(0x7a59f), ["Kraid_L", "Kraid_R"], ["Kraid2_L", "Kraid2_R"], 44)
+phantoon_info = (Address(0x7cd13), ["Phantoon_L"], ["Phantoon2_L"], 44)
+draygon_info = (Address(0x7da60), ["Draygon_R", "Draygon_L"], ["Draygon2_R", "Draygon2_L"], 44)
+ridley_info = (Address(0x7b32e), ["Ridley_L", "Ridley_R"], ["Ridley2_L", "Ridley2_R"], 44)
+all_info = [kraid_info, phantoon_info, draygon_info, ridley_info]
+
 # Catchall to apply small changes to the ROM that have to do with making the various logical changes work
-def logic_improvements(rom, g4):
+def logic_improvements(rom, g4, doubleboss):
     # Free space in bank 8f
     free_8f = Address(0x7e99a)
     max_8f = Address(0x80000)
+    free_83 = Address(0x01ad70)
+    max_83 = Address(0x020000)
     free_8f = make_old_mb_work(free_8f, rom)
     assert free_8f < max_8f
     free_8f = make_morph_room_work(free_8f, rom)
@@ -385,4 +441,15 @@ def logic_improvements(rom, g4):
     if g4:
         free_8f = two_g4s(free_8f, rom)
         assert free_8f < max_8f
+    extra_from = {}
+    extra_to = {}
+    if doubleboss:
+        for info in all_info:
+            free_8f, free_83, d_from, d_to = room_copy(info, free_8f, free_83, rom)
+            assert free_8f < max_8f
+            assert free_83 < max_83
+            # Use dictionary unpacking to merge
+            extra_from = {**extra_from, **d_from}
+            extra_to = {**extra_to, **d_to}
+    return extra_from, extra_to
 
