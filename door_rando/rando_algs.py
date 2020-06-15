@@ -1,8 +1,8 @@
-from .alg_support import *
-from misc.progress_bar import *
-
 import random
 import itertools
+
+from misc.progress_bar import *
+from .alg_support import *
 
 #TODO: Room Orientation randomization???? (far future)
 #TODO: This doesn't always take the "right" path-through. For example,
