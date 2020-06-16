@@ -1,17 +1,16 @@
-from encoding.parse_rooms import *
-from rom_tools.rom_edit import *
-from door_rando.rando_algs import *
-from encoding import sm_global
-from rom_tools.rom_manager import *
-
-from door_rando import settings
-from misc import rng
-from misc import settings_parse
-
-import random
+# Python Imports
 import argparse
-import shutil
 import sys
+
+# Internal imports
+from encoding import parse_rooms, sm_global
+from rom_tools.rom_edit import make_items, make_saves, make_doors, fix_skyscroll, logic_improvements, make_starting_items
+from rom_tools.rom_manager import RomManager
+from door_rando import settings
+from door_rando.rando_algs import item_quota_rando
+from data_types.item_set import ItemSet
+from data_types.graph import BFSState
+from misc import rng, settings_parse
 
 #TODO: Timeout
 #TODO: A better file structure would keep all the rando algorithms that produce door changes and item changes somewhere else
@@ -42,6 +41,7 @@ def write_item_assignments(item_assignments, spoiler_file):
         spoiler_file.write(node + ": " + item + "\n")
 
 def parse_starting_items(items):
+    """Parses the CLI starting items into an ItemSet"""
     if items is None:
         return ItemSet()
     items = items.split()
@@ -118,18 +118,18 @@ def main(arg_list):
     while not completable:
         #TODO: re-parsing rooms is quick and dirty...
         if args.hard_mode:
-            rooms = parse_rooms("encoding/dsl/rooms_hard.txt")
+            rooms = parse_rooms.parse_rooms("encoding/dsl/rooms_hard.txt")
         else:
-            rooms = parse_rooms("encoding/dsl/rooms.txt")
+            rooms = parse_rooms.parse_rooms("encoding/dsl/rooms.txt")
         # Phantoon means an extra L door - mercilessly destroy the maridia map station
         if args.doubleboss:
             del rooms["Maridia_Map"]
         # Remove the double boss rooms
         else:
             second_boss_rooms = ["Kraid2", "Phantoon2", "Draygon2", "Ridley2"]
-            for b in second_boss_rooms:
-                if b in rooms:
-                    del rooms[b]
+            for boss_room in second_boss_rooms:
+                if boss_room in rooms:
+                    del rooms[boss_room]
         door_changes, item_changes, graph, state, path = item_quota_rando(rooms, args.debug, starting_items, items_to_place[:])
         # Check completability - can reach statues?
         start_state = BFSState(state.node, state.items)
@@ -148,7 +148,7 @@ def main(arg_list):
             escape_start = BFSState("Escape_4_R", items)
             escape_end = BFSState("Landing_Site_L2", items)
             escape_path = graph.check_completability(escape_start, escape_end)
-            if escape_path is None: 
+            if escape_path is None:
                 completable = False
             else:
                 # One minute to get out of tourian, then 30 seconds per room
@@ -194,7 +194,7 @@ def main(arg_list):
 
     # Make the spoiler graph
     if args.graph:
-        from door_rando import spoiler_graph 
+        from door_rando import spoiler_graph
         spoiler_graph.make_spoiler_graph(door_changes, args.create)
 
     # Now that we have the door changes and the item changes, implement them!
@@ -242,4 +242,3 @@ if __name__ == "__main__":
 # Instead: if there's a "problematic" node in the shortest escape path,
 # remove it from the graph and do another BFS. If there's no path, then award them time to beat that node
 # If there is another path, then just award them time to complete that path
-
