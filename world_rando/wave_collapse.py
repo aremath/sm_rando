@@ -14,7 +14,7 @@ from collections import defaultdict
 # that location.
 # The result is a weighted probability distribution over the possible
 # pixel values for that location. We then choose to fill the
-# *most constrained* pixel by choosing a value from its probability
+# *most constrained* pixel (the one with the lowest entropy) by choosing a value from its probability
 # distribution. Repeating this process eventually produces a value
 # for every pixel (or perhaps leaving a few pixels with no matching tiles)
 

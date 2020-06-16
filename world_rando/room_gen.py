@@ -275,12 +275,12 @@ def make_subrooms(room, settings, patterns):
         find_item_loc(i, room, subrooms, roots, patterns, placement_chances)
     # Generate the graph
     print("Generating subroom adjacencies")
-    subroom_graph = subroom_adjacency_graph(subroom_leaves)
     min_entrance_size = settings["min_room_entrance_size"]
     max_entrance_size = settings["max_room_entrance_size"]
+    subroom_graph = subroom_adjacency_graph(subroom_leaves, min_entrance_size, max_entrance_size)
     #subroom_graph.visualize("./output/room" + str(room.room_id) + "subroom_graph")
     print("Embedding room graph")
-    t = embed_room_graph(room.graph, subroom_graph, min_entrance_size, max_entrance_size)
+    t = embed_room_graph(room.graph, subroom_graph)
     detailed_room_graph, subroom_nodes, used_subrooms = t
     unused_subrooms = filter(lambda x: x.id not in used_subrooms, subroom_leaves)
     #TODO: this is kind of messy
@@ -297,7 +297,7 @@ def make_subrooms(room, settings, patterns):
 class Adjacency(object):
 
     # subroom_id is which subroom this adj abuts
-    def __init__(self, id1, id2, rect, direction, impassables=None, entrances=None):
+    def __init__(self, id1, id2, rect, direction, impassables=None, entrance=None):
         self.id1 = id1
         self.id2 = id2
         self.rect = rect
@@ -306,10 +306,12 @@ class Adjacency(object):
             self.impassables = impassables
         else:
             self.impassables = []
-        if entrances is not None:
-            self.entrances = entrances
+        if entrance is not None:
+            self.entrance = entrance
         else:
-            self.entrances = []
+            self.entrance = None
+        # list of ItemSet which are the ItemSets used to cross this adj
+        self.crossings = []
 
     #TODO: self.impassables might not be correct
     def split(self, id2, index, direction, new_id1, new_id2):
@@ -350,38 +352,36 @@ class Adjacency(object):
     # List of rectangles which can be used to make an entrance that is
     # at least as large as min_size
     def find_passables(self, min_size):
+        #TODO: self.rect is sometimes not as big as min_size
         rects = [self.rect]
         new_rects = []
         # Cut every rectangle with each impassable rect
         for i_direction, i_rect in self.impassables:
             for r in rects:
+                #TODO: is i_direction correct?
                 new_rects.append(r.cut(i_rect, i_direction, min_size))
-            rects = new_rects
-        new_rects = []
-        # Also cut them with the entrances since the new rect can't go on top
-        # of the entrance
-        #TODO Technically it can...
-        for e_rect in self.entrances:
-            for r in rects:
-                #TODO: is self.direction correct?
-                new_rects.append(r.cut(e_rect, self.direction, min_size))
             rects = new_rects
         return rects
 
     def find_non_entrances(self):
-        rects = [self.rect]
-        new_rects = []
-        for e_rect in self.entrances:
-            for r in rects:
-                #TODO: is self.direction correct?
-                new_rects.extend(r.cut(e_rect, self.direction, 1))
-            rects = new_rects
-        return rects
+        if self.entrance is not None:
+            return self.rect.cut(self.entrance, self.direction, 1)
+        else:
+            return [self.rect]
 
-    #TODO: entrances to morph subrooms can be as small as 1...
+    def can_enter(self, min_size):
+        passables = self.find_passables(min_size)
+        if len(passables) > 0:
+            return True
+        else:
+            return False
+
     #TODO: need to add an impassable where the adjacency intersects the
     # wall of the room...
     def add_entrance(self, min_size, max_size):
+        # Don't add multiple entrances
+        assert self.entrance is None
+        assert self.can_enter(min_size)
         # The long axis of the adjacency is perpendicular to its direction
         axis = Coord(1,1) - self.direction
         passables = self.find_passables(min_size)
@@ -393,14 +393,13 @@ class Adjacency(object):
         p = random.choices(passables, weights)[0]
         #TODO: this is not correct - the entrance we add should fit entirely within
         # the passable we decided to use...
-        adj_size = self.rect.size(axis)
         passable_size = p.size(axis)
         entrance_size = random.randrange(min_size, min(max_size, passable_size))
-        entrance_placement = random.randrange(adj_size - entrance_size)
-        entrance_start = self.rect.start + axis.scale(entrance_placement)
+        entrance_placement = random.randrange(passable_size - entrance_size)
+        entrance_start = p.start + axis.scale(entrance_placement)
         entrance_end = entrance_start + axis.scale(entrance_size) + self.direction.scale(2)
         entrance = Rect(entrance_start, entrance_end)
-        self.entrances.append(entrance)
+        self.entrance = entrance
         return entrance
 
     #BUG: index out of bounds!
@@ -409,9 +408,11 @@ class Adjacency(object):
     def mk_wall(self, level):
         for r in self.find_non_entrances():
             mk_default_rect(level, r)
-        #TODO: implement entrance types
-        for e in self.entrances:
-            mk_air_rect(level, e)
+        #TODO: entrance types
+        #TODO: entrances to morph subrooms can be as small as 1...
+        # Only make the entrance if it will be used.
+        if self.entrance is not None and len(self.crossings) > 0:
+            mk_air_rect(level, self.entrance)
 
 class Obstacle(object):
 
@@ -541,7 +542,7 @@ class SubroomNode(object):
         for rect, direction in change_borders:
             adj_to_cut = [a for a in self.adj if a.direction == direction and rect.within(a.rect)]
             for a in adj_to_cut:
-                a.add_impassable(rect)
+                a.add_impassable((rect, direction))
 
     def div_point(self, index, direction):
         return self.rect.start + direction.scale(index)
@@ -630,7 +631,7 @@ def find_leaves(subrooms, roots):
         new_roots = []
     return leaves
 
-def subroom_adjacency_graph(subroom_leaves):
+def subroom_adjacency_graph(subroom_leaves, min_entrance_size, max_entrance_size):
     g = basicgraph.BasicGraph()
     # Add a node for each subroom and each obstacle that holds the target region of the obstacle
     for leaf in subroom_leaves:
@@ -644,12 +645,17 @@ def subroom_adjacency_graph(subroom_leaves):
     # Once all the subrooms have been added, produce the adjacencies
     for leaf in subroom_leaves:
         for neighbor_adj in leaf.adj:
-            leaf_name = str(leaf.id)
-            other_name = str(neighbor_adj.get_other_id(leaf.id))
-            g.add_edge(leaf_name, other_name, data=neighbor_adj)
+            # Only add an edge of the adjacency is enterable
+            if neighbor_adj.can_enter(min_entrance_size):
+                # Add a tentative entrance and an edge
+                if neighbor_adj.entrance is None:
+                    neighbor_adj.add_entrance(min_entrance_size, max_entrance_size)
+                leaf_name = str(leaf.id)
+                other_name = str(neighbor_adj.get_other_id(leaf.id))
+                g.add_edge(leaf_name, other_name, data=neighbor_adj)
     return g
 
-def embed_room_graph(room_graph, subroom_graph, min_entrance_size, max_entrance_size):
+def embed_room_graph(room_graph, subroom_graph):
     """Embed the room graph into the subroom graph, resulting in a new graph
     which is the graph that will actually be searched over during subroom generation."""
     # Key - subroom_id, value - list of nodes belonging to that subroom
@@ -669,7 +675,7 @@ def embed_room_graph(room_graph, subroom_graph, min_entrance_size, max_entrance_
             if first in room_graph:
                 # First is an obstacle node
                 # Copy the data: the rectangle of actual tiles that this obstacle represents
-                #TODO: might only want the last two entries: the target squares
+                #TODO: might only want the target squares
                 if first not in g:
                     g.add_node(first, data=subroom_graph.nodes[first].data)
                 current_node = first
@@ -686,11 +692,12 @@ def embed_room_graph(room_graph, subroom_graph, min_entrance_size, max_entrance_
                 sf_name = str(second) + "-" + str(first)
                 # Add a node for the exit to the old subroom and the entrance to the new one
                 if fs_name not in g:
-                    # subroom interface nodes should only be added two at a time
+                    # Subroom interface nodes should only be added two at a time
                     assert sf_name not in g
                     # Choose a place to break the wall between the two subrooms
                     #TODO: Decide the type of each entrance based on what items are available
-                    e = edge_fs.add_entrance(min_entrance_size, max_entrance_size)
+                    e = edge_fs.entrance
+                    edge_fs.crossings.append(itemset)
                     # Create a node in the first subroom
                     g.add_node(fs_name, data=e)
                     subroom_nodes[first].append(fs_name)
