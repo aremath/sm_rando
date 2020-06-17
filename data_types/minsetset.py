@@ -1,4 +1,4 @@
-from .item_set import *
+from sm_rando.data_types.item_set import ItemSet
 # Author - Aremath
 # MinSetSet - used for keeping track of a set of minimal sets of items.
 # I expect items to be denoted as strings, but really you can use whatever you

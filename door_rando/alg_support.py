@@ -1,6 +1,8 @@
-from encoding import sm_global
-from encoding.parse_rooms import *
 import collections
+from sm_rando.encoding import sm_global
+from sm_rando.encoding.parse_rooms import door_hookups
+from sm_rando.data_types.item_set import ItemSet
+#from sm_rando.encoding.parse_rooms import *
 
 def make_door(door1, direction1, door2, direction2, new_room, graph, exits_to_place, door_changes, item_changes, items_to_place):
     """Connects door1 and door2, and updates all the accessories. Door1 is an already-placed door, and door2 is a door in new_room."""
@@ -9,7 +11,7 @@ def make_door(door1, direction1, door2, direction2, new_room, graph, exits_to_pl
     # update exits_to_place
     # first, add all the exits from the new room
     for direction, doors in new_room[1].items():
-            exits_to_place[direction].extend(doors)
+        exits_to_place[direction].extend(doors)
     # now, remove the two doors that we placed
     exits_to_place[direction1].remove(door1)
     exits_to_place[direction2].remove(door2)
@@ -46,6 +48,10 @@ def connect_doors(door1, direction1, door2, direction2, graph, exits_to_place, d
 
 #TODO have this take just a room, now that rooms have .doors?
 def dummy_exit_graph(graph, exits):
+    """
+    Adds dummy nodes for the exits that leave the room.
+    Used to perform reachability analysis about leaving the room.
+    """
     dummy_exits = []
     dummy_graph = graph.copy()
     for direction_list in exits.values():
@@ -59,23 +65,10 @@ def dummy_exit_graph(graph, exits):
                 dummy_exits.append(dummy_name)
     return dummy_graph, dummy_exits
 
-# note that dummy exits are "traps" - there's no path back to node L from Ldummy.
-def add_dummy_exits(graph, exits):
-    added_nodes = []
-    for direction in exits:
-        for node in exits[direction]:
-            print(direction)
-            print(node)
-            # if it's possible to go through the door
-            if graph.name_node[node].data.accessible:
-                node_constraint = graph.name_node[node].data.items
-                dummy_name = node + "dummy"
-                graph.add_node(dummy_name)
-                graph.add_edge(node, dummy_name, node_constraint)
-                added_nodes.append(node + "dummy")
-    return added_nodes
-
 def remove_dummy_exits(graph, exits):
+    """
+    Remove dummy exits from a graph
+    """
     for direction in exits:
         for node in direction:
             if node + "dummy" in graph.name_node:
@@ -86,14 +79,19 @@ def remove_dummy_exits(graph, exits):
 # Key - item set
 # Value - (wildcards, assignments) list
 def filter_paths(paths_through, state, room_exits):
-    
+    """
+    Filter the paths_through by those that offer progress
+    (Either to a new node, or to get a new item / wildcard)
+    """
+
     def is_path(other_state):
         if other_state.node not in room_exits:
             return False
         #TODO: Hacky
         elif state.is_progress(other_state):
+            # If the state we reach is where we started, then require that we found a new item
             if other_state.node == state.node + "dummy":
-                return ((other_state.items > state.items) or (len(other_state.wildcards) > len(state.wildcards)))
+                return (other_state.items > state.items) or (len(other_state.wildcards) > len(state.wildcards))
             else:
                 return True
         else:
@@ -184,24 +182,27 @@ def door_direction(door_name):
     return door_name.split("_")[-1].rstrip("0123456789")
 
 def check_backtrack(graph, current_state, backtrack_node, dummy_exits, fixed_items):
+    """
+    Temporarily connects a backtrack and performs a search as if that backtrack existed
+    """
     # Pretend like they are connected - remove their dummy nodes from the list of dummies...
     # Make a shallow copy first - if it turns out that backtracking was a bad decision, we need the original
     dummy_copy = dummy_exits[:]
     if current_state.node + "dummy" in dummy_copy:
-            dummy_copy.remove(current_state.node + "dummy")
+        dummy_copy.remove(current_state.node + "dummy")
     if backtrack_node + "dummy" in dummy_copy:
-            dummy_copy.remove(backtrack_node + "dummy")
+        dummy_copy.remove(backtrack_node + "dummy")
     # Put edges between them via an intermediate
     intermediate = current_state.node + "_int_" + backtrack_node
     graph.add_node(intermediate)
     current_node_constraints = graph.name_node[current_state.node].data.items
     backtrack_node_constraints = graph.name_node[backtrack_node].data.items
     if current_node_constraints is not None:
-            graph.add_edge(current_state.node, intermediate, current_node_constraints)
-            graph.add_edge(intermediate, backtrack_node)
+        graph.add_edge(current_state.node, intermediate, current_node_constraints)
+        graph.add_edge(intermediate, backtrack_node)
     if backtrack_node_constraints is not None:
-            graph.add_edge(backtrack_node, intermediate, backtrack_node_constraints)
-            graph.add_edge(intermediate, current_state.node)
+        graph.add_edge(backtrack_node, intermediate, backtrack_node_constraints)
+        graph.add_edge(intermediate, current_state.node)
     # Find the reachable exits under the new scheme (start from current node, to ensure you can get to backtrack exit)
     backtrack_offers, backtrack_finished, _, _ = graph.BFS_items(current_state, fixed_items=fixed_items)
     backtrack_exits = [s for s in backtrack_finished if s.node in dummy_copy]
@@ -209,5 +210,8 @@ def check_backtrack(graph, current_state, backtrack_node, dummy_exits, fixed_ite
     return backtrack_offers, backtrack_exits, dummy_copy, intermediate
 
 def augment_offers(offers, other_offers):
-    for k,v in other_offers.items():
+    """
+    Combine two offers dicts
+    """
+    for k, v in other_offers.items():
         offers[k] = v
