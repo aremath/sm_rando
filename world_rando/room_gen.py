@@ -1,10 +1,10 @@
-from .room_dtypes import *
-from .room_utils import *
-from .coord import *
-from .util import *
-from data_types import basicgraph
-
 import itertools
+
+from sm_rando.world_rando.room_dtypes import *
+from sm_rando.world_rando.room_utils import *
+from sm_rando.world_rando.coord import *
+from sm_rando.world_rando.util import *
+from sm_rando.data_types import basicgraph
 
 # Room Generation:
 

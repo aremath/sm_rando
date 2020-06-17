@@ -1,6 +1,6 @@
-from .coord import *
-from .concrete_map import *
-from . import fixed_cmaps
+from sm_rando.world_rando.coord import Coord, Rect
+from sm_rando.world_rando.concrete_map import *
+from sm_rando.world_rando import fixed_cmaps
 
 #TODO: Bounds checking on the results of the spring model
 #TODO: A way to keep the model going until the average absolute spring force falls below a threshold?

@@ -1,6 +1,7 @@
-from .coord import *
-from .concrete_map import *
 from functools import reduce
+
+from sm_rando.world_rando.coord import *
+from sm_rando.world_rando.concrete_map import *
 
 #TODO: how to make sure we generate the draygon item room?
 #TODO: this is outdated!

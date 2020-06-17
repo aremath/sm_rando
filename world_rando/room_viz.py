@@ -1,12 +1,10 @@
 # visualizes a concrete map of the form laid out in concrete_map.py
 
-from .coord import *
-
 import collections #defaultdict
-
 from PIL import Image
 from PIL import ImageOps
 
+from sm_rando.world_rando.coord import *
 
 # Cuts an image into xsize x ysize images as a list
 def image_grid(image, xsize, ysize):
