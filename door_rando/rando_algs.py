@@ -1,8 +1,10 @@
 import random
 import itertools
+from functools import reduce
 
-from misc.progress_bar import *
-from .alg_support import *
+from sm_rando.misc.progress_bar import print_progress_bar
+from sm_rando.door_rando.alg_support import *
+from sm_rando.data_types.graph import BFSItemsState, bfs_items_backtrack
 
 #TODO: Room Orientation randomization???? (far future)
 #TODO: This doesn't always take the "right" path-through. For example,
@@ -318,53 +320,6 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
         final_state = statues_state
     return door_changes, item_changes, current_graph, final_state, path
 
-#UNFINISHED:
-def completable_rando(rooms):
-    """creates the door transitions and items for a completable randomizer seed"""
-    clean_rooms(rooms)
-    check_door_totals(rooms)
-
-    landing_site = rooms.pop("Landing_Site")
-    current_graph = landing_site[0].graph
-    exits_to_connect = landing_site[1]
-    # approximate position of the ship - choose R2 so L2 will be discovered
-    current_node = "Landing_Site_R2"
-    # keeps track of wildcards - items we have picked up but haven't assigned
-    current_wildcards = set()
-    # keeps track of items we've picked up
-    current_items = set()
-    # keeps track of the item assignment
-    current_assignment = set()
-    # keeps track of exits reachable from current node
-    reachable_exits = []
-
-    # get a random order for items - used after we have assigned all of the items required to pass statues
-    items_to_place = map_items()
-    random.shuffle(items_to_place)
-
-    # get a random order for rooms
-    rooms_to_place = rooms.keys()
-    random.shuffle(rooms_to_place)
-
-    door_changes = []
-    item_changes = []
-
-    # make dummy exit nodes for landing_site
-    dummy_exits = add_dummy_exits(current_graph, exits_to_connect)
-
-    while True:
-
-        reachable_exits = "sadness"
-    # update reachable_exits using wildcard BFS
-    # pick a reachable exit and a corresponding item assignment
-    # calculate paths-through using wildcard BFS with current items for each room until we find one with a path-through
-    # update items, wildcards, assignments based on that path-through
-    # place that room, and go to the terminal of path_through and make dummy exit nodes
-
-    # if rooms is empty - move on. now we just need to hook up the rest of the doors
-    # if reachable exits is empty, cry
-    # if there aren't any rooms with a path_through, pick a different reachable exit.
-
 def basic_rando(rooms):
 
     # remove rooms we're not randomizing
@@ -434,36 +389,3 @@ def basic_rando(rooms):
     print("ROOMS NOT PLACED - " + str(len(rooms_to_place)))
     # return the list of door and item changes
     return door_changes, item_changes, current_graph
-
-#TODO: in alg_support?
-def choose_random_state(finished):
-    """chooses a random state from finished"""
-    
-    #TODO: quick and dirty fix
-    # Filter out empty entries of finished
-    finished = to_states(finished)
-    finished = from_states(finished)
-
-    node = random.choice(list(finished.keys()))
-    items = random.choice(list(finished[node].keys()))
-    wildcards, assignments = random.choice(finished[node][items])
-    return BFSItemsState(node, wildcards, items, assignments)
-
-def all_states(finished):
-    """Finds all the BFSItemsStates in finished"""
-    # Filter out empty entries
-    finished = to_states(finished)
-    finished = from_states(finished)
-
-    states = []
-    nodes = list(finished.keys())
-    for n in nodes:
-        items = list(finished[n].keys())
-        for i in items:
-            # Wildcard, Assignment pairs
-            was = finished[n][i]
-            for w,a in was:
-                s = BFSItemsState(n, w, i, a)
-                states.append(s)
-    return states
-

@@ -8,6 +8,12 @@ from .room_utils import mk_default_rect, mk_air_rect
 from .coord import Coord, Rect
 from .util import weighted_random_order
 
+from sm_rando.world_rando.room_dtypes import *
+from sm_rando.world_rando.room_utils import *
+from sm_rando.world_rando.coord import *
+from sm_rando.world_rando.util import *
+from sm_rando.data_types import basicgraph
+
 # Room Generation:
 #TODO: instead of constantly CHANGING adjacencies, simply create NEW, smaller adjacencies
 # between lower elements of the subroom tree.

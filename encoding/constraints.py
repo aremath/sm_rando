@@ -12,7 +12,8 @@
 # can always turn every item off, there is no reason for an edge to ever require
 # you not to have an item.
 
-from data_types.minsetset import *
+from sm_rando.data_types.minsetset import MinSetSet
+from sm_rando.data_types.item_set import ItemSet
 from functools import reduce
 
 def parse_constraint(constraint):

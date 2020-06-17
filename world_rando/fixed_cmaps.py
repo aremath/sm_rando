@@ -2,6 +2,9 @@ from functools import reduce
 from .coord import Coord, Rect
 from .concrete_map import ConcreteMap, MapTile, TileType
 
+from sm_rando.world_rando.coord import *
+from sm_rando.world_rando.concrete_map import *
+
 #TODO: how to make sure we generate the draygon item room?
 #TODO: this is outdated!
 #TODO: these functions should return a cmap, a list of implicit doors, and a list of implicit rooms.

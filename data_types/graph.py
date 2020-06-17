@@ -28,12 +28,12 @@
 # you can cross every edge and obtain every* item. 
 # * except the Main Street missiles if you can't do that shortcharge. My encoding makes no edges to that item, for this reason.
 
-from .minsetset import *
-from .item_set import *
-from .orderedset import *
-
 import collections
 import random
+
+from sm_rando.data_types.minsetset import MinSetSet
+from sm_rando.data_types.item_set import ItemSet
+from sm_rando.data_types.orderedset import OrderedSet
 
 #TODO: now that node, item set are both hashable... hash this?
 #TODO: alter graph so that the edge list is part of the node data structure?

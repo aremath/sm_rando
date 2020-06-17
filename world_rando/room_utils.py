@@ -1,6 +1,6 @@
-from .room_dtypes import Tile, Texture, Type, Level
-from .coord import Coord, Rect
-from rom_tools import rom_data_structures
+from sm_rando.world_rando.room_dtypes import *
+from sm_rando.world_rando.coord import *
+from sm_rando.rom_tools import rom_data_structures
 
 ### DEFAULT TILE TYPES ###
 

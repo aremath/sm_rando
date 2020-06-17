@@ -13,10 +13,11 @@
 # DOOR TYPES:
 # (L R B T ET EB TS BS LMB RMB)
 
-from .constraints import *
-from data_types.graph import *
 import collections
-from . import sm_global
+
+from sm_rando.encoding.constraints import *
+from sm_rando.data_types.graph import *
+from sm_rando.encoding import sm_global
 
 door_hookups = {
 	"L": "R",
