@@ -1,11 +1,12 @@
-from data_types import basicgraph
-from encoding import item_order
-from encoding import sm_global
-from data_types import item_set
 import random
 import heapq
 import collections
 import itertools
+
+from data_types import basicgraph
+from data_types import item_set
+from encoding import item_order
+from encoding import sm_global
 
 #TODO: every item needs to keep a unique ID
 # so that it can know its PLM index when it
@@ -36,7 +37,7 @@ def order_graph():
     g.add_node("START")
     current = "START"
     things = item_set.ItemSet()
-    for index, i in enumerate(order):
+    for i in order:
         # first, BFS from current to find a candidate entrance
         finished, offers = g.BFS(current)
 
@@ -67,7 +68,7 @@ def partition_order(graph, initial, priority=lambda x: 0):
 
     gnodes = set(graph.nodes.keys())
     # key - region name, value - offers for that region
-    roffers = { region: {} for region in initial}
+    roffers = {region: {} for region in initial}
     # key - region name, value - finished for that region
     rfinished = {region: set() for region in initial}
     for region in initial:
@@ -100,12 +101,13 @@ def partition_order(graph, initial, priority=lambda x: 0):
 
     return roffers, rfinished
 
-# given a set of regions, make the necessary elevators
-# need to:
-#   1. Find edges that cross region boundaries
-#   2. Make an elevator for each unique region crossing
-#
 def make_elevators(graph, regions):
+    """
+    Given a set of regions, make the necessary elevators
+    Need to:
+        1. Find edges that cross region boundaries
+        2. Make an elevator for each unique region crossing
+    """
     elevators = collections.defaultdict(list)
     crossings = find_crossings(graph, regions)
     for regs, edges in crossings.items():
@@ -125,7 +127,7 @@ def make_elevators(graph, regions):
         for n1, n2, d in edges:
             if n1 in regions[r1]:
                 graph.update_edge(n1, r1_e_name, d)
-                graph.update_edge(r2_e_name, n2, d) 
+                graph.update_edge(r2_e_name, n2, d)
                 #graph.update_edge_append(r1_e_name, r2_e_name, d)
             elif n1 in regions[r2]:
                 graph.update_edge(n1, r2_e_name, d)
@@ -134,7 +136,6 @@ def make_elevators(graph, regions):
             else:
                 assert False, "Node not in either region: " + n1
     return elevators
-        
 
 # Find the places where the edges of a graph cross a given partitioning of it.
 # Crossings:
@@ -153,14 +154,20 @@ def find_crossings(graph, regions):
     return crossings
 
 #TODO: Why do we need this?
-# Find what region a node is in.
 def node_in_region(node, regions):
+    """
+    Find what region a node is in
+    """
     for region in regions:
         if node in regions[region]:
             return region
     assert False, "Node not in regions"
+    return None
 
 def region_subgraphs(graph, regions):
+    """
+    Create a subgraph for each region
+    """
     region_sgraphs = {}
     for region, nodes in regions.items():
         region_sgraphs[region] = graph.subgraph(nodes)
@@ -203,7 +210,7 @@ def add_items(graph, items):
             #TODO: store what type of item it is in the node data?
 
 def make_rand_weighted_list(weights):
-    """Create a shuffled list using weights. Weights is a key->int dict that contains how 
+    """Create a shuffled list using weights. Weights is a key->int dict that contains how
     many of each key to place into the weighted list."""
     out = []
     for key, weight in weights.items():
@@ -226,7 +233,7 @@ def weighted_partition_order(graph, initial, weights, priority=lambda x: 0):
 
     gnodes = set(graph.nodes.keys())
     # roffers: region name -> offers for that region (node set)
-    roffers = { region: {} for region in initial}
+    roffers = {region: {} for region in initial}
     # rfinished: region name -> finished for that region (node set)
     rfinished = {region: set() for region in initial}
     # Initialize rfinished with initial
@@ -271,4 +278,3 @@ def weighted_partition_order(graph, initial, weights, priority=lambda x: 0):
                 all_finished.add(t)
 
     return roffers, rfinished
-

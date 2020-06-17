@@ -1,8 +1,8 @@
-from .coord import *
+from data_types import basicgraph
+from .coord import Coord
 from .concrete_map import *
 from .map_viz import *
 from .room_viz import *
-from data_types import basicgraph
 
 class Room(object):
 
@@ -22,9 +22,12 @@ class Room(object):
 
         self.up_scroll = 0x70
         self.down_Scroll = 0xa0
+        # Filled later
+        self.level = None
 
+    #TODO
     def translate(self):
-        #produce a Jake room from this
+        #Produce a ROM room from this
         pass
 
     def viz_cmap(self, directory):
@@ -41,6 +44,9 @@ class Room(object):
         room_viz(self.level, fname, "encoding/room_tiles")
 
 class Door(object):
+    """
+    Holds the info for a door
+    """
 
     def __init__(self, tile, direction, room1, room2, door_id, name):
         self.pos = tile
@@ -55,6 +61,9 @@ class Door(object):
     #    return hash(self.tiles)
 
 class Item(object):
+    """
+    Holds the data for an item
+    """
 
     def __init__(self, item_type, map_pos):
         # String - the actual item contained here
@@ -72,9 +81,10 @@ class Item(object):
 #TODO: This data structure should be in rom_tools since
 # other tools that interact with the rom might need access to
 # this kind of level info.
-
-# Holds the level data for a room
 class Level(object):
+    """
+    Holds the level data for a room
+    """
     
     def __init__(self, dimensions, tiles=None):
         self.dimensions = dimensions
@@ -129,6 +139,9 @@ class Level(object):
         return matches
 
     def compose(self, other, collision_policy="error", offset=Coord(0,0)):
+        """
+        Composes with another Level
+        """
         new_tiles = {}
         for c, t in self.items():
             new_tiles[c] = t
@@ -167,17 +180,19 @@ class Level(object):
         bts = b""
         level2 = b""
         for c in self.itercoords():
-           t = self[c]
-           level1 += t.level1_bytes()
-           bts += t.bts_bytes()
-           #TODO l2
+            t = self[c]
+            level1 += t.level1_bytes()
+            bts += t.bts_bytes()
+            #TODO l2
         size_bytes = int.to_bytes(len(level1), 2, byteorder="little")
         assert len(size_bytes) == 2, "Level too large!"
         return size_bytes + level1 + bts + level2
                 
     def itercoords(self):
-        """Iterator over the Coord that are within self,
-        in x-minor order (or as the tiles would be laid out in the level data)"""
+        """
+        Iterator over the Coord that are within self,
+        in x-minor order (or as the tiles would be laid out in the level data)
+        """
         for y in range(0, self.dimensions.y):
             for x in range(0, self.dimensions.x):
                 yield Coord(x, y)
@@ -250,21 +265,23 @@ class Tile(object):
         """The 2-byte part of the tile stored in the level2 background data."""
         return b''
 
-# Change the flips to reflect about axis
-# Vertical flip changes if axis is (0,1)
-# Horizontal flip changes if axis is (1,0)
 def reflect_flips(flips, axis):
-
+    """
+    Change the flips to reflect about axis
+    Vertical flip changes if axis is (0,1)
+    Horizontal flip changes if axis is (1,0)
+    """
     return ((flips[0] + axis.x) % 2, (flips[1] + axis.y) % 2)
 
 # These are separate because for the purposes of waveform collapse, the type of a tile
 # can be known while the texture remains unknown and vice versa.
 
 #TODO: the is_any thing is kind of awkward...
-
-# The visual properties of a tile
-# Flips are hflip, vflip
 class Texture(object):
+    """
+    The visual properties of a tile
+    Flips are hflip, vflip
+    """
 
     def __init__(self, index, flips, is_any=False):
         self.is_any = is_any
@@ -279,13 +296,18 @@ class Texture(object):
         return self.index == other.index and self.flips == other.flips
 
     def is_sub(self, other):
+        """
+        Is self a subtile of other?
+        """
         return self == other or other.is_any
 
     def reflect(self, axis):
         return Texture(self.index, reflect_flips(self.flips, axis))
 
-# The physical properties of a tile
 class Type(object):
+    """
+    The physical properties of a tile
+    """
     
     def __init__(self, index, bts, is_any=False):
         self.is_any = is_any
@@ -300,6 +322,9 @@ class Type(object):
         return self.index == other.index and self.bts == other.bts
 
     def is_sub(self, other):
+        """
+        Is self a subtile of other?
+        """
         return self == other or other.is_any
 
     def get_slope_info(self):

@@ -1,5 +1,5 @@
-from .room_dtypes import *
-from .coord import *
+from .room_dtypes import Tile, Texture, Type, Level
+from .coord import Coord, Rect
 from rom_tools import rom_data_structures
 
 ### DEFAULT TILE TYPES ###
@@ -19,9 +19,11 @@ def mk_external():
     ty = Type(0x8, 0x0)
     return Tile(tex, ty)
 
-# Make a wall from the default solid tile at the edge of the given maptile
-# Can use similar code to make a wall of "solids" for wavecollapse
 def mk_wall(level, map_xy, direction, thickness=2):
+    """
+    Make a wall from the default solid tile at the edge of the given maptile
+    Can use similar code to make a wall of "solids" for wavecollapse
+    """
     map_x = map_xy.x * 16
     map_y = map_xy.y * 16
     tstart = 16 - thickness
@@ -38,17 +40,18 @@ def mk_wall(level, map_xy, direction, thickness=2):
     mk_default_rect(level, r)
 
 def mk_rect(level, rect, tile_maker):
+    """Paint a rectangle of the given tile on the level"""
     for c in rect.as_list():
         level[c] = tile_maker()
 
 def mk_default_rect(level, rect):
+    """Paint a rectangle of solid tiles on the level"""
     mk_rect(level, rect, mk_default_solid)
 
 def mk_air_rect(level, rect):
     mk_rect(level, rect, mk_default_air)
 
-#TODO: the four cardinal coords better represent the four
-# directions
+#TODO: the four cardinal coords better represent the four directions
 #p = Coord(1,1) - d.abs()
 #c = p.scale(6)
 #if direction > Coord(0,0):

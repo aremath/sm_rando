@@ -3,10 +3,14 @@ import collections
 import heapq
 import random
 from enum import Enum
-from .coord import *
+from .coord import Coord, Rect
 
 # Enum for what things a tile can be
 class TileType(Enum):
+    """
+    Encodes the type of a map tile
+    Used for drawing the concrete map and for putting the concrete map into the game RAM
+    """
     normal = 1         # Tile with some data - its image will be controlled by what walls it has
     blank = 2          # Blank tiles that are still stored in the map (ex. introduced by elevators.)
     up_arrow = 3       # The arrow above an elevator.
@@ -16,6 +20,9 @@ class TileType(Enum):
     elevator_main_down = 7 #
 
 class MapTile(object):
+    """
+    Object that represents a single map tile. The entire map is populated with MapTiles
+    """
 
     def __init__(self, _tile_type=TileType.normal, _fixed=False, _item=False, _save=False, _walls=None):
         # key - Coord
@@ -27,22 +34,24 @@ class MapTile(object):
         else:
             self.walls = _walls
         # general tile info
-        self.is_item  = _item
-        self.is_save  = _save
+        self.is_item = _item
+        self.is_save = _save
         # elevator information
         self.tile_type = _tile_type
         # is it part of an already-constrained room?
         self.is_fixed = _fixed
 
-    def add_path(to_coords, with_items):
+    def add_path(self, to_coords, with_items):
+        """Add a path through self to another tile, with the specified item constraints"""
         self.d[to_coords].append(with_items)
 
 # Various distance metrics for use as search heuristics
 def euclidean(p1, p2):
-    """euclidean metric"""
+    """Euclidean Metric"""
     return p1.euclidean(p2)
 
 def manhattan(p1, p2):
+    """Manhattan Metric"""
     return abs(p1.x - p2.x) + abs(p1.y - p2.y)
 
 # 9 chosen arbitrarily.
@@ -50,27 +59,32 @@ def manhattan(p1, p2):
 # this tends to be more wiggly near the endpoint, and asymptotically straight
 # near the starting point.
 def rand_d(p1, p2):
-    return euclidean(p1, p2) + random.uniform(0,9)
+    """Randomized Euclidean distance"""
+    return euclidean(p1, p2) + random.uniform(0, 9)
 
-# Stores the information for a concrete map: What tiles are where.
-# Provides search abilities, etc.
 class ConcreteMap(object):
-   
+    """
+    Stores the information for a concrete map: What tiles are where.
+    Provides search abilities, etc.
+    """
+
     # Avoid the infamous default value bug!
     def __init__(self, _dimensions, _tiles=None):
         # X, Y. The size of the ConcreteMap.
         # Coord in the cmap should be between (0,0) and _dimensions
         self.dimensions = _dimensions
         # Coord -> Maptile dictionary.
-        if _tiles == None:
+        if _tiles is None:
             self.tiles = {}
         else:
             self.tiles = _tiles
 
     def in_bounds(self, coord):
-        return coord.in_bounds(Coord(0,0), self.dimensions)
-        
+        """Is the given coord in bounds?"""
+        return coord.in_bounds(Coord(0, 0), self.dimensions)
+
     def assert_in_bounds(self, coord):
+        """Assert that the given coordinate is in bounds"""
         assert self.in_bounds(coord), "Out of bounds: " + str(coord)
 
     def map_extent(self):
@@ -80,7 +94,7 @@ class ConcreteMap(object):
     def at_offset(self, offset):
         """Returns a new cmap which is the old cmap with all tiles
         at an offset. Data may be shared."""
-        new_tiles = {m + offset : mtile for m, mtile in self.items() }
+        new_tiles = {m + offset : mtile for m, mtile in self.items()}
         #TODO: and has the same dimensions as before?
         return ConcreteMap(self.dimensions, _tiles=new_tiles)
 
@@ -112,7 +126,7 @@ class ConcreteMap(object):
     #TODO: some optimizations can be made
     # note that dist can be random, in which case this is kind of a random walk that
     # 'eventually' reaches q
-    def map_search(self, start, goal, reach_pred=lambda x: True, dist=lambda x,y: euclidean(x,y)):
+    def map_search(self, start, goal, reach_pred=lambda x: True, dist=euclidean):
         """search to find the path from start to goal, under tiles satisfying pred
         placing new tiles into the queue by sorting them over the metric dist. Does not
         search tiles outside the bounds of the ConcreteMap, ensuring the search space is finite. """
@@ -175,6 +189,10 @@ class ConcreteMap(object):
     # A fix would be to analyze connected components using bfs, then allocate each components a number
     # of means based on its size, and run the current algorithm on each connected component.
     def random_rooms(self, n):
+        """
+        Partition the rooms randomly based on BFS
+        Each partition grabs a neighboring tile until all the tiles are gone
+        """
         tile_set = self.non_fixed()
         # choose means
         means = random.sample(self.non_fixed(), n)
@@ -184,6 +202,12 @@ class ConcreteMap(object):
         return paths, partitions
 
     def random_rooms_alt(self, n, implicit_bboxes):
+        """
+        Partition the rooms randomly by merging with neighbors
+        Each partition merges with a neighboring partition until the desired number of
+        rooms have been created, or no more merges can be performed.
+        Respects bounding boxes for rooms, so that each room's bounding box is rectangular.
+        """
         tile_set = self.non_fixed()
         rooms = merging_partition(tile_set, n, 24, implicit_bboxes)
         for s in rooms.values():
@@ -226,7 +250,7 @@ class ConcreteMap(object):
         if relative:
             offset = rect.start
         else:
-            offset = Coord(0,0)
+            offset = Coord(0, 0)
         for c in rect.as_list():
             if c in self:
                 new_tiles[c - offset] = self[c]
@@ -236,25 +260,31 @@ class ConcreteMap(object):
     # Behaves like a dictionary, interfacing to tiles
     def __getitem__(self, key):
         return self.tiles[key]
+
     # Cannot set an item outside the bounds
     def __setitem__(self, key, value):
-        if key.in_bounds(Coord(0,0), self.dimensions):
+        if key.in_bounds(Coord(0, 0), self.dimensions):
             self.tiles[key] = value
         else:
             assert False, "Index not in bounds: " + str(key)
+
     def __len__(self):
         return len(self.tiles)
-    def __contains__(self,item):
+
+    def __contains__(self, item):
         return item in self.tiles
+
     def keys(self):
         return self.tiles.keys()
+
     def items(self):
         return self.tiles.items()
+
     def values(self):
         return self.tiles.values()
 
 #TODO
-def map_lsearch(start, goal, pred=lambda x:True, dist=lambda x,y: euclidean(x,y)):
+def map_lsearch(start, goal, pred=lambda x: True, dist=euclidean):
     """special search that first finds failure states in moving from start to goal,
     then moves only towards the goal to reach it, minimizing dist at each step.
     The goal here is that we can generate random, but more 'straight' paths than a random
@@ -265,13 +295,15 @@ def map_lsearch(start, goal, pred=lambda x:True, dist=lambda x,y: euclidean(x,y)
 #TODO: possible bug where a path might be shorter than expected if
 # START is encountered multiple times along the path
 
-# Uses the offers from a bfs to construct a path
-# a path is a list of consecutive states where
-#   1. if state a is before state b in the list, then b is reachable from a
-#   2. start is the first element of the list
-#   3. end is is the last element of the list
-# Iff start and end are the same node, this returns a list of length 1
 def get_path(offers, start, end):
+    """
+    Uses the offers from a bfs to construct a path
+    a path is a list of consecutive states where
+        1. if state a is before state b in the list, then b is reachable from a
+        2. start is the first element of the list
+        3. end is is the last element of the list
+    Iff start and end are the same node, this returns a list of length 1
+    """
     if end not in offers:
         return None
     pos = end
@@ -284,11 +316,13 @@ def get_path(offers, start, end):
     # Reverse it for a path from start to end
     return path[::-1]
 
-# Concatenate two paths made from get_path to form a longer path
-# preserves the path properties from above
-# If path1 is from start1 to end1 and path2 is from end1 to end2, then
-# the new path will be from start1 to end2.
 def path_concat(path1, path2):
+    """
+    Concatenate two paths made from get_path to form a longer path
+    preserves the path properties from above
+    If path1 is from start1 to end1 and path2 is from end1 to end2, then
+    the new path will be from start1 to end2.
+    """
     assert path1[-1] == path2[0], "Incompatible paths"
     return path1[:-1] + path2
 
@@ -296,10 +330,13 @@ def path_concat(path1, path2):
 # can use random to alter the pattern of vertices grabbed by
 # each mean
 def bfs_partition(space, means, priority=lambda x: 0):
-    # setup
-    # key - mean, value - set of positions that mean has considered
+    """
+    Actually do the partitioning for the BFS partition
+    """
+    # Setup
+    # Key - mean, value - set of positions that mean has considered
     mfinished = {mean: set() for mean in means}
-    # key - mean, value - for position p, what made the a* offer to p?
+    # Key - mean, value - for position p, what made the a* offer to p?
     moffers = {mean: {} for mean in means}
     for mean in means:
         mfinished[mean].add(mean)
@@ -335,8 +372,11 @@ def bfs_partition(space, means, priority=lambda x: 0):
 # Pick a random room to merge, and a random of its neighbors.
 # Remove rooms for which none of their neighbors can be merged.
 def merging_partition(space, targetn, maxsize, implicit_bboxes):
-    """Partitions space into a set of "rooms" - tile sets. Targetn is the
-    desired number of rooms, and maxsize is the """
+    """
+    Partitions space into a set of "rooms" - tile sets. Targetn is the
+    desired number of rooms, and maxsize is the maximum number of tiles
+    that each room can occupy
+    """
     # Initially, every room has only itself.
     rooms = {p: set([p]) for p in space}
     # The rooms on which forward progress can be made
@@ -373,8 +413,11 @@ def merging_partition(space, targetn, maxsize, implicit_bboxes):
         del rooms[n]
     return rooms
 
-# can tiles1 merge with tiles2?
 def can_merge(room1, room2, rooms, maxsize, implicit_bboxes):
+    """
+    Can tiles1 merge with tiles2 while respecting
+    the bounding boxes and size constraints?
+    """
     tiles1 = rooms[room1]
     tiles2 = rooms[room2]
     # Check that the new room won't have more than maxsize tiles
@@ -386,7 +429,7 @@ def can_merge(room1, room2, rooms, maxsize, implicit_bboxes):
     if bbox.area() > maxsize:
         return False
     # Build the bounding box for each room
-    room_bboxes = {k: extent(v) for k,v in rooms.items()}
+    room_bboxes = {k: extent(v) for k, v in rooms.items()}
     # Don't care about room1 and room2, since the merge will replace them
     del room_bboxes[room1]
     del room_bboxes[room2]
@@ -394,10 +437,12 @@ def can_merge(room1, room2, rooms, maxsize, implicit_bboxes):
     # any of the existing rooms
     return not any(map(lambda b: bbox.intersects(b), list(room_bboxes.values()) + implicit_bboxes))
 
-# When two rooms merge, their adjacencies merge
-# When r1 and r2 merge into r1, go through and replace r2 in adjacencies with r1
-# Replace tile1 with tile2 in active
 def active_replace(active, tile1, tile2):
+    """
+    When two rooms merge, their adjacencies merge
+    When r1 and r2 merge into r1, go through and replace r2 in adjacencies with r1
+    Replace tile1 with tile2 in active
+    """
     new_active = collections.defaultdict(set)
     for k, v in active.items():
         if k != tile1:
@@ -406,9 +451,11 @@ def active_replace(active, tile1, tile2):
             else:
                 new_active[k] = active[k]
     return new_active
-    
-# Remove tile from active
+
 def active_delete(active, tile):
+    """
+    Remove tile from active
+    """
     return {key : value - set([tile]) for (key, value) in active if key != tile}
 
 def extent(coords):
@@ -419,14 +466,15 @@ def extent(coords):
     miny = min(coords, key=lambda item: item.y).y
     maxx = max(coords, key=lambda item: item.x).x
     maxy = max(coords, key=lambda item: item.y).y
-    return Rect(Coord(minx, miny), Coord(maxx, maxy) + Coord(1,1))
+    return Rect(Coord(minx, miny), Coord(maxx, maxy) + Coord(1, 1))
 
-# Simple inefficient test for room ajdacency
-# Adjacent rooms can be merged.
 def adjacent(room1, room2):
+    """
+    Simple inefficient test for room ajdacency
+    Adjacent rooms can be merged.
+    """
     for p1 in room1:
         for p2 in room2:
             if p1.adjacent(p2):
                 return True
     return False
-

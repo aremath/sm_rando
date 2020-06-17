@@ -1,6 +1,6 @@
-from .coord import *
-from .concrete_map import *
 from functools import reduce
+from .coord import Coord, Rect
+from .concrete_map import ConcreteMap, MapTile, TileType
 
 #TODO: how to make sure we generate the draygon item room?
 #TODO: this is outdated!
@@ -8,20 +8,25 @@ from functools import reduce
 #TODO: make these functions only predicated on the tile_list - i.e. a mk_area function that
 # uses only the tile_list (except for elevators)
 
-# Put the tiles in tile_list into cmap, and check if any lie outside the bounds of the cmap.
-# tile_list is a [(position, maptile)]
 def bounded_put_check(cmap, tile_list):
+    """
+    Put the tiles in tile_list into cmap, and check if any lie outside the bounds of the cmap.
+    tile_list is a [(position, maptile)]
+    """
     is_valid_list = map(lambda x: cmap.bounded_put(x[0],x[1]), tile_list)
     # If any of the calls to bounded_put failed, this will be False
     return reduce(lambda x, y: x and y, is_valid_list)
 
-# area is (position -> dimensions -> tile_list)
 def mk_area(pos, dims, area):
+    """
+    Create a cmap for an area at a given position
+    area is (position -> dimensions -> tile_list)
+    """
     cmap = ConcreteMap(dims)
     # Most of the areas throw away dims, but it's useful for elevators.
     tile_list = area(pos, dims)
     # If any of the tile lie outside the bounds, this map isn't valid
-    if bounded_put_check(cmap,tile_list):
+    if bounded_put_check(cmap,tile_list)
         return cmap
     else:
         return None
