@@ -12,7 +12,7 @@ tileset_table_addr = Address(0x8fe6a2, mode="snes")
 
 # Read the table of tilesets
 def get_tileset_table(rom):
-    tilesets = rom.read_list(tileset_table_addr, 9, 0x1c, compressed=False)
+    tilesets = rom.read_list(tileset_table_addr, 9, 0x1d, compressed=False)
     # Split them into 3 3-byte pointers
     tilesets = [[t[0:3], t[3:6], t[6:9]] for t in tilesets]
     # Make those into Addresses

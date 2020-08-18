@@ -414,7 +414,7 @@ class Scrolls(object):
 
     def __init__(self, room_id, scroll_id, scroll_data):
         self.sym = "room_{}_scrolls_{}".format(room_id, scrolls_id)
-        self.scroll_data= scroll_data
+        self.scroll_data = scroll_data
 
     def allocate(self, memory, env):
         to_write = self.scroll_data

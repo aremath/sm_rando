@@ -13,16 +13,16 @@ class Address(object):
             assert False, "Bad address mode: " + mode
 
     def __repr__(self):
-        return hex(self.as_pc())
+        return hex(self.as_pc)
 
     def __gt__(self, other):
-        return self.as_pc() > other.as_pc()
+        return self.as_pc > other.as_pc
 
     def __eq__(self, other):
-        return self.as_pc() == other.as_pc()
+        return self.as_pc == other.as_pc
 
     def __add__(self, other):
-        return Address(self.as_pc() + other.as_pc())
+        return Address(self.as_pc + other.as_pc)
 
     # Hashable as its actual address
     def __hash__(self):
@@ -34,9 +34,11 @@ class Address(object):
     def from_pc(self,addr):
         self.pc_addr = addr
 
+    @property
     def as_pc(self):
         return self.pc_addr
 
+    @property
     def as_snes(self):
         sn = byte_ops.pc_to_snes(self.pc_addr)
         return sn
@@ -47,6 +49,7 @@ class Address(object):
         b = sn.to_bytes(3, byteorder='little')
         return b[:nbytes]
     
+    @property
     def bank(self):
         return (byte_ops.pc_to_snes(self.pc_addr) & 0xff0000) >> 16
     
@@ -54,7 +57,7 @@ class Address(object):
         return Address(self.pc_addr)
 
     def copy_increment(self,inc):
-        ad = self.as_pc() + inc
+        ad = self.as_pc + inc
         return Address(ad)
 
 def mk_future(i):
@@ -142,8 +145,8 @@ class FutureAddressWrite(object):
         if hasattr(addr, "as_snes_bytes"):
             #TODO: right now this does the format regardless of whether the assert fires. This is slow.
             # Sad assert doesn't go over multiple lines :(
-            assertmsg = "Pointer's bank ({}) does not match expected bank ({})".format(addr.bank(), self.bank)
-            assert self.bank is None or addr.bank() == self.bank, assertmsg
+            assertmsg = "Pointer's bank ({}) does not match expected bank ({})".format(addr.bank, self.bank)
+            assert self.bank is None or addr.bank == self.bank, assertmsg
             rom.write_to_new(place, addr.as_snes_bytes(self.size))
         # If the address isn't an Address, then treat it as an int
         # Hack for being able to use literal numbers like for the scrolls ptr.

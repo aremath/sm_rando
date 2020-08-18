@@ -62,8 +62,8 @@ class Bank(object):
     # TODO: assert no overlapping extents
     def add_extent(self, extent):
         assert(isinstance(extent, Extent))
-        assert extent.start.bank() == self.bank
-        bank2 = extent.end().bank()
+        assert extent.start.bank == self.bank
+        bank2 = extent.end().bank
         assert bank2 == self.bank, "{} does not match {}".format(bank, bank2)
         self.extent_list.append(extent)
 
@@ -130,7 +130,7 @@ class Memory(object):
 
     def mark_free(self, address, size):
         """Marks a part of the rom as unallocated free space"""
-        bank = address.bank()
+        bank = address.bank
         # size-1 because size includes the byte at address
         # a 1-byte free space only refers to the byte at address
         #TODO: in the future, create multiple extents broken over the bank

@@ -12,6 +12,7 @@
 # Blue - Water
 ## TODO: Slope down is "solid" technically, but some of these jumps are not possible when the height gets smaller...
 ## TODO: Differentiate between spin samus and springball samus...
+## TODO: Differentiate between air blocks that will cause samus to lose horizontal vs. vertical speed
 
 
 # Each jump with hjb, with speed booster

@@ -143,18 +143,18 @@ class RomManager(object):
 
     def write_to_new(self, offset, data):
         """Write data to offset in the new rom"""
-        self.new_rom.seek(offset.as_pc())
+        self.new_rom.seek(offset.as_pc)
         self.new_rom.write(data)
 
     def read_from_new(self, offset, n_bytes):
         """Read n bytes from the new rom at offset"""
-        self.new_rom.seek(offset.as_pc())
+        self.new_rom.seek(offset.as_pc)
         r = self.new_rom.read(n_bytes)
         return r
 
     def read_from_clean(self, offset, n_bytes):
         """Read n bytes from the clean rom at offset"""
-        self.clean_rom.seek(offset.as_pc())
+        self.clean_rom.seek(offset.as_pc)
         r = self.clean_rom.read(n_bytes)
         return r
 

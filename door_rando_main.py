@@ -12,7 +12,6 @@ from data_types.item_set import ItemSet
 from data_types.graph import BFSState
 from misc import rng, settings_parse
 
-#TODO: Timeout
 #TODO: A better file structure would keep all the rando algorithms that produce door changes and item changes somewhere else
 # this file should just be the executable
 #TODO: Fix Zip Tube by removing the door ASM from the doors that lead into it in vanilla, and adding the same ASM to the doors that lead into it on the randomized ROM
