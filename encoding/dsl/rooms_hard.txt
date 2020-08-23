@@ -895,7 +895,7 @@ Water_Closet - 7B1E5
 R1
 R2
 Drain
-R1 <-> Drain					- & PB (| SJ (& GS E) (& SPB E))
+R1 <-> Drain					- & PB SJ
 R1 <-> R2						- & Drain (| B PB)
 ALL <-> ALL						- V
 R2 -> Drain						- X

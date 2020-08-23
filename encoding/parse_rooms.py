@@ -225,5 +225,5 @@ def parse_rooms(room_file):
 		if len(room_def) >= 1:
 			room = make_room(room_def)
 			rooms[room.name] = room
-
+        f.close()
 	return rooms

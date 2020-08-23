@@ -1,0 +1,20 @@
+#Rule: AAAA
+#Base_Cost: 12
+#Items: IB, SPB, B, MB
+#b_Pose: Stand
+#b_vv: 0
+#b_vh: 1
+#a_Pose: Spin
+#a_vv: 0
+#a_vh: 1
+
+Rule: Step
+
+Rule: StepUp
+
+Rule: StepDown
+
+Test: TestWalk
+
+#Chain: AAAA, Step
+#Cost_factor: 0.5

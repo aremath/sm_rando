@@ -1,9 +1,24 @@
+from functools import total_ordering
+from collections import namedtuple
 
-class Coord(object):
+Coord = namedtuple("Coord", ("x", "y"))
+
+@total_ordering
+class Coord(tuple):
     
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+    #def __init__(self, x, y):
+    #    self.x = x
+    #    self.y = y
+    def __new__(self, x, y):
+        return tuple.__new__(Coord, (x, y))
+    
+    @property
+    def x(self):
+        return self[0]
+
+    @property
+    def y(self):
+        return self[1]
 
     def __add__(self, other):
         return Coord(self.x + other.x, self.y + other.y)
@@ -56,6 +71,12 @@ class Coord(object):
             return self.x < other.x
         else:
             return False
+
+    def __leq__(self, other):
+        return self.y <= other.y and self.x <= other.x
+
+    def __len__(self):
+        return 2
 
     def scale(self, scale_factor):
         return Coord(scale_factor*self.x, scale_factor*self.y)
@@ -125,6 +146,31 @@ class Coord(object):
         new_index = max_index - self.index(axis)
         return axis.scale(new_index) + self * p
 
+    def pointwise_min(self, other):
+        return Coord(min(self.x, other.x), min(self.y, other.y))
+
+    def pointwise_max(self, other):
+        return Coord(max(self.x, other.x), max(self.y, other.y))
+
+    def sign(self):
+        if self.x > 0:
+            x = 1
+        elif self.x == 0:
+            x = 0
+        elif self.x < 0:
+            x = -1
+        if self.y > 0:
+            y = 1
+        elif self.y == 0:
+            y = 0
+        elif self.y < 0:
+            y = -1
+        return Coord(x, y)
+
+    def copy(self):
+        return Coord(self.x, self.y)
+
+
 class Rect(object):
 
     def __init__(self, c1, c2):
@@ -135,6 +181,11 @@ class Rect(object):
 
     def __repr__(self):
         return "(" + str(self.start) + "," + str(self.end) + ")"
+
+    def __iter__(self):
+        for x in range(self.start.x, self.end.x):
+            for y in range(self.start.y, self.end.y):
+                yield Coord(x,y)
 
     def as_set(self):
         s = set()
@@ -253,4 +304,34 @@ class Rect(object):
         other_end = end_flip * p + start_flip * axis
         other_end = other_end + Coord(1,1)
         return Rect(other_start, other_end)
+
+    def iter_direction(self, direction=Coord(1,1)):
+        """
+        Iterate over the internal cells in the given direction, y inner, x outer
+        """
+        size = self.size_coord()
+        if direction.x == 1:
+            xoffset = 0
+        else:
+            xoffset = size.x - 1
+        if direction.y == 1:
+            yoffset = 0
+        else:
+            yoffset = size.y - 1
+        offset = Coord(xoffset, yoffset)
+        for x in range(0, size.x):
+            for y in range(0, size.y):
+                xy = Coord(x, y)
+                yield xy * direction + offset
+
+    def containing_rect(self, other):
+        """
+        Smallest rectangle that contains both self and other
+        """
+        new_start = self.start.pointwise_min(other.start)
+        new_end = self.end.pointwise_max(other.end)
+        return Rect(new_start, new_end)
+
+    def copy(self):
+        return Rect(self.start.copy(), self.end.copy())
 
