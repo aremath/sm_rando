@@ -106,9 +106,9 @@ def get_vertical_adj(s, rule_state, scan_direction):
     l = rule_state.level
     return [v for v in v_tiles if l.in_bounds(v) and l[v] == AbstractTile.AIR_VERT_STOP]
 
-def check_collision(collide_tiles, new_level, position):
+def check_collision(collide_tiles, new_origin, new_level, position):
     for b in collide_tiles:
-        if new_level[b + position] == AbstractTile.SOLID:
+        if new_level[b + position - new_origin] == AbstractTile.SOLID:
             return True
     return False
 
@@ -116,31 +116,31 @@ def samus_tiles(samus_state):
     return [samus_state.position + t for t in pose_hitboxes[samus_state.pose]]
 
 #TODO: handle negative numbers!
-def update(new_level, before_state, rule_state, position):
+def update(new_origin, new_level, before_state, rule_state, position):
+    print("Update")
     n_changed = 0
     # The global position of the ending state for samus
     s_new = position + rule_state.samus.position
     # The direction of samus' movement during the rule update
     scan_direction = (s_new - before_state.samus.position).sign()
     samus_state = before_state
-    #print(list(rule_state.level.rect.iter_direction(scan_direction)))
-    #print(list(states_in_order(before_state, rule_state, scan_direction)))
     for tile, s in states_in_order(before_state, rule_state, scan_direction):
         # First, check the tile for conflicts and copy the tile
         global_tile = tile + position
         # The tile that will actually be written
         write_tile = simplify(rule_state.level[tile])
         # If the existing tile can be treated as a the required tile, replace it
-        if new_level[global_tile] == AbstractTile.UNKNOWN or new_level[global_tile] == write_tile:
-            if new_level[global_tile] == AbstractTile.UNKNOWN:
+        if new_level[global_tile - new_origin] == AbstractTile.UNKNOWN or new_level[global_tile - new_origin] == write_tile:
+            if new_level[global_tile - new_origin] == AbstractTile.UNKNOWN:
                 n_changed += 1
-            new_level[global_tile] = write_tile
+            new_level[global_tile - new_origin] = write_tile
         # Otherwise, there's a tile conflict
         else:
-            print(write_tile)
-            print(tile)
-            print(new_level[global_tile])
-            print(global_tile)
+            print("Tile conflict")
+            #print(write_tile)
+            #print(tile)
+            #print(new_level[global_tile])
+            #print(global_tile)
             return None, 0, "Tile conflict at {}".format(global_tile)
         # If samus travels through this square while executing the rule,
         # check for early stopping.
@@ -154,20 +154,23 @@ def update(new_level, before_state, rule_state, position):
             h = get_horizontal_adj(s, rule_state, scan_direction)
             # Get the vertically relevant squares
             v = get_vertical_adj(s, rule_state, scan_direction)
-            h_collide = check_collision(h, new_level, position)
-            v_collide = check_collision(v, new_level, position)
+            h_collide = check_collision(h, new_origin, new_level, position)
+            v_collide = check_collision(v, new_origin, new_level, position)
             # Abort early if samus collides with something
+            #TODO: order of collision matters / both collision?
             if h_collide:
+                print("Horizontal Collision")
                 global_s.horizontal_speed = 0
                 return global_s, n_changed, ""
             elif v_collide:
+                print("Vertical Collision")
                 global_s.vertical_speed = 0
                 return global_s, n_changed, ""
     end_state = rule_state.samus.copy()
     end_state.position += position
-    print("Position")
-    print(rule_state.samus.position)
-    print(end_state.position)
+    #print("Position")
+    #print(rule_state.samus.position)
+    #print(end_state.position)
     return end_state, n_changed, ""
 
 #TODO: Reverse function to create rules traveling from right to left
@@ -190,12 +193,15 @@ class LevelState(object):
 
     @property
     def rect(self):
-        return Rect(self.origin, self.size)
+        return Rect(self.origin, self.origin + self.size)
 
     def add(self, before_state, rule_state, position):
+        print("Add")
         other = rule_state.level
         # Vector pointing to the new origin from the old origin
-        new_origin = min(self.origin, position) # pointwise
+        new_origin = self.origin.pointwise_min(position)
+        print(self.origin, position)
+        print(new_origin)
         new_rect = self.rect.containing_rect(other.rect)
         # Size points past the bottom right corner
         self_end = self.origin + self.size
@@ -211,16 +217,23 @@ class LevelState(object):
         assert new_max_size is None or new_size <= new_max_size
         # Allocate the new frame filled with blank tiles
         new_level_data = np.zeros(new_size, dtype="int")
-        self.paste(new_level_data)
-        sstate, n_changed, err = update(new_level_data, before_state, rule_state, position)
+        self.paste(new_origin, new_level_data)
+        sstate, n_changed, err = update(new_origin, new_level_data, before_state, rule_state, position)
         if sstate is None:
             return None, 0, err
         lstate = LevelState(new_origin, new_level_data, new_max_size)
         return SearchState(sstate, lstate), n_changed, ""
 
-    def paste(self, level):
+    def paste(self, level_origin, level):
         assert self.origin + self.size <= Coord(level.shape[0], level.shape[1])
-        level[self.origin.x:self.origin.x + self.size.x, self.origin.y:self.origin.y + self.size.y] = self.level
+        print("Paste")
+        print(self.origin)
+        print(level_origin)
+        o = self.origin - level_origin
+        print(o)
+        print(o + self.size)
+        assert o >= Coord(0,0), o
+        level[o.x:o.x + self.size.x, o.y:o.y + self.size.y] = self.level
 
     def copy(self):
         l = np.copy(self.level)
@@ -241,11 +254,14 @@ class LevelState(object):
         return o and l and s and m
 
     def __getitem__(self, index):
-        return self.level[index]
+        internal_index = index - self.origin
+        if Coord(0,0) > internal_index:
+            raise IndexError(internal_index)
+        return self.level[internal_index]
 
     def in_bounds(self, index):
         try:
-            t = self[index - self.origin]
+            t = self[index]
             return True
         except IndexError:
             return False
@@ -320,8 +336,9 @@ class SearchState(object):
         i = Image.new("RGB", (self.level.size.x, self.level.size.y))
         pixels = i.load()
         # Set the pixels
-        for xy in Rect(Coord(0,0), self.level.size):
-            pixels[xy.x, xy.y] = abstract_to_color[self.level[xy]]
+        for xy in self.level.rect:
+            pixel_xy = xy - self.level.origin
+            pixels[pixel_xy] = abstract_to_color[self.level[xy]]
         return i
 
     def __hash__(self):

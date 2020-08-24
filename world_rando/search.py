@@ -2,7 +2,7 @@ import heapq
 
 block_cost = 1
 cost_weight = 0.5
-max_rules = 9
+max_rules = 10
 
 def rule_search(start_state, rules, goal_state):
     print(goal_state.position)
