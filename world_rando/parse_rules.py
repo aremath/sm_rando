@@ -44,7 +44,7 @@ player_after_color = (0, 255, 0)
 
 # Parse the level image to get the level definition for a rule
 def make_level(image):
-    level_array = np.zeros(image.size)
+    level_array = np.zeros(image.size, dtype="int")
     player_before_pos = None
     player_after_pos = None
     for xy in Rect(Coord(0,0), Coord(image.size[0], image.size[1])):
@@ -117,7 +117,7 @@ def make_test_state(rules_path, rule_lines):
     b_state = SamusState(b_pos, int(d["b_vv"]), int(d["b_vh"]), items, pose_str[d["b_Pose"]])
     a_state = SamusState(a_pos, int(d["a_vv"]), int(d["a_vh"]), items, pose_str[d["a_Pose"]])
     initial_state = SearchState(b_state, level)
-    final_state = SearchState(a_state, level)
+    final_state = a_state
     return initial_state, final_state
 
 def parse_rules(rules_file):

@@ -153,16 +153,12 @@ class Coord(tuple):
         return Coord(max(self.x, other.x), max(self.y, other.y))
 
     def sign(self):
-        if self.x > 0:
+        if self.x >= 0:
             x = 1
-        elif self.x == 0:
-            x = 0
         elif self.x < 0:
             x = -1
-        if self.y > 0:
+        if self.y >= 0:
             y = 1
-        elif self.y == 0:
-            y = 0
         elif self.y < 0:
             y = -1
         return Coord(x, y)
