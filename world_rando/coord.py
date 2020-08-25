@@ -139,11 +139,15 @@ class Coord(tuple):
 
     # Find the position of self mirrored by axis within
     # a rectangle
-    def flip_in_rect(self, dims, axis):
-        p = Coord(1,1) - axis
-        max_index = dims.index(axis) - 1
+    def flip_in_rect(self, rect, axis):
+        # Relative distance within the rectangle
+        self_index = self.index(axis) - rect.start.index(axis)
+        # Maximum within the rectangle
+        max_index = rect.end.index(axis) - 1
         self_index = self.index(axis)
         new_index = max_index - self.index(axis)
+        # Perpendicular
+        p = Coord(1,1) - axis
         return axis.scale(new_index) + self * p
 
     def pointwise_min(self, other):
@@ -289,12 +293,12 @@ class Rect(object):
             out.append((rect, direction))
         return out
 
-    # If self is a rectangle that lies within the rectangle of (0,0) and dims, this
-    # returns a new rectangle which represents the new position (relative to the top left) after
+    # If self is a rectangle that lies within rect, this
+    # returns a new rectangle which represents the new position after
     # flipping the containing rectangle across axis.
-    def flip_in_rect(self, dims, axis):
-        start_flip = self.start.flip_in_rect(dims, axis)
-        end_flip = (self.end - Coord(1,1)).flip_in_rect(dims,axis)
+    def flip_in_rect(self, rect, axis):
+        start_flip = self.start.flip_in_rect(rect, axis)
+        end_flip = (self.end - Coord(1,1)).flip_in_rect(rect, axis)
         p = Coord(1,1) - axis
         other_start = end_flip * axis + start_flip * p
         other_end = end_flip * p + start_flip * axis

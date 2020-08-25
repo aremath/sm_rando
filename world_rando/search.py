@@ -1,11 +1,11 @@
 import heapq
 
-block_cost = 1
+block_cost = 0
 cost_weight = 0.5
 max_rules = 10
 
 def rule_search(start_state, rules, goal_state):
-    print(goal_state.position)
+    print("Search to reach {} from {}".format(goal_state.position, start_state.samus.position))
     offers = {}
     finished = set()
     entry_count = 0
@@ -31,10 +31,13 @@ def rule_search(start_state, rules, goal_state):
                 # >=?
                 if next_state.samus == goal_state:
                     return offers, finished, next_state
-                distance = start_state.samus.position.euclidean(goal_state.position)
+                distance = next_state.samus.position.euclidean(goal_state.position)
                 cost = block_cost * n_changed + rule.cost
                 # Lower distance is good, lower cost is good
                 priority = cost_weight * cost + (1 - cost_weight) * distance
+                print(n_changed)
+                print(distance)
+                print(priority)
                 heapq.heappush(h, (priority, entry_count, next_state))
                 entry_count += 1
             else:

@@ -50,7 +50,9 @@ pose_hitboxes = {
     SamusPose.SPIN: [Coord(0,0), Coord(0,1)]
     }
 
-def apply_rule(before_state, rule_before, rule_state):
+def apply_transition(before_state, transition):
+    rule_before = transition.requirement
+    rule_state = transition.end_state
     if not before_state.samus.meets(rule_before):
         return None, 0, "Samus does not meet rule prerequisites"
     # Determine the global location of frame2 using the local position of samus within frame2
@@ -117,7 +119,6 @@ def samus_tiles(samus_state):
 
 #TODO: handle negative numbers!
 def update(new_origin, new_level, before_state, rule_state, position):
-    print("Update")
     n_changed = 0
     # The global position of the ending state for samus
     s_new = position + rule_state.samus.position
@@ -136,11 +137,7 @@ def update(new_origin, new_level, before_state, rule_state, position):
             new_level[global_tile - new_origin] = write_tile
         # Otherwise, there's a tile conflict
         else:
-            print("Tile conflict")
-            #print(write_tile)
-            #print(tile)
-            #print(new_level[global_tile])
-            #print(global_tile)
+            #print("Tile conflict")
             return None, 0, "Tile conflict at {}".format(global_tile)
         # If samus travels through this square while executing the rule,
         # check for early stopping.
@@ -159,18 +156,15 @@ def update(new_origin, new_level, before_state, rule_state, position):
             # Abort early if samus collides with something
             #TODO: order of collision matters / both collision?
             if h_collide:
-                print("Horizontal Collision")
+                #print("Horizontal Collision")
                 global_s.horizontal_speed = 0
                 return global_s, n_changed, ""
             elif v_collide:
-                print("Vertical Collision")
+                #print("Vertical Collision")
                 global_s.vertical_speed = 0
                 return global_s, n_changed, ""
     end_state = rule_state.samus.copy()
     end_state.position += position
-    #print("Position")
-    #print(rule_state.samus.position)
-    #print(end_state.position)
     return end_state, n_changed, ""
 
 #TODO: Reverse function to create rules traveling from right to left
@@ -196,13 +190,10 @@ class LevelState(object):
         return Rect(self.origin, self.origin + self.size)
 
     def add(self, before_state, rule_state, position):
-        print("Add")
         other = rule_state.level
         # Vector pointing to the new origin from the old origin
         new_origin = self.origin.pointwise_min(position)
-        print(self.origin, position)
-        print(new_origin)
-        new_rect = self.rect.containing_rect(other.rect)
+        new_rect = self.rect.containing_rect(other.rect.translate(position))
         # Size points past the bottom right corner
         self_end = self.origin + self.size
         other_end = position + other.size
@@ -226,12 +217,7 @@ class LevelState(object):
 
     def paste(self, level_origin, level):
         assert self.origin + self.size <= Coord(level.shape[0], level.shape[1])
-        print("Paste")
-        print(self.origin)
-        print(level_origin)
         o = self.origin - level_origin
-        print(o)
-        print(o + self.size)
         assert o >= Coord(0,0), o
         level[o.x:o.x + self.size.x, o.y:o.y + self.size.y] = self.level
 
@@ -244,7 +230,7 @@ class LevelState(object):
         return LevelState(self.origin.copy(), l, m)
 
     def __hash__(self):
-        return hash((self.origin, bytes(self.level.data), self.size, self.max_size))
+        return hash((self.origin, bytes(self.level.data), self.max_size))
 
     def __eq__(self, other):
         o = self.origin == other.origin
@@ -265,6 +251,16 @@ class LevelState(object):
             return True
         except IndexError:
             return False
+
+    def horizontal_flip(self):
+        o = self.origin.copy()
+        d = np.copy(self.level)
+        d = np.flip(d, 0)
+        if self.max_size is None:
+            m = None
+        else:
+            m = self.max_size.copy()
+        return LevelState(o, d, m)
 
 class SamusState(object):
 
@@ -306,12 +302,13 @@ class SamusState(object):
         pose = self.pose is other.pose
         return p and v and h and i and pose
 
-#TODO: not necessary?
-class Requirement(object):
-    def __init__(self, vertical_speed, horizontal_speed, items):
-        self.vertical_speed = vertical_speed
-        self.horizontal_speed = horizontal_speed
-        self.items = items
+    def horizontal_flip(self, level):
+        position = self.position.flip_in_rect(level.rect, Coord(1, 0))
+        v = self.vertical_speed
+        h = self.horizontal_speed
+        i = self.items.copy()
+        p = self.pose
+        return SamusState(position, v, h, i, p)
 
 class SearchState(object):
 
@@ -324,8 +321,8 @@ class SearchState(object):
         print("Considering: {}".format(rule.name))
         current_state = self
         n_changed = 0
-        for req, rule_state in rule.transitions:
-            result = apply_rule(current_state, req, rule_state)
+        for transition in rule.transitions:
+            result = apply_transition(current_state, transition)
             if result is None:
                 return None, 0, err
             current_state, n, err = result
@@ -350,17 +347,41 @@ class SearchState(object):
     def copy(self):
         return SearchState(self.samus.copy(), self.level.copy())
 
+    def horizontal_flip(self):
+        samus = self.samus.horizontal_flip(self.level)
+        level = self.level.horizontal_flip()
+        return SearchState(samus, level)
+
+class Transition(object):
+
+    def __init__(self, requirement, end_state):
+        self.requirement = requirement
+        self.end_state = end_state
+
+    def horizontal_flip(self):
+        r = self.requirement.horizontal_flip(self.end_state.level)
+        e = self.end_state.horizontal_flip()
+        return Transition(r, e)
+
 class Rule(object):
 
-    def __init__(self, name, requirements, rule_state, base_cost, extra_costs = None):
+    def __init__(self, name, transition_list, base_cost, extra_costs = None):
         #TODO: assert that each final state meets the requirements of the next state
         self.name = name
-        self.transitions = [(requirements, rule_state)]
+        self.transitions = transition_list
         self.base_cost = base_cost
         if extra_costs is None:
             self.extra_costs = []
         else:
             self.extra_costs = extra_costs
+
+    def horizontal_flip(self):
+        name = self.name + "_h"
+        flipped_transitions = [t.horizontal_flip() for t in self.transitions]
+        #TODO: how to structure the cost?
+        base_cost = self.base_cost
+        extra_costs = self.extra_costs.copy()
+        return Rule(name, flipped_transitions, base_cost, extra_costs)
 
     @property
     def cost(self):

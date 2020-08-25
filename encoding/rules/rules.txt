@@ -16,5 +16,7 @@ Rule: StepDown
 
 Test: TestWalk
 
+Test: TestWalk_h
+
 #Chain: AAAA, Step
 #Cost_factor: 0.5

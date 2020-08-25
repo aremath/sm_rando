@@ -189,9 +189,10 @@ def find_item_loc(item, room, subrooms, roots, patterns, placement_chances):
                 setup_pattern = setup_pattern_l
                 pattern = pattern_l
                 pattern_offset = pattern_offset_r * Coord(-1,0)
-                rel_obstacle = rel_obstacle_r.flip_in_rect(pattern.dimensions, Coord(1,0))
-                rel_target = rel_target_r.flip_in_rect(pattern.dimensions, Coord(1,0))
-                rel_item_placement = rel_item_placement_r.flip_in_rect(pattern.dimensions, Coord(1,0))
+                pattern_rect = Rect(Coord(0,0), pattern.dimensions)
+                rel_obstacle = rel_obstacle_r.flip_in_rect(pattern_rect, Coord(1,0))
+                rel_target = rel_target_r.flip_in_rect(pattern_rect, Coord(1,0))
+                rel_item_placement = rel_item_placement_r.flip_in_rect(pattern_rect, Coord(1,0))
             if d == "R":
                 setup_pattern = setup_pattern_r
                 pattern = pattern_r

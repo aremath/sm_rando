@@ -1,7 +1,7 @@
 from pathlib import Path
 from PIL import Image
 import numpy as np
-from sm_rando.world_rando.rules import SamusState, LevelState, Rule, SamusPose, AbstractTile, SearchState
+from sm_rando.world_rando.rules import SamusState, LevelState, Rule, SamusPose, AbstractTile, SearchState, Transition
 from sm_rando.world_rando.coord import Coord, Rect
 from sm_rando.data_types.item_set import ItemSet
 
@@ -65,8 +65,12 @@ def get_rule_name(rule_lines):
 def get_rule_dict(rule_lines):
     d = {}
     for line in rule_lines:
-        l,r = line.split(":")
-        d[l.strip()] = r.strip()
+        # Special flags
+        if line.strip() == "NH":
+            d["NH"] = ""
+        else:
+            l,r = line.split(":")
+            d[l.strip()] = r.strip()
     # Add defaults
     for k,v in defaults.items():
         if k not in d:
@@ -93,7 +97,13 @@ def make_rule(rules_path, rule_lines, all_rules):
     b_state = SamusState(b_pos, int(d["b_vv"]), int(d["b_vh"]), items, pose_str[d["b_Pose"]])
     a_state = SamusState(a_pos, int(d["a_vv"]), int(d["a_vh"]), items, pose_str[d["a_Pose"]])
     final_state = SearchState(a_state, level)
-    return Rule(d["Rule"], b_state, final_state, int(d["Cost"]))
+    t = Transition(b_state, final_state)
+    rule =  Rule(d["Rule"], [t], int(d["Cost"]))
+    # Also include the horizontal flip
+    if "NH" not in d:
+        return [rule, rule.horizontal_flip()]
+    else:
+        return [rule]
 
 def make_rule_chain(rule_lines, all_rules):
     rule_name = get_rule_name(rule_lines)
@@ -138,7 +148,7 @@ def parse_rules(rules_file):
             current_rule_lines.append(line)
     # Append the last room
     all_rule_lines.append(current_rule_lines)
-    print(all_rule_lines)
+    #print(all_rule_lines)
     rules = {}
     tests = {}
     for rule_lines in all_rule_lines:
@@ -146,15 +156,16 @@ def parse_rules(rules_file):
             l,r = rule_lines[0].split(":")
             rule_name = r.strip()
             if l == "Chain":
-                print("Chain: {}".format(rule_name))
+                #print("Chain: {}".format(rule_name))
                 rule = make_rule_chain(rule_lines, rules)
                 rules[rule.name] = rule
             elif l == "Rule":
-                print("Rule: {}".format(rule_name))
-                rule = make_rule(rules_path, rule_lines, rules)
-                rules[rule.name] = rule
+                #print("Rule: {}".format(rule_name))
+                made_rules = make_rule(rules_path, rule_lines, rules)
+                for r in made_rules:
+                    rules[r.name] = r
             elif l == "Test":
-                print("Test: {}".format(rule_name))
+                #print("Test: {}".format(rule_name))
                 test = make_test_state(rules_path, rule_lines)
                 tests[rule_name] = test
     f.close()
