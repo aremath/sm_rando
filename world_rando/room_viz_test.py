@@ -1,5 +1,5 @@
-from world_rando.room_viz import *
-from world_rando.tiles import *
+from sm_rando.world_rando.room_viz import *
+from sm_rando.world_rando.tiles import *
 
 leveldata = {
     (0,0) : Tile(None, Type(0, 0)),

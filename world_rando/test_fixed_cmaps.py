@@ -1,6 +1,6 @@
-from world_rando.fixed_cmaps import *
-from world_rando.concrete_map import *
-from world_rando.map_viz import *
+from sm_rando.world_rando.fixed_cmaps import *
+from sm_rando.world_rando.concrete_map import *
+from sm_rando.world_rando.map_viz import *
 
 if __name__ == "__main__":
     dimensions = MCoords(64,32)

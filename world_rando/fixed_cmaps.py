@@ -29,7 +29,7 @@ def mk_area(pos, dims, area):
     # Most of the areas throw away dims, but it's useful for elevators.
     tile_list = area(pos, dims)
     # If any of the tile lie outside the bounds, this map isn't valid
-    if bounded_put_check(cmap,tile_list)
+    if bounded_put_check(cmap,tile_list):
         return cmap
     else:
         return None

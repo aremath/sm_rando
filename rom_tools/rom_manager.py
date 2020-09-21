@@ -10,6 +10,16 @@ from hashlib import md5
 from os import stat, remove, rename
 from collections import defaultdict
 
+# Addresses of the maps for the different regions
+region_map_locs = { # hidden |  tiles
+    "Wrecked_Ship" : (Address(0x11a27), Address(0x1ab000)),
+    "Maridia"      : (Address(0x11b27), Address(0x1ac000)),
+    "Crateria"     : (Address(0x11727), Address(0x1a9000)),
+    "Norfair"      : (Address(0x11927), Address(0x1aa000)),
+    "Brinstar"     : (Address(0x11827), Address(0x1a8000)),
+    "Tourian"      : (Address(0x11c27), Address(0x1ad000))
+}
+
 def _checksum(filename):
     """ md5sums a file """
     with open(filename, 'rb') as file:
@@ -125,7 +135,7 @@ class RomManager(object):
         self.write_to_new(Address(0x0001e22), minute_bytes)
 
     def decapitate_rom(self, filename):
-        """removes the header from the rom """
+        """ Removes the header from the rom """
         tmpname = filename + ".tmp"
         with open(filename, 'rb') as src:
             with open(tmpname, 'wb') as dest:
@@ -218,6 +228,7 @@ class RomManager(object):
         """Uses the output from map_viz.cmap_to_tuples to create an amap then place it"""
         amap = areamap.tuples_to_amap(cmap_ts)
         mapdata = amap.map_to_bytes()
+        #TODO: why does hidden data corrupt the map?
         #hiddendata = amap.hiddenToBytes()
         self.write_to_new(mapaddr, mapdata)
         #self.write_to_new(hiddenaddr, hiddendata)

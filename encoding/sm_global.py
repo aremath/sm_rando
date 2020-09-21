@@ -21,13 +21,3 @@ regions = {
     "Brinstar"     : ["Kraid", "Spore_Spawn"],
     "Tourian"      : ["Mother_Brain"]
 }
-
-region_map_locs = { # hidden |  tiles
-    "Wrecked_Ship" : (0x11a27, 0x1ab000),
-    "Maridia"      : (0x11b27, 0x1ac000),
-    "Crateria"     : (0x11727, 0x1a9000),
-    "Norfair"      : (0x11927, 0x1aa000),
-    "Brinstar"     : (0x11827, 0x1a8000),
-    "Tourian"      : (0x11c27, 0x1ad000)
-}
-
