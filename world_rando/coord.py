@@ -5,6 +5,7 @@ Coord = namedtuple("Coord", ("x", "y"))
 
 @total_ordering
 class Coord(tuple):
+    """ Two-dimensional coordinate data type."""
     
     #def __init__(self, x, y):
     #    self.x = x
@@ -79,6 +80,7 @@ class Coord(tuple):
         return 2
 
     def scale(self, scale_factor):
+        """ Multiply vector by scalar """
         return Coord(scale_factor*self.x, scale_factor*self.y)
 
     def to_unit(self):
@@ -137,9 +139,8 @@ class Coord(tuple):
         else:
             assert False, "Bad direction"
 
-    # Find the position of self mirrored by axis within
-    # a rectangle
     def flip_in_rect(self, rect, axis):
+        """ Find the position of self mirrored on axis within a rectangle. """
         # Relative distance within the rectangle
         self_index = self.index(axis) - rect.start.index(axis)
         # Maximum within the rectangle
@@ -172,6 +173,7 @@ class Coord(tuple):
 
 
 class Rect(object):
+    """ Two-dimensional rectangle data type. """
 
     def __init__(self, c1, c2):
         assert c2.x > c1.x
@@ -194,8 +196,6 @@ class Rect(object):
                 s.add(Coord(x,y))
         return s
 
-    # TODO: some way to to this with iterators so that I can do
-    # " for c in rect: "
     def as_list(self):
         l = []
         for x in range(self.start.x, self.end.x):
@@ -203,7 +203,7 @@ class Rect(object):
                 l.append(Coord(x,y))
         return l
 
-    #BUG: sometimes not within bounds...
+    #TODO BUG: sometimes not within bounds...
     def split(self, index, direction):
         div_point = self.start + direction.scale(index)
         assert self.coord_within(div_point), div_point

@@ -5,8 +5,7 @@ from .concrete_map import ConcreteMap, MapTile, TileType
 from sm_rando.world_rando.coord import *
 from sm_rando.world_rando.concrete_map import *
 
-#TODO: how to make sure we generate the draygon item room?
-#TODO: this is outdated!
+#TODO: how to make sure we generate the kraid and draygon item rooms?
 #TODO: these functions should return a cmap, a list of implicit doors, and a list of implicit rooms.
 #TODO: make these functions only predicated on the tile_list - i.e. a mk_area function that
 # uses only the tile_list (except for elevators)

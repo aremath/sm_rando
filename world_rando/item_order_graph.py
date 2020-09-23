@@ -25,7 +25,11 @@ def abstract_map(settings):
     rsg = region_subgraphs(graph, region_finished)
     return order, graph, rsg, es, region_order
 
-#TODO: item annotations
+def pairwise(iterable):
+    a,b = itertools.tee(iterable)
+    next(b, None)
+    return zip(a,b)
+
 def order_graph():
     """Creates an item order graph, which is an
         order in which the items may be picked up
@@ -34,28 +38,26 @@ def order_graph():
     order = item_order.order()
     g.add_node("START")
     current = "START"
-    things = item_set.ItemSet()
-    for i in order:
+    current_items = item_set.ItemSet()
+    for item_name in order:
         # first, BFS from current to find a candidate entrance
         finished, offers = g.BFS(current)
 
-        # choose the entrance at random
+        # Choose the entrance at random
         entrance = random.choice(list(finished))
         path = basicgraph.bfs_path(offers, current, entrance)
-        # add things constraints along the path
-        #for i in range(len(path)):
-        #    if i + 1 < len(path):
-        #        g.update_edge_append(path[i], path[i+1], things.copy())
+        # Add items along the path
+        for a, b in pairwise(path):
+            g.update_edge_append(a, b, current_items.copy())
 
-        # choose the exit at random
+        # Choose the exit at random from among the existing nodes
         exit = random.choice(list(g.nodes.keys()))
 
-        # add the new node
-        iname = i
-        g.add_node(iname)
-        g.add_edge(entrance, iname, data=[things.copy()])
-        things.add(iname)
-        g.add_edge(iname, exit, data=[things.copy()])
+        # Add the new node
+        g.add_node(item_name)
+        g.add_edge(entrance, item_name, data=[current_items.copy()])
+        current_items = current_items.add(item_name)
+        g.add_edge(item_name, exit, data=[current_items.copy()])
     return order, g
 
 def partition_order(graph, initial, priority=lambda x: 0):
@@ -120,17 +122,18 @@ def make_elevators(graph, regions):
         graph.add_node(r2_e_name)
         regions[r1].add(r1_e_name)
         regions[r2].add(r2_e_name)
-        graph.add_edge(r1_e_name, r2_e_name)
-        graph.add_edge(r2_e_name, r1_e_name)
+        graph.add_edge(r1_e_name, r2_e_name, [])
+        graph.add_edge(r2_e_name, r1_e_name, [])
         for n1, n2, d in edges:
+            # Add the necessary edges
             if n1 in regions[r1]:
-                graph.update_edge(n1, r1_e_name, d)
-                graph.update_edge(r2_e_name, n2, d)
-                #graph.update_edge_append(r1_e_name, r2_e_name, d)
+                graph.update_edge_append(n1, r1_e_name, d)
+                graph.update_edge_append(r1_e_name, r2_e_name, d)
+                graph.update_edge_append(r2_e_name, n2, d)
             elif n1 in regions[r2]:
-                graph.update_edge(n1, r2_e_name, d)
-                graph.update_edge(r1_e_name, n2, d)
-                #graph.update_edge_append(r2_e_name, r1_e_name, d)
+                graph.update_edge_append(n1, r2_e_name, d)
+                graph.update_edge_append(r2_e_name, r1_e_name, d)
+                graph.update_edge_append(r1_e_name, n2, d)
             else:
                 assert False, "Node not in either region: " + n1
     return elevators
@@ -195,17 +198,17 @@ def add_items(graph, items):
     for item_type, n in items.items():
         assert item_type in sm_global.items, item_type + " is not a valid item!"
         for i in range(n):
-            #TODO: where to connect to it?
-            #   - need to be able to know what items we have at the location
-            #   - at this point, only edges know this info...?
-            # for now, pick a random edge and intersperse the node on it
+            #TODO: at some point, can have a from_node and a to_node that this item is between
             node_name = item_type + str(i)
             from_node = random.choice(list(graph.nodes.keys()))
+            #TODO: choose this more wisely
+            # Choose a random feasible item set
+            # Choose an item set used on an edge that you use to leave from_node
+            out_edge = random.choice(graph.nodes[from_node].edges)
+            items = random.choice(out_edge.data)
             graph.add_node(node_name)
-            graph.add_edge(from_node, node_name)
-            graph.add_edge(node_name, from_node)
-            #TODO: need to store item information on each of these edges?
-            #TODO: store what type of item it is in the node data?
+            graph.add_edge(from_node, node_name, [items])
+            graph.add_edge(node_name, from_node, [items])
 
 def make_rand_weighted_list(weights):
     """Create a shuffled list using weights. Weights is a key->int dict that contains how

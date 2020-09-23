@@ -42,7 +42,6 @@ class BasicGraph(object):
         else:
             self.add_edge(node1, node2, data)
     
-    #TODO: is this update_edge_append thing necessary?
     def update_edge_append(self, node1, node2, data):
         """Append data to the edge between n1 and n2"""
         if self.is_edge(node1, node2):
@@ -51,7 +50,7 @@ class BasicGraph(object):
                 if edge.terminal == node2:
                     edge.data.append(data)
         else:
-            self.add_edge(node1, node2, data)
+            self.add_edge(node1, node2, [data])
 
     def is_edge(self, node1, node2, p=lambda x: True):
         """Is there an edge from node1 to node2 satisfying p?"""
