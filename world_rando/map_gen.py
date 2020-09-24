@@ -102,12 +102,12 @@ def map_gen(dimensions, graph, elevators, settings):
             else:
                 assert False, "Cannot find path: " + str(closest) + ", " + str(node_locs[edge.terminal])
             path = path_concat(to_closest, to_end)
-            paths.append((node, edge.terminal, path))
+            paths.append((node, edge.terminal, path, edge.data))
     # partition the map into random rooms
     room_size = len(cmap) // settings["room_size"]
     #_, rooms = cmap.random_rooms(room_size)
     rooms = cmap.random_rooms_alt(room_size, bboxes)
-    #TODO: Each room grabs the map tiles that are inside its bounding box!
+    #TODO: Each room tries to grab the map tiles that are inside its bounding box!
     #TODO: Or could use a budgeted cellular automaton to fill in "corner" spaces with map tiles...
     #TODO: Phantoon's room winds up in rooms, as do elevators, etc...
     return cmap, rooms, paths

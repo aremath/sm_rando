@@ -2,6 +2,7 @@ import random
 import heapq
 import collections
 import itertools
+import operator
 
 from sm_rando.data_types import basicgraph, item_set
 from sm_rando.encoding import item_order, sm_global
@@ -48,7 +49,7 @@ def order_graph():
         path = basicgraph.bfs_path(offers, current, entrance)
         # Add items along the path
         for a, b in pairwise(path):
-            g.update_edge_append(a, b, current_items.copy())
+            g.update_edge_lambda(a, b, [current_items.copy()], operator.add)
 
         # Choose the exit at random from among the existing nodes
         exit = random.choice(list(g.nodes.keys()))
@@ -127,13 +128,13 @@ def make_elevators(graph, regions):
         for n1, n2, d in edges:
             # Add the necessary edges
             if n1 in regions[r1]:
-                graph.update_edge_append(n1, r1_e_name, d)
-                graph.update_edge_append(r1_e_name, r2_e_name, d)
-                graph.update_edge_append(r2_e_name, n2, d)
+                graph.update_edge_lambda(n1, r1_e_name, d, operator.add)
+                graph.update_edge_lambda(r1_e_name, r2_e_name, d, operator.add)
+                graph.update_edge_lambda(r2_e_name, n2, d, operator.add)
             elif n1 in regions[r2]:
-                graph.update_edge_append(n1, r2_e_name, d)
-                graph.update_edge_append(r2_e_name, r1_e_name, d)
-                graph.update_edge_append(r1_e_name, n2, d)
+                graph.update_edge_lambda(n1, r2_e_name, d, operator.add)
+                graph.update_edge_lambda(r2_e_name, r1_e_name, d, operator.add)
+                graph.update_edge_lambda(r1_e_name, n2, d, operator.add)
             else:
                 assert False, "Node not in either region: " + n1
     return elevators

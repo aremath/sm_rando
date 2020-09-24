@@ -33,7 +33,7 @@ class BasicGraph(object):
             self.add_edge(node1, node2, [data])
 
     def update_edge(self, node1, node2, data=None):
-        """new data for the edge between n1 and n2"""
+        """Replace data for the edge between n1 and n2."""
         if self.is_edge(node1, node2):
             #TODO inefficient!
             for edge in self.nodes[node1].edges:
@@ -41,16 +41,17 @@ class BasicGraph(object):
                     edge.data = data
         else:
             self.add_edge(node1, node2, data)
-    
-    def update_edge_append(self, node1, node2, data):
-        """Append data to the edge between n1 and n2"""
+
+    def update_edge_lambda(self, node1, node2, data, l):
+        """Use a lambda to combine existing data on the edge between n1 and n2"""
         if self.is_edge(node1, node2):
             #TODO inefficient!
             for edge in self.nodes[node1].edges:
                 if edge.terminal == node2:
-                    edge.data.append(data)
+                    old_data = edge.data
+                    edge.data = l(old_data, data)
         else:
-            self.add_edge(node1, node2, [data])
+            self.add_edge(node1, node2, data)
 
     def is_edge(self, node1, node2, p=lambda x: True):
         """Is there an edge from node1 to node2 satisfying p?"""
@@ -107,7 +108,9 @@ class BasicGraph(object):
         # make the edges
         for n1, n2 in itertools.permutations(nodes, r=2):
             if self.is_edge(n1, n2):
-                sgraph.add_edge(n1, n2)
+                e_data = self.get_edge_data(n1, n2)
+                # Data will be shared
+                sgraph.add_edge(n1, n2, e_data)
         return sgraph
 
     #TODO: add a predicate to test the node data or the edge data for impassibility

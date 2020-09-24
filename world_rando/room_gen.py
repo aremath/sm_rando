@@ -43,7 +43,7 @@ def room_setup(room_tiles, cmap):
 def room_graphs(rooms, tile_rooms, paths):
     #TODO: node_locs for each node and each door node.
     # room_node_locs: room_id -> node -> Coord
-    for (start, end, path) in paths:
+    for (start, end, path, items) in paths:
         room_start = tile_rooms[path[0]]
         room_end = tile_rooms[path[-1]]
         gstart = rooms[room_start].graph
@@ -72,7 +72,7 @@ def room_graphs(rooms, tile_rooms, paths):
                     d = rooms[current_room].doors
                     d.append(Door(current_pos, current_wr, current_room, new_room, len(d), current_door))
                 # Link the current node with the door
-                gcurrent.update_edge(current_node, current_door)
+                gcurrent.update_edge(current_node, current_door, items)
                 # Node in the new room
                 new_wr = new_pos.wall_relate(current_pos)
                 new_door = str(new_room) + "_" + str(new_pos) + "_" + new_wr
@@ -87,7 +87,7 @@ def room_graphs(rooms, tile_rooms, paths):
                 current_node = new_door
             current_pos = new_pos
         # link the final current node with end
-        gend.update_edge(current_node, end)
+        gend.update_edge(current_node, end, items)
 
 def make_rooms(room_tiles, cmap, paths, settings, patterns):
     rooms = room_setup(room_tiles, cmap)
