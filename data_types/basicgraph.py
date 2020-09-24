@@ -117,15 +117,16 @@ class BasicGraph(object):
     def BFS(self, start, end=None):
         # key - node name
         # value - the previous node in the BFS
-        offers = {start : start}
-        finished = set()
+        offers = {start: start}
+        # Use a dict instead of a set because we rely on dict order
+        finished = {}
         queue = [start]
         node = ""
         while len(queue) > 0:
             node = queue.pop()
             if end is not None and node == end:
                 break
-            finished |= set([node])
+            finished[node] = None
             for neighbor in self.nodes[node].edges:
                 if neighbor.terminal not in finished:
                     queue.insert(0, neighbor.terminal)
@@ -137,15 +138,15 @@ class BasicGraph(object):
     # Do not want to have to check search method during the search loop, or
     # mess around with lambdas.
     def DFS(self, start, end=None):
-        offers = {start : start}
-        finished = set()
+        offers = {start: start}
+        finished = {}
         stack = [start]
         node = ""
         while len(stack) > 0:
             node = stack.pop()
             if end is not None and node == end:
                 break
-            finished |= set([node])
+            finished[node] = None
             for neighbor in self.nodes[node].edges:
                 if neighbor.terminal not in finished:
                     stack.append(neighbor.terminal)

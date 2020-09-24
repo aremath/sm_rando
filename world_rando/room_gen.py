@@ -1,6 +1,7 @@
 import itertools
 import random
 import collections
+from collections import OrderedDict
 
 from data_types import basicgraph
 from .room_dtypes import Room, Level, Tile, Texture, Type
@@ -15,8 +16,6 @@ from sm_rando.world_rando.util import *
 from sm_rando.data_types import basicgraph
 
 # Room Generation:
-#TODO: instead of constantly CHANGING adjacencies, simply create NEW, smaller adjacencies
-# between lower elements of the subroom tree.
 
 # takes d: a -> [b] to
 # b -> a, assuming distinct b
@@ -29,7 +28,7 @@ def reverse_list_dict(d):
 
 # Room tiles is room_id -> [MCoord]
 def room_setup(room_tiles, cmap):
-    rooms = {}
+    rooms = OrderedDict()
     for room_id, coord_set in room_tiles.items():
         room_bbox = extent(coord_set)
         room_cmap, room_pos = cmap.sub(room_bbox, relative=True)
@@ -98,6 +97,7 @@ def make_rooms(room_tiles, cmap, paths, settings, patterns):
         print("BEGIN: Generating room " + str(i))
         r.level = level_of_cmap(r)
         make_subrooms(r, settings, patterns)
+        # ...
     return rooms
 
 # Chooses an order to search for item placements for a given item
@@ -207,7 +207,6 @@ def find_item_loc(item, room, subrooms, roots, patterns, placement_chances):
             # (different direction, different type of item loc)
             if len(matches) == 0:
                 print("No match for: " + p + ", " + d)
-                pass
             else:
                 # Choose the placement of the item randomly
                 c = random.choice(matches)
@@ -262,6 +261,8 @@ def mk_door_obstacles(room):
         obstacles.append(door_obstacle)
     return obstacles
 
+#TODO: instead of constantly CHANGING adjacencies, simply create NEW, smaller adjacencies
+# between lower elements of the subroom tree.
 def make_subrooms(room, settings, patterns):
     """
     Create the subrooms for a room

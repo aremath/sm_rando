@@ -24,6 +24,7 @@ def abstract_map(settings):
     region_order = item_order.region_order()
     es = elevator_directions(elevators, region_order)
     rsg = region_subgraphs(graph, region_finished)
+    #print(es)
     return order, graph, rsg, es, region_order
 
 def pairwise(iterable):
@@ -121,8 +122,8 @@ def make_elevators(graph, regions):
         elevators[r2].append((r2_e_name, r1))
         graph.add_node(r1_e_name)
         graph.add_node(r2_e_name)
-        regions[r1].add(r1_e_name)
-        regions[r2].add(r2_e_name)
+        regions[r1][r1_e_name] = None
+        regions[r2][r2_e_name] = None
         graph.add_edge(r1_e_name, r2_e_name, [])
         graph.add_edge(r2_e_name, r1_e_name, [])
         for n1, n2, d in edges:
@@ -147,12 +148,12 @@ def make_elevators(graph, regions):
 def find_crossings(graph, regions):
     crossings = collections.defaultdict(list)
     for region1, region2 in itertools.permutations(regions, r=2):
-        fset = frozenset([region1, region2])
+        pair_key = tuple(sorted([region1, region2]))
         for node1 in regions[region1]:
             for node2 in regions[region2]:
                 for e in graph.nodes[node1].edges:
                     if e.terminal == node2:
-                        crossings[fset].append((node1, node2, e.data))
+                        crossings[pair_key].append((node1, node2, e.data))
     return crossings
 
 #TODO: Why do we need this?
@@ -170,7 +171,7 @@ def region_subgraphs(graph, regions):
     """
     Create a subgraph for each region
     """
-    region_sgraphs = {}
+    region_sgraphs = {} 
     for region, nodes in regions.items():
         region_sgraphs[region] = graph.subgraph(nodes)
     return region_sgraphs
@@ -233,19 +234,22 @@ def weighted_partition_order(graph, initial, weights, priority=lambda x: 0):
     # live regions changes. A region with no unclaimed neighbors has no chances to grab
     # any nodes.
 
+    # set() is ok: order never used
     gnodes = set(graph.nodes.keys())
     # roffers: region name -> offers for that region (node set)
     roffers = {region: {} for region in initial}
     # rfinished: region name -> finished for that region (node set)
-    rfinished = {region: set() for region in initial}
+    # Use {} instead of set for ordering purposes
+    rfinished = {region: {} for region in initial}
     # Initialize rfinished with initial
     for region in initial:
         for node in initial[region]:
-            rfinished[region].add(node)
+            rfinished[region][node] = None
     # rheaps: region name -> list of nodes in that region (with priority)
     rheaps = {region: [(priority(i), i) for i in initial[region]] for region in initial}
 
     # all_finished is the set of nodes that have a region assignment
+    # set() is ok: order is never used
     all_finished = set()
     for rnodes in initial.values():
         all_finished |= set(rnodes)
@@ -275,7 +279,7 @@ def weighted_partition_order(graph, initial, weights, priority=lambda x: 0):
             t = e.terminal
             if t not in all_finished:
                 heapq.heappush(rheaps[region], (priority(t), t))
-                rfinished[region].add(t)
+                rfinished[region][t] = None
                 roffers[region][t] = rnode
                 all_finished.add(t)
 

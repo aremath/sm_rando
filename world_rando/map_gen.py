@@ -118,7 +118,8 @@ def random_node_place(graph, dimensions, up_es, down_es):
     at random.
     """
     r = Rect(Coord(0, 0), dimensions)
-    xys = r.as_set()
+    # Use as_list since set() is forbidden for ordering
+    xys = r.as_list()
     locs = random.sample(xys, graph.nnodes)
     node_list = graph.nodes.keys()
     node_locs = {}
@@ -130,7 +131,7 @@ def random_node_place(graph, dimensions, up_es, down_es):
             node_locs[node] = sorted_locs.pop(0) # highest y coordinate is further down
         elif node in down_es:
             node_locs[node] = sorted_locs.pop()
-    node_list = list(set(node_list) - up_es - down_es)
+    node_list = [node for node in node_list if node not in up_es and node not in down_es]
 
     random.shuffle(node_list)
     #TODO: this is where we can make sure there is an item behind Draygon or some such??

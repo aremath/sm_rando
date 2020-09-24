@@ -25,15 +25,15 @@ abstract_map_settings = {
         }
 
 concrete_map_settings = {
-    # The distance metric to use when finding random paths through the graph
+    # The distance metric to use when finding random paths
     "distance_metric"   :   rand_d, # map_gen, less_naive
     # The desired average room size, in map tiles.
-    "room_size"         :   5, # map_gen, less_naive
+    "room_size"         :   5, # map_gen.map_gen
     # Spring model constants
     "n_iterations"      :   5,
     "spring_constant"   :   2,
     "equilibrium"       :   3,
-    "spring_dt"         :   0.1, # map_gen, node_place
+    "spring_dt"         :   0.1, # map_gen.node_place
     }
 
 room_gen_settings = {
