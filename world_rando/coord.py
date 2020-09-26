@@ -125,7 +125,7 @@ class Coord(tuple):
     def area(self):
         return self.x * self.y
 
-    def neg(self):
+    def __neg__(self):
         return Coord(-1, -1) * self
 
     def abs(self):

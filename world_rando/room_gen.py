@@ -316,7 +316,10 @@ class Adjacency(object):
         self.id1 = id1
         self.id2 = id2
         self.rect = rect
+        # Key - ID
+        # Value - the cardinal direction of that SubroomNode relative to this adj
         self.direction = direction
+        assert len(self.direction) == 2
         if impassables is not None:
             self.impassables = impassables
         else:
@@ -329,15 +332,22 @@ class Adjacency(object):
         self.crossings = []
 
     #TODO: self.impassables might not be correct
-    def split(self, id2, index, direction, new_id1, new_id2):
+    #TODO: direction
+    def split(self, other_id, index, direction, new_id1, new_id2):
         """
         Split the adjacency at the given index
         """
-        print("split_rect: ", self.rect)
-        print(index, direction)
         r1, r2 = self.rect.split(index, direction)
-        a1 = Adjacency(new_id1, id2, r1, self.direction, self.impassables)
-        a2 = Adjacency(new_id2, id2, r2, self.direction, self.impassables)
+        # Handle directions
+        d1 = {}
+        # Direction of the split room remains the same
+        d1[other_id] = self.direction[other_id]
+        d1[new_id1] = -self.direction[other_id]
+        d2 = {}
+        d2[other_id] = self.direction[other_id]
+        d2[new_id2] = -self.direction[other_id]
+        a1 = Adjacency(new_id1, other_id, r1, d1, self.impassables)
+        a2 = Adjacency(new_id2, other_id, r2, d2, self.impassables)
         return a1, a2
 
     def is_between(self, o_id1, o_id2):
@@ -346,9 +356,6 @@ class Adjacency(object):
         """
         a = (self.id1 == o_id1 and self.id2 == o_id2)
         b = (self.id1 == o_id2 and self.id2 == o_id1)
-        print("between")
-        print(self.id1, self.id2)
-        print(a,b)
         return a or b
 
     def get_other_id(self, subroom_id):
@@ -367,17 +374,48 @@ class Adjacency(object):
         Replace the room ids of the rooms which this adjacency connects
         """
         if self.id1 == old_id:
+            old_id = self.id1
             self.id1 = new_id
         elif self.id2 == old_id:
+            old_id = self.id2
             self.id2 = new_id
         else:
             assert False, "This is not an adjacency of subroom {}".format(subroom_id)
+        # Replace the direction: the new ID keeps the direction
+        old_direction = self.direction[old_id]
+        del self.direction[old_id]
+        self.direction[new_id] = old_direction
+        assert len(self.direction) == 2, self.direction
+
+    @property
+    def axis(self):
+        ds = list(self.direction.values())
+        assert len(ds) == 2, self.direction
+        assert ds[0] + ds[1] == Coord(0,0)
+        if Coord(1,0) in ds:
+            return Coord(1,0)
+        elif Coord(0,1) in ds:
+            return Coord(0,1)
+        else:
+            assert False, "Bad directions: {}".format(self.direction)
 
     def add_impassable(self, impassable):
         """
         Add an impassable region to this adjacency
         """
         self.impassables.append(impassable)
+
+    def get_innate_impassables(self):
+        """
+        Get the standard impassable areas for self
+        """
+        # Every adjacency ends in either another adjacency or a wall
+        # Therefore at either end of the adjacency is a 2x2 impassable region
+        #TODO: Generate this somewhere else, in case the walls are not 2x2!
+        #TODO: 2x2 is wrong!
+        top = Rect(self.rect.start, self.rect.start + Coord(2,2))
+        bot = Rect(self.rect.end - Coord(2,2), self.rect.end)
+        return [top, bot]
 
     def find_passables(self, min_size):
         """
@@ -386,12 +424,12 @@ class Adjacency(object):
         """
         #TODO: self.rect is sometimes not as big as min_size
         rects = [self.rect]
-        new_rects = []
+        all_impassables = self.impassables# + self.get_innate_impassables()
         # Cut every rectangle with each impassable rect
-        for i_direction, i_rect in self.impassables:
+        for i_rect in all_impassables:
             for r in rects:
                 #TODO: is i_direction correct?
-                new_rects.append(r.cut(i_rect, i_direction, min_size))
+                new_rects.extend(r.cut(i_rect, self.axis, min_size))
             rects = new_rects
         return rects
 
@@ -400,7 +438,7 @@ class Adjacency(object):
         Return a list of rects that represent solid tiles on this adjacency
         """
         if self.entrance is not None:
-            return self.rect.cut(self.entrance, self.direction, 1)
+            return self.rect.cut(self.entrance, self.axis, 1)
         else:
             return [self.rect]
 
@@ -424,7 +462,7 @@ class Adjacency(object):
         assert self.entrance is None
         assert self.can_enter(min_size)
         # The long axis of the adjacency is perpendicular to its direction
-        axis = Coord(1,1) - self.direction
+        axis = Coord(1,1) - self.axis
         passables = self.find_passables(min_size)
         print("Self size:")
         print(self.rect)
@@ -438,7 +476,7 @@ class Adjacency(object):
         entrance_size = random.randrange(min_size, min(max_size, passable_size))
         entrance_placement = random.randrange(passable_size - entrance_size)
         entrance_start = p.start + axis.scale(entrance_placement)
-        entrance_end = entrance_start + axis.scale(entrance_size) + self.direction.scale(2)
+        entrance_end = entrance_start + axis.scale(entrance_size) + self.axis.scale(2)
         entrance = Rect(entrance_start, entrance_end)
         self.entrance = entrance
         return entrance
@@ -472,15 +510,20 @@ class SubroomNode(object):
         self.children = []
 
     def subdivide(self, index, direction, id1, id2, subrooms):
-        """Divide a room at index in the given direction. Cutting a room in the x-direction
-        means that the horizontal axis of the room is divided by the cut. Coords of the room
-        /before/ index will belong to the first part, while coords of the room at or after index
-        will belong to the second part."""
+        """
+        Divide a room at index in the given direction.
+        Cutting a room in the x-direction means that the horizontal axis
+        of the room is divided by the cut.
+        Coords of the room /before/ index will belong to the first part,
+        while coords of the room at or after index will belong to the second part.
+        """
         self.check_inbounds(index, direction)
         # Compute the rectangles that each child will take up
         rect1, rect2 = self.rect.split(index, direction)
         print("SUBROOM: partitioning subroom {}".format(self.id))
-        print("rects: ", self.rect)
+        print("Rect: ", self.rect)
+        print("Cut direction: ", direction)
+        print("IDs: ", id1, id2)
         # Compute the adjacencies that each child will have
         #TODO: can simplify this with Rect.within
         adj1 = []
@@ -491,13 +534,13 @@ class SubroomNode(object):
             other = subrooms[o_id]
             assert other.is_leaf()
             # child1 takes left/top adjacencies
-            if a.direction == direction.neg():
+            if a.direction[self.id] == direction:
                 # As long as adjacencies are always shared between neighbors,
                 # this will also update the neighbors' adjacency
                 a.replace_id(self.id, id1)
                 adj1.append(a)
             # child2 takes right/bottom adjacencies
-            elif a.direction == direction:
+            elif a.direction[self.id] == -direction:
                 a.replace_id(self.id, id2)
                 adj2.append(a)
             else:
@@ -516,7 +559,6 @@ class SubroomNode(object):
                 else:
                     # Where the cut is relative to the start of the adjacency
                     index_within_adj = (dp - a.rect.start).index(direction)
-                    print(index, index_within_adj)
                     # Make the cut
                     a1, a2 = a.split(other.id, index_within_adj, direction, id1, id2)
                     adj1.append(a1)
@@ -526,8 +568,10 @@ class SubroomNode(object):
         # Add an adjacency between the two children along the newly created edge
         dp = self.div_point(index, direction)
         op = self.obv_point(index, direction)
-        a = Adjacency(id1, id2, Rect(dp - direction, op + direction), direction)
-        #print("between rect: ", a.rect)
+        adj_direction = {}
+        adj_direction[id1] = -direction
+        adj_direction[id2] = direction
+        a = Adjacency(id1, id2, Rect(dp - direction, op + direction), adj_direction)
         adj1.append(a)
         adj2.append(a)
         # Assign obstacles the same way as adjacencies
@@ -555,8 +599,7 @@ class SubroomNode(object):
     def find_adj(self, other_id):
         """Find the adjacency with the given id"""
         the_adj = [i for i in self.adj if i.is_between(self.id, other_id)]
-        print("find_adj", [a.rect for a in the_adj])
-        assert len(the_adj) == 1
+        assert len(the_adj) == 1, the_adj
         return the_adj[0]
 
     #TODO: not proof against multiple adjs with the same id pairs
@@ -593,10 +636,10 @@ class SubroomNode(object):
         """
         self.obstacles.append(obstacle)
         change_borders = obstacle.obstacle_rect.borders()
-        for rect, direction in change_borders:
-            adj_to_cut = [a for a in self.adj if a.direction == direction and rect.within(a.rect)]
+        for obstacle_rect, direction in change_borders:
+            adj_to_cut = [a for a in self.adj if obstacle_rect.within(a.rect)]
             for a in adj_to_cut:
-                a.add_impassable((rect, direction))
+                a.add_impassable(obstacle_rect)
 
     def div_point(self, index, direction):
         """
@@ -637,9 +680,9 @@ class SubroomNode(object):
         dp = div_point.index(direction)
         startpoint = self.rect.start.index(direction)
         endpoint = self.rect.end.index(direction)
-        print("SUBROOM: considering partition")
-        print(self.rect)
-        print(startpoint, dp, endpoint)
+        print("SUBROOM: considering partition of subroom {}".format(self.id))
+        print("Rect: ", self.rect)
+        print("{} [{}] {}".format(startpoint, dp, endpoint))
         if dp - startpoint < min_size or endpoint - dp < min_size:
             print("SUBROOM: Cut rejected - too small")
             return False
@@ -794,7 +837,7 @@ def print_subrooms(subrooms):
         if s1.is_leaf():
             print("{} : {}".format(s1.id, s1.rect))
             for a in s1.adj:
-                print("\t {} , {}, {}".format(a.id1, a.id2, a.rect))
+                print("\t {} , {}, {}, d{}".format(a.id1, a.id2, a.rect, a.direction))
 
 # Contintue to partition until EACH subroom fails a partition (because it is too small,
 # or intersects an obstacle)
@@ -912,7 +955,10 @@ def add_adjacency(r1, r1_set, r2, r2_set):
             start = tl1 + da.scale(15)
             end = start + pa.scale(dist) + da.scale(2)
             rect = Rect(start, end)
-            a = Adjacency(r1.id, r2.id, rect, da)
+            directions = {}
+            directions[r2.id] = d
+            directions[r1.id] = -d
+            a = Adjacency(r1.id, r2.id, rect, directions)
             r1.adj.append(a)
             r2.adj.append(a)
             return
@@ -921,6 +967,7 @@ def add_adjacency(r1, r1_set, r2, r2_set):
             pass
 
 #TODO: this is less efficient than search-based methods.
+#TODO: Expand the rectangle to the right first in order to get more horizontal rooms
 def find_rect(positions, pos):
     """
     Finds biggest rectangle that fits at pos for a given set of map positions that

@@ -75,7 +75,10 @@ def generate_rooms(concrete_map_info):
     return region_room_defs
 
 def visualize_abstract_maps(abstract_map_info):
-    _, _, rsg, _, _ = abstract_map_info
+    _, g, rsg, _, _ = abstract_map_info
+    # Visualize the overall graph
+    g.visualize("output/graph")
+    # Visualize the individual region graphs
     for region, graph in rsg.items():
         graph.visualize("output/" + region + "/graph")
 
