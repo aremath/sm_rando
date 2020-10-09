@@ -77,6 +77,29 @@ def get_rule_dict(rule_lines):
             d[k] = v
     return d
 
+def parse_interval(interval_str):
+    constraints = interval_string.split("<=")
+    l = -float("inf")
+    r = float("inf")
+    if len(constraints) == 3:
+        l, c, r = l
+        l = int(l)
+        r = int(r)
+    elif len(constraints) == 2:
+        l, r = constraints
+        if l == "X":
+            c = l
+            r = int(r)
+        elif r == "X":
+            c = r
+            l = int(l)
+        else:
+            assert False
+    elif len(constraints) == 1:
+        c = constraints[0]
+    assert c == "X"
+    return Interval(l, r)
+
 def parse_items(items_str):
     items = [i.strip() for i in items_str.split(",")]
     s = ItemSet()
@@ -94,6 +117,8 @@ def make_rule(rules_path, rule_lines, all_rules):
     assert b_pos is not None
     assert a_pos is not None
     items = parse_items(d["Items"])
+    b_vv = get_b_velocity(d["b_vv"])
+    b_vh = get_b_velocity(d["b_vh"])
     b_state = SamusState(b_pos, int(d["b_vv"]), int(d["b_vh"]), items, pose_str[d["b_Pose"]])
     a_state = SamusState(a_pos, int(d["a_vv"]), int(d["a_vh"]), items, pose_str[d["a_Pose"]])
     final_state = SearchState(a_state, level)
@@ -115,6 +140,20 @@ def make_rule_chain(rule_lines, all_rules):
     rules = [all_rules[r] for r in reference_rules]
     return reduce(lambda x,y: x + y, rules)
 
+def get_b_velocity(entry):
+    if entry == "BIND>0":
+        return Bind.BIND_GT
+    elif entry == "BIND>=0":
+        return Bind.BIND_GEQ
+    elif entry == "BIND<0":
+        return Bind.BIND_LT
+    elif entry == "BIND<=0":
+        return Bind.BIND_LEQ
+    elif entry == "BIND":
+        return Bind.BIND
+    else:
+        return int(entry)
+
 def make_test_state(rules_path, rule_lines):
     d = get_rule_dict(rule_lines)
     rule_name = d["Test"]
@@ -124,7 +163,9 @@ def make_test_state(rules_path, rule_lines):
     assert b_pos is not None
     assert a_pos is not None
     items = parse_items(d["Items"])
-    b_state = SamusState(b_pos, int(d["b_vv"]), int(d["b_vh"]), items, pose_str[d["b_Pose"]])
+    b_vv = get_b_velocity(d["b_vv"])
+    b_vh = get_b_velocity(d["b_vh"])
+    b_state = SamusState(b_pos, b_vv, b_vh, items, pose_str[d["b_Pose"]])
     a_state = SamusState(a_pos, int(d["a_vv"]), int(d["a_vh"]), items, pose_str[d["a_Pose"]])
     initial_state = SearchState(b_state, level)
     final_state = a_state
