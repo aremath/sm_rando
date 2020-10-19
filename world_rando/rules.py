@@ -7,13 +7,7 @@ class AbstractTile(IntEnum):
     UNKNOWN = 0
     AIR = 1
     SOLID = 2
-    AIR_VERT_STOP = 3
-    AIR_HORIZ_STOP = 4
-    PLAN_SOLID = 5
-    GRAPPLE = 6
-    WATER = 7
-    WATER_VERT_STOP = 8
-    WATER_HORIZ_STOP = 9
+    GRAPPLE = 3
 
 abstract_to_color = {
     AbstractTile.UNKNOWN : (255, 255, 255),
@@ -41,6 +35,12 @@ class SamusPose(IntEnum):
     MORPH = 1
     JUMP = 2
     SPIN = 3
+
+class LiquidType(IntEnum):
+    NONE = 0
+    WATER = 1
+    LAVA = 2
+    ACID = 3
 
 class VType(IntEnum):
     # Special "untyped" zero velocity
@@ -281,6 +281,7 @@ class HVelocity(object):
     def flip(self):
         return HVelocity(self.type, -self.value)
 
+#TODO: what about "underwater" vertical velocity vs. air-based vertical velocity?
 class Velocity(object):
 
     def __init__(self, vv, vh):
@@ -336,7 +337,7 @@ def states_in_order(before_state, rule_state, scan_direction):
             sstate = rule_state.samus.copy()
             sstate.position = xy
             sstate.vertical_speed = vertical_speed
-            s_t = samus_tiles(sstate)
+            s_t = samus_tiles(sstate.pos, sstate.pose)
             # If the tiles are not all air tiles, samus cannot fit
             # Determine if the rule puts samus at the given position
             samus_pass = True
@@ -354,19 +355,28 @@ def states_in_order(before_state, rule_state, scan_direction):
             else:
                 yield xy, None
 
-def get_horizontal_adj(s, rule_state, scan_direction):
-    h = Coord(scan_direction.x, 0)
-    s_t = samus_tiles(s)
-    h_tiles = [t + h for t in s_t]
-    l = rule_state.level
-    return [h for h in h_tiles if l.in_bounds(h) and l[h] == AbstractTile.AIR_HORIZ_STOP]
+def get_adj(s, direction):
+    s_t = samus_tiles(s.pos, s.pose)
+    h_t = [t + direction for t in s_t if t + v not in s_t]
+    return h_t
 
-def get_vertical_adj(s, rule_state, scan_direction):
+def get_horizontal_adj(s, scan_direction):
+    h = Coord(scan_direction.x, 0)
+    return get_adj(s, h)
+
+def get_vertical_adj(s, scan_direction):
     v = Coord(0, scan_direction.y)
-    s_t = samus_tiles(s)
-    v_tiles = [t + v for t in s_t if t + v not in s_t]
-    l = rule_state.level
-    return [v for v in v_tiles if l.in_bounds(v) and l[v] == AbstractTile.AIR_VERT_STOP]
+    return get_adj(s, v)
+
+def get_all_adj(pos, pose):
+    s_t = samus_tiles(pos, pose)
+    l = []
+    for t in s_t:
+        ns = t.neighbors()
+        for n in ns:
+            if n not in s_t:
+                l.append(n)
+    return l
 
 def check_collision(collide_tiles, new_origin, new_level, position):
     for b in collide_tiles:
@@ -374,8 +384,8 @@ def check_collision(collide_tiles, new_origin, new_level, position):
             return True
     return False
 
-def samus_tiles(samus_state):
-    return [samus_state.position + t for t in pose_hitboxes[samus_state.pose]]
+def samus_tiles(pos, pose):
+    return [pos + t for t in pose_hitboxes[pose]]
 
 #TODO: handle negative numbers!
 def update(new_origin, new_level, before_state, rule_state, position):
@@ -434,7 +444,7 @@ class LevelState(object):
     Composable structure that keeps track of level data.
     """
 
-    def __init__(self, origin, level, max_size=None):
+    def __init__(self, origin, level, liquid_type, liquid_level):
         self.origin = origin
         self.level = level
         # Set the writeable false flag in order to make hashing possible
@@ -487,17 +497,18 @@ class LevelState(object):
             m = None
         else:
             m = self.max_size.copy()
-        return LevelState(self.origin.copy(), l, m)
+        return LevelState(self.origin.copy(), l, m, self.liquid_type, self.liquid_level)
 
     def __hash__(self):
-        return hash((self.origin, bytes(self.level.data), self.max_size))
+        return hash((self.origin, bytes(self.level.data), self.liquid_type, self.liquid_level)
 
     def __eq__(self, other):
         o = self.origin == other.origin
         l = np.array_equal(self.level, other.level)
         s = self.size == other.size
-        m = self.max_size == other.max_size
-        return o and l and s and m
+        lt = self.liquid_type == other.liquid_type
+        ll = self.liquid_level == other.liquid_level
+        return o and l and s and lt and ll
 
     def __getitem__(self, index):
         internal_index = index - self.origin
@@ -520,7 +531,7 @@ class LevelState(object):
             m = None
         else:
             m = self.max_size.copy()
-        return LevelState(o, d, m)
+        return LevelState(o, d, m, self.liquid_type, self.liquid_level)
 
 class SamusState(object):
 
@@ -703,7 +714,7 @@ class LevelFunction(object):
             # Get the intermediate absolute samus state from relative
             intermediate_samus = i_state.samus + state.samus.pos
             # Check and create necessary airs
-            for t in samus_tiles(intermediate_samus):
+            for t in samus_tiles(intermediate_samus.pos, intermediate_samus.pose):
                 ok = level.check_and_make(t, AbstractTile.AIR, intermediate_samus)
                 # Could not reconcile air to the tiles samus occupies
                 if ok is None:

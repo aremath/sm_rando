@@ -6,12 +6,13 @@ from sm_rando.world_rando.coord import Coord, Rect
 from sm_rando.data_types.item_set import ItemSet
 
 defaults = {
-    "Cost": "0",
-    "Items" : "",
-    "b_Pose": "Stand",
+    "cost": "0",
+    "items" : "",
+    "obtain" : "",
+    "b_pose": "Stand",
     "b_vv": "0",
     "b_vh": "0",
-    "a_Pose": "Stand",
+    "a_pose": "Stand",
     "a_vv": "0",
     "a_vh": "0"
     }
@@ -23,20 +24,26 @@ pose_str = {
     "Spin": SamusPose.SPIN
     }
 
+vtype_str = {
+    "Run": VType.RUN,
+    "Water": VType.WATER,
+    "Speed": VType.SPEED
+    }
+
+vbehave_str = {
+    "Lose": VBehavior.LOSE,
+    "Store": VBehavior.STORE
+    }
+
 color_to_abstract = {
     (255, 255, 255) : AbstractTile.UNKNOWN,
-    #TODO: samus might be underwater / ambiguous
     (255, 0, 0) : AbstractTile.AIR,
     (0, 255, 0) : AbstractTile.AIR,
     (251, 242, 54) : AbstractTile.AIR,
-    (251, 137, 54) : AbstractTile.AIR_VERT_STOP,
-    (178, 251, 54) : AbstractTile.AIR_HORIZ_STOP,
     (0, 0, 0) : AbstractTile.SOLID,
-    (255, 22, 169) : AbstractTile.PLAN_SOLID,
     (119, 33, 105) : AbstractTile.GRAPPLE,
     (48, 185, 211) : AbstractTile.WATER,
-    (48, 211, 151) : AbstractTile.WATER_VERT_STOP,
-    (48, 117, 211) : AbstractTile.WATER_HORIZ_STOP,
+    #TODO: samus might be underwater / ambiguous
     }
 
 player_before_color = (255, 0, 0)
@@ -58,10 +65,6 @@ def make_level(image):
     level = LevelState(Coord(0,0), level_array)
     return player_before_pos, player_after_pos, level
 
-def get_rule_name(rule_lines):
-    l, r = rule_lines[0].split(":")
-    return r.strip()
-
 def get_rule_dict(rule_lines):
     d = {}
     for line in rule_lines:
@@ -77,7 +80,43 @@ def get_rule_dict(rule_lines):
             d[k] = v
     return d
 
+def parse_end_vv(vstr):
+    v_move_s, v_behave_s = vstr.split(",")
+    v_move = int(v_move_s)
+    v_behave = vbehave_str[v_behave_s]
+    return v_move, v_behave
+
+def parse_end_vh(vstr):
+    v_type_s, v_move_s, v_behave_s = vstr.split(",")
+    v_move = int(v_move_s)
+    v_behave = vbehave_str[v_behave_s]
+    v_type = vtype_str[v_type_s]
+    return v_type, v_move, v_behave
+
+def parse_end_v(d):
+    vh_type, vh_move, vh_behave = parse_end_vh(d["a_vh"])
+    vv_move, vv_behave = parse_end_vv(d["a_vv"])
+    vh = HVelocity(vh_type, vh_move)
+    return Velocity(vv_move, vh), vh_behave, vv_behave
+
+def parse_vfunction(d):
+    vh_types_s, vh_int_s = d["b_vh"].split(",")
+    vv_int_s = d["b_vh"]
+    vh_int = parse_interval(vh_int_s)
+    vv_int = parse_interval(vv_int_s)
+    vh_types_set = frozenset([vtype_str[i] for i in vh_types_s.split("|")])
+    vh_set = HVelocitySet(vh_types_set, vh_int)
+    domain = VelocitySet(vv_int, vh_set)
+    v_end, vh_behave, vv_behave = parse_end_v(d)
+    return VelocityFunction(domain, vv_behave, vh_behave, v_end)
+
 def parse_interval(interval_str):
+    """ Parses intervals of the form
+    1 <= X <= 2
+    X <= 2
+    1 <= X
+    4 (means X = 4 or 4 <= X <= 4)
+    """
     constraints = interval_string.split("<=")
     l = -float("inf")
     r = float("inf")
@@ -97,6 +136,12 @@ def parse_interval(interval_str):
             assert False
     elif len(constraints) == 1:
         c = constraints[0]
+        # Allow single integer
+        if c != "X":
+            a = int(c)
+            c = "X"
+            l = a
+            r = a
     assert c == "X"
     return Interval(l, r)
 
@@ -108,30 +153,73 @@ def parse_items(items_str):
             s.add(i)
     return s
 
-def make_rule(rules_path, rule_lines, all_rules):
-    d = get_rule_dict(rule_lines)
+def make_rule(level_image, rule_lines):
     rule_name = d["Rule"]
-    rules_pic_path = rules_path / (rule_name + ".png")
-    level_image = Image.open(rules_pic_path)
     b_pos, a_pos, level = make_level(level_image)
     assert b_pos is not None
     assert a_pos is not None
-    items = parse_items(d["Items"])
+    items = parse_items(d["items"])
     b_vv = get_b_velocity(d["b_vv"])
     b_vh = get_b_velocity(d["b_vh"])
-    b_state = SamusState(b_pos, int(d["b_vv"]), int(d["b_vh"]), items, pose_str[d["b_Pose"]])
-    a_state = SamusState(a_pos, int(d["a_vv"]), int(d["a_vh"]), items, pose_str[d["a_Pose"]])
+    b_state = SamusState(b_pos, int(d["b_vv"]), int(d["b_vh"]), items, pose_str[d["b_pose"]])
+    a_state = SamusState(a_pos, int(d["a_vv"]), int(d["a_vh"]), items, pose_str[d["a_pose"]])
     final_state = SearchState(a_state, level)
     t = Transition(b_state, final_state)
-    rule =  Rule(d["Rule"], [t], int(d["Cost"]))
+    rule =  Rule(d["Rule"], [t], int(d["cost"]))
     # Also include the horizontal flip
     if "NH" not in d:
         return [rule, rule.horizontal_flip()]
     else:
         return [rule]
 
-def make_rule_chain(rule_lines, all_rules):
-    rule_name = get_rule_name(rule_lines)
+def index_level(level, coord):
+    """ Bounds-checking: out-of-bounds is unknown """
+    try:
+        return level[coord]
+    except IndexError:
+        return AbstractTile.UNKNOWN
+
+def get_all(level, tile_list, tile_type):
+    return [tile for tile in tile_list if index_level(level, tile) == tile_type]
+
+def parse_statefunction(level_image, d):
+    name = d["Rule"]
+    a_items, b_items = get_items(d)
+    b_pos, a_pos, level = make_level(level_image)
+    scan_direction = (a_pos - b_pos).sign()
+    r = Rect(Coord(0,0), Coord(level.shape[0], level.shape[1]))
+    vf = parse_vfunction(d)
+    p_initial = Coord(0,0)
+    v_final = vf.domain
+    pose_initial = pose_str[d["b_pose"]]
+    pose_final = pose_str[d["a_pose"]]
+    items_initial = parse_items(d["items"])
+    items_obtained = parse_items(d["obtain"])
+    i_states = []
+    for xy in r.iter_direction(scan_direction):
+        s_t = samus_tiles(xy, pose_final)
+        level_t = [index_level(level, t) for t in s_t]
+        #If samus is here through the rule
+        if all([t == AbstractTile.AIR for t in level_t]):
+            # Note the position, nearby airs, and nearby walls
+            all_adj = get_all_adj(xy, pose_final)
+            walls = get_all(level, all_adj, AbstractTile.SOLID)
+            airs = get_all(level, all_adj, AbstractTile.AIR)
+            i_states.append((xy, airs, walls))
+    #TODO liquid stuff
+    ltype = LiquidType.WATER
+    li = Interval(-float(inf), float(inf))
+    lfunction = LevelFunction(ltype, li, i_states)
+    sfunction = SamusFunction(vf, items_initial, items_obtained, pose_initial, pose_final, a_pos)
+    cost = int(d["cost"])
+    s = StateFunction(name, sfunction, lfunction, cost)
+    if "NH" not in d:
+        return [s, s.horizontal_flip()]
+    else:
+        return s
+
+def make_rule_chain(d, all_rules):
+    rule_name = d["Chain"]
     reference_rules = [n.strip() for n in rule_name.split(",")]
     assert len(reference_rules) > 1, "Rule chain with only one reference: {}".format(rule_name)
     # Check validity of references
@@ -140,33 +228,23 @@ def make_rule_chain(rule_lines, all_rules):
     rules = [all_rules[r] for r in reference_rules]
     return reduce(lambda x,y: x + y, rules)
 
-def get_b_velocity(entry):
-    if entry == "BIND>0":
-        return Bind.BIND_GT
-    elif entry == "BIND>=0":
-        return Bind.BIND_GEQ
-    elif entry == "BIND<0":
-        return Bind.BIND_LT
-    elif entry == "BIND<=0":
-        return Bind.BIND_LEQ
-    elif entry == "BIND":
-        return Bind.BIND
-    else:
-        return int(entry)
+def get_items(d):
+    b_items = parse_items(d["items"])
+    a_items = b_items | parse_items(d["obtain"])
+    return b_items, a_items
 
-def make_test_state(rules_path, rule_lines):
-    d = get_rule_dict(rule_lines)
+def make_test_state(level_image, d):
     rule_name = d["Test"]
-    rules_pic_path = rules_path / (rule_name + ".png")
-    level_image = Image.open(rules_pic_path)
     b_pos, a_pos, level = make_level(level_image)
     assert b_pos is not None
     assert a_pos is not None
-    items = parse_items(d["Items"])
-    b_vv = get_b_velocity(d["b_vv"])
-    b_vh = get_b_velocity(d["b_vh"])
-    b_state = SamusState(b_pos, b_vv, b_vh, items, pose_str[d["b_Pose"]])
-    a_state = SamusState(a_pos, int(d["a_vv"]), int(d["a_vh"]), items, pose_str[d["a_Pose"]])
+    b_items, a_items = get_items(d)
+    b_vv = int(d["b_vv"])
+    b_vh = int(d["b_vh"])
+    a_vv = int(d["a_vv"])
+    a_vh = int(d["a_vh"])
+    b_state = SamusState(b_pos, b_vv, b_vh, b_items, pose_str[d["b_pose"]])
+    a_state = SamusState(a_pos, avv, a_vh, a_items, pose_str[d["a_pose"]])
     initial_state = SearchState(b_state, level)
     final_state = a_state
     return initial_state, final_state
@@ -195,19 +273,23 @@ def parse_rules(rules_file):
     for rule_lines in all_rule_lines:
         if len(rule_lines) >= 1:
             l,r = rule_lines[0].split(":")
-            rule_name = r.strip()
+            d = get_rule_dict(rule_lines)
+            rule_name = d[l]
+            pic_path = rules_path / (rule_name + ".png")
             if l == "Chain":
                 #print("Chain: {}".format(rule_name))
-                rule = make_rule_chain(rule_lines, rules)
+                rule = make_rule_chain(d, rules)
                 rules[rule.name] = rule
-            elif l == "Rule":
-                #print("Rule: {}".format(rule_name))
-                made_rules = make_rule(rules_path, rule_lines, rules)
-                for r in made_rules:
-                    rules[r.name] = r
-            elif l == "Test":
-                #print("Test: {}".format(rule_name))
-                test = make_test_state(rules_path, rule_lines)
-                tests[rule_name] = test
+            else:
+                level_image = Image.open(pic_path)
+                elif l == "Rule":
+                    #print("Rule: {}".format(rule_name))
+                    made_rules = make_rule(level_image, d, rules)
+                    for r in made_rules:
+                        rules[r.name] = r
+                elif l == "Test":
+                    #print("Test: {}".format(rule_name))
+                    test = make_test_state(level_image, d)
+                    tests[rule_name] = test
     f.close()
     return rules, tests
