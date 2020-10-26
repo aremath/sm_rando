@@ -61,7 +61,7 @@ class Coord(tuple):
         return ((self.x-other.x)**2 + (self.y-other.y)**2)**(0.5)
 
     def __repr__(self):
-        return "(" + str(self.x) + "," + str(self.y) + ")"
+        return "c(" + str(self.x) + "," + str(self.y) + ")"
 
     # Breaks priority ties
     # Uppermost leftmost tile is smallest

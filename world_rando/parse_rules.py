@@ -1,7 +1,7 @@
 from pathlib import Path
 from PIL import Image
 import numpy as np
-from sm_rando.world_rando.rules import SamusState, LevelState, Rule, SamusPose, AbstractTile, SearchState, Transition
+from sm_rando.world_rando.rules import *
 from sm_rando.world_rando.coord import Coord, Rect
 from sm_rando.data_types.item_set import ItemSet
 
@@ -11,10 +11,10 @@ defaults = {
     "obtain" : "",
     "b_pose": "Stand",
     "b_vv": "0",
-    "b_vh": "0",
+    "b_vh": "Run,0",
     "a_pose": "Stand",
-    "a_vv": "0",
-    "a_vh": "0"
+    "a_vv": "0,Lose",
+    "a_vh": "Run,0,Lose"
     }
 
 pose_str = {
@@ -42,7 +42,7 @@ color_to_abstract = {
     (251, 242, 54) : AbstractTile.AIR,
     (0, 0, 0) : AbstractTile.SOLID,
     (119, 33, 105) : AbstractTile.GRAPPLE,
-    (48, 185, 211) : AbstractTile.WATER,
+    #(48, 185, 211) : AbstractTile.WATER,
     #TODO: samus might be underwater / ambiguous
     }
 
@@ -62,15 +62,16 @@ def make_level(image):
         if p == player_after_color and player_after_pos is None:
             player_after_pos = xy
         level_array[(xy.x, xy.y)] = m
-    level = LevelState(Coord(0,0), level_array)
+    #TODO: water stuff
+    level = LevelState(Coord(0,0), level_array, LiquidType.NONE, float("inf"))
     return player_before_pos, player_after_pos, level
 
 def get_rule_dict(rule_lines):
     d = {}
     for line in rule_lines:
         # Special flags
-        if line.strip() == "NH":
-            d["NH"] = ""
+        if line.strip() == "Symmetric":
+            d["Symmetric"] = ""
         else:
             l,r = line.split(":")
             d[l.strip()] = r.strip()
@@ -101,7 +102,7 @@ def parse_end_v(d):
 
 def parse_vfunction(d):
     vh_types_s, vh_int_s = d["b_vh"].split(",")
-    vv_int_s = d["b_vh"]
+    vv_int_s = d["b_vv"]
     vh_int = parse_interval(vh_int_s)
     vv_int = parse_interval(vv_int_s)
     vh_types_set = frozenset([vtype_str[i] for i in vh_types_s.split("|")])
@@ -110,7 +111,7 @@ def parse_vfunction(d):
     v_end, vh_behave, vv_behave = parse_end_v(d)
     return VelocityFunction(domain, vv_behave, vh_behave, v_end)
 
-def parse_interval(interval_str):
+def parse_interval(interval_string):
     """ Parses intervals of the form
     1 <= X <= 2
     X <= 2
@@ -167,23 +168,31 @@ def make_rule(level_image, rule_lines):
     t = Transition(b_state, final_state)
     rule =  Rule(d["Rule"], [t], int(d["cost"]))
     # Also include the horizontal flip
-    if "NH" not in d:
+    if "Symmetric" not in d:
         return [rule, rule.horizontal_flip()]
     else:
         return [rule]
 
 def index_level(level, coord):
     """ Bounds-checking: out-of-bounds is unknown """
-    try:
-        return level[coord]
-    except IndexError:
+    if coord.x >= 0 and coord.y >= 0:
+        try:
+            return level[coord]
+        except IndexError:
+            return AbstractTile.UNKNOWN
+    # Negative indices are out of bounds (don't wrap)
+    else:
         return AbstractTile.UNKNOWN
 
 def get_all(level, tile_list, tile_type):
     return [tile for tile in tile_list if index_level(level, tile) == tile_type]
 
+def normalize_list(coord_list, pos):
+    return [l - pos for l in coord_list]
+
 def parse_statefunction(level_image, d):
     name = d["Rule"]
+    print("Parsing rule: {}".format(name))
     a_items, b_items = get_items(d)
     b_pos, a_pos, level = make_level(level_image)
     scan_direction = (a_pos - b_pos).sign()
@@ -195,6 +204,11 @@ def parse_statefunction(level_image, d):
     pose_final = pose_str[d["a_pose"]]
     items_initial = parse_items(d["items"])
     items_obtained = parse_items(d["obtain"])
+    sfunction = SamusFunction(vf, items_initial, items_obtained, pose_initial, pose_final, a_pos)
+    #TODO: certain (i.e. the first of each rule) IntermediateStates hold the sfunction so that samus' state
+    # can be inferred within the rule
+    #TODO: verify by checking that the inferred end state is the same as the end state achieved through function
+    # composition
     i_states = []
     for xy in r.iter_direction(scan_direction):
         s_t = samus_tiles(xy, pose_final)
@@ -204,19 +218,25 @@ def parse_statefunction(level_image, d):
             # Note the position, nearby airs, and nearby walls
             all_adj = get_all_adj(xy, pose_final)
             walls = get_all(level, all_adj, AbstractTile.SOLID)
-            airs = get_all(level, all_adj, AbstractTile.AIR)
-            i_states.append((xy, airs, walls))
+            # Normalized
+            walls = normalize_list(walls, xy)
+            airs = []
+            # Collect the necessary airs for each direction
+            for direction in [Coord(scan_direction.x, 0), Coord(0, scan_direction.y)]:
+                airs_in_d = get_all(level, get_adj(xy, pose_final, direction), AbstractTile.AIR)
+                airs_in_d = normalize_list(airs_in_d, xy)
+                airs.append((direction, airs_in_d))
+            i_states.append(IntermediateState(xy, walls, airs))
     #TODO liquid stuff
-    ltype = LiquidType.WATER
-    li = Interval(-float(inf), float(inf))
+    ltype = LiquidType.NONE
+    li = Interval(-float("inf"), float("inf"))
     lfunction = LevelFunction(ltype, li, i_states)
-    sfunction = SamusFunction(vf, items_initial, items_obtained, pose_initial, pose_final, a_pos)
     cost = int(d["cost"])
     s = StateFunction(name, sfunction, lfunction, cost)
-    if "NH" not in d:
+    if "Symmetric" not in d:
         return [s, s.horizontal_flip()]
     else:
-        return s
+        return [s]
 
 def make_rule_chain(d, all_rules):
     rule_name = d["Chain"]
@@ -233,18 +253,22 @@ def get_items(d):
     a_items = b_items | parse_items(d["obtain"])
     return b_items, a_items
 
+def get_v(d, t):
+    vh_type_s, vh_int_s = d[t + "_vh"].split(",")
+    vh_type = vtype_str[vh_type_s]
+    vh = HVelocity(vh_type, int(vh_int_s))
+    return Velocity(int(d[t + "_vv"]), vh)
+
 def make_test_state(level_image, d):
     rule_name = d["Test"]
     b_pos, a_pos, level = make_level(level_image)
     assert b_pos is not None
     assert a_pos is not None
     b_items, a_items = get_items(d)
-    b_vv = int(d["b_vv"])
-    b_vh = int(d["b_vh"])
-    a_vv = int(d["a_vv"])
-    a_vh = int(d["a_vh"])
-    b_state = SamusState(b_pos, b_vv, b_vh, b_items, pose_str[d["b_pose"]])
-    a_state = SamusState(a_pos, avv, a_vh, a_items, pose_str[d["a_pose"]])
+    b_v = get_v(d, "b")
+    a_v = get_v(d, "a")
+    b_state = SamusState(b_pos, b_v, b_items, pose_str[d["b_pose"]])
+    a_state = SamusState(a_pos, a_v, a_items, pose_str[d["a_pose"]])
     initial_state = SearchState(b_state, level)
     final_state = a_state
     return initial_state, final_state
@@ -282,9 +306,9 @@ def parse_rules(rules_file):
                 rules[rule.name] = rule
             else:
                 level_image = Image.open(pic_path)
-                elif l == "Rule":
+                if l == "Rule":
                     #print("Rule: {}".format(rule_name))
-                    made_rules = make_rule(level_image, d, rules)
+                    made_rules = parse_statefunction(level_image, d)
                     for r in made_rules:
                         rules[r.name] = r
                 elif l == "Test":

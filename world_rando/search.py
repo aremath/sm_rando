@@ -15,8 +15,8 @@ def rule_search(start_state, rules, goal_state):
         n_rules += 1
         priority, _, state = heapq.heappop(h)
         print("Was at: {}".format(state.samus.position))
-        next_states = [(r, state.apply_rule(r)) for r in rules]
-        for rule, (next_state, n_changed, err) in next_states:
+        next_states = [(r, r.apply(state)) for r in rules]
+        for rule, (next_state, err) in next_states:
             if next_state is not None:
                 print("Applied rule: {} at level {}".format(rule.name, n_rules))
                 print("Now at: {}".format(next_state.samus.position))
@@ -32,12 +32,14 @@ def rule_search(start_state, rules, goal_state):
                 if next_state.samus == goal_state:
                     return offers, finished, next_state
                 distance = next_state.samus.position.euclidean(goal_state.position)
-                cost = block_cost * n_changed + rule.cost
+                #TODO
+                #cost = block_cost * n_changed + rule.cost
+                cost = rule.cost
                 # Lower distance is good, lower cost is good
                 priority = cost_weight * cost + (1 - cost_weight) * distance
-                print(n_changed)
-                print(distance)
-                print(priority)
+                #print(n_changed)
+                #print(distance)
+                #print(priority)
                 heapq.heappush(h, (priority, entry_count, next_state))
                 entry_count += 1
             else:

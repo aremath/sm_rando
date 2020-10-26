@@ -13,8 +13,6 @@ abstract_to_color = {
     AbstractTile.UNKNOWN : (255, 255, 255),
     AbstractTile.AIR : (251, 242, 54),
     AbstractTile.SOLID : (0, 0, 0),
-    AbstractTile.PLAN_SOLID : (255, 22, 169),
-    AbstractTile.WATER : (48, 185, 211),
     AbstractTile.GRAPPLE : (119, 33, 105),
     }
 
@@ -94,6 +92,12 @@ class Interval(object):
         else:
             return Interval(l, r)
 
+    def horizontal_flip(self):
+        return Interval(-self.right, -self.left)
+
+    def copy(self):
+        return Interval(self.left, self.right)
+
 class HVelocitySet(object):
 
     def __init__(self, types, interval):
@@ -139,6 +143,10 @@ class HVelocitySet(object):
         else:
             return HVelocitySet(t, i)
 
+    def horizontal_flip(self):
+        t = self.types.copy()
+        return HVelocitySet(t, self.interval.horizontal_flip())
+
 class VelocitySet(object):
     
     def __init__(self, vertical_interval, horizontal_set):
@@ -169,6 +177,9 @@ class VelocitySet(object):
         else:
             return VelocitySet(v, h)
 
+    def horizontal_flip(self):
+        return VelocitySet(self.vertical_set.copy(), self.horizontal_set.horizontal_flip())
+
 class VelocityFunction(object):
 
     def __init__(self, domain, vertical_b, horizontal_b, vadd):
@@ -177,7 +188,7 @@ class VelocityFunction(object):
         self.horizontal_behavior = horizontal_b
         self.vadd = vadd
 
-    def __call__(self, velocity):
+    def apply(self, velocity):
         """ Apply to get a new velocity. None if the parameter is not in the domain """
         if velocity in self.domain:
             start_vel = velocity.copy()
@@ -231,6 +242,11 @@ class VelocityFunction(object):
         v = Velocity(vv, vh)
         return VelocityFunction(domain, vb, hb, v)
 
+    def horizontal_flip(self):
+        domainf = self.domain.horizontal_flip()
+        addf = self.vadd.horizontal_flip()
+        return VelocityFunction(domainf, self.vertical_behavior, self.horizontal_behavior, addf)
+
 def combine_vs(v1, v2, b1, b2):
     """
     Combine velocities to obtain the result of doing both 'velocity actions'.
@@ -278,10 +294,17 @@ class HVelocity(object):
             return None
         return HVelocity(t, self.value + other.value)
 
+    def __hash__(self):
+        return hash((self.type, self.value))
+
     def flip(self):
         return HVelocity(self.type, -self.value)
 
+    def copy(self):
+        return HVelocity(self.type, self.value)
+
 #TODO: what about "underwater" vertical velocity vs. air-based vertical velocity?
+#TODO: what about max velocity?
 class Velocity(object):
 
     def __init__(self, vv, vh):
@@ -302,6 +325,13 @@ class Velocity(object):
         h = self.vh + other.vh
         assert h is not None
         return Velocity(v, h)
+
+    def __hash__(self):
+        return hash((self.vv, self.vh))
+
+    def copy(self):
+        hv = self.vh.copy()
+        return Velocity(self.vv, hv)
 
 #TODO
 pose_hitboxes = {
@@ -355,9 +385,9 @@ def states_in_order(before_state, rule_state, scan_direction):
             else:
                 yield xy, None
 
-def get_adj(s, direction):
-    s_t = samus_tiles(s.pos, s.pose)
-    h_t = [t + direction for t in s_t if t + v not in s_t]
+def get_adj(pos, pose, direction):
+    s_t = samus_tiles(pos, pose)
+    h_t = [t + direction for t in s_t if t + direction not in s_t]
     return h_t
 
 def get_horizontal_adj(s, scan_direction):
@@ -437,8 +467,6 @@ def update(new_origin, new_level, before_state, rule_state, position):
     end_state.position += position
     return end_state, n_changed, ""
 
-#TODO: Reverse function to create rules traveling from right to left
-#TODO: remove size (is kept as part of the level data array
 class LevelState(object):
     """
     Composable structure that keeps track of level data.
@@ -447,71 +475,43 @@ class LevelState(object):
     def __init__(self, origin, level, liquid_type, liquid_level):
         self.origin = origin
         self.level = level
-        # Set the writeable false flag in order to make hashing possible
+        # Set the writeable false flag in order to allow hashing
         self.level.flags.writeable = False
-        self.max_size = max_size
+        self.liquid_type = liquid_type
+        self.liquid_level = liquid_level
 
     @property
-    def size(self):
+    def shape(self):
         return Coord(self.level.shape[0], self.level.shape[1])
 
     @property
     def rect(self):
-        return Rect(self.origin, self.origin + self.size)
-
-    def add(self, before_state, rule_state, position):
-        other = rule_state.level
-        # Vector pointing to the new origin from the old origin
-        new_origin = self.origin.pointwise_min(position)
-        new_rect = self.rect.containing_rect(other.rect.translate(position))
-        # Size points past the bottom right corner
-        self_end = self.origin + self.size
-        other_end = position + other.size
-        # The size of the new frame
-        new_size = new_rect.size_coord()
-        if self.max_size is None:
-            new_max_size = other.max_size
-        elif other.max_size is None:
-            new_max_size = self.max_size
-        else:
-            new_max_size = self.max_size.pointwise_min(other.max_size)
-        assert new_max_size is None or new_size <= new_max_size
-        # Allocate the new frame filled with blank tiles
-        new_level_data = np.zeros(new_size, dtype="int")
-        self.paste(new_origin, new_level_data)
-        sstate, n_changed, err = update(new_origin, new_level_data, before_state, rule_state, position)
-        if sstate is None:
-            return None, 0, err
-        lstate = LevelState(new_origin, new_level_data, new_max_size)
-        return SearchState(sstate, lstate), n_changed, ""
+        return Rect(self.origin, self.origin + self.shape)
 
     def paste(self, level_origin, level):
-        assert self.origin + self.size <= Coord(level.shape[0], level.shape[1])
+        assert self.origin + self.shape <= Coord(level.shape[0], level.shape[1])
         o = self.origin - level_origin
         assert o >= Coord(0,0), o
-        level[o.x:o.x + self.size.x, o.y:o.y + self.size.y] = self.level
+        level[o.x:o.x + self.shape.x, o.y:o.y + self.shape.y] = self.level
 
     def copy(self):
         l = np.copy(self.level)
-        if self.max_size is None:
-            m = None
-        else:
-            m = self.max_size.copy()
-        return LevelState(self.origin.copy(), l, m, self.liquid_type, self.liquid_level)
+        return LevelState(self.origin.copy(), l, self.liquid_type, self.liquid_level)
 
     def __hash__(self):
-        return hash((self.origin, bytes(self.level.data), self.liquid_type, self.liquid_level)
+        return hash((self.origin, bytes(self.level.data), self.liquid_type, self.liquid_level))
 
     def __eq__(self, other):
         o = self.origin == other.origin
         l = np.array_equal(self.level, other.level)
-        s = self.size == other.size
+        s = self.shape == other.shape
         lt = self.liquid_type == other.liquid_type
         ll = self.liquid_level == other.liquid_level
         return o and l and s and lt and ll
 
     def __getitem__(self, index):
         internal_index = index - self.origin
+        # Do not allow negative indexing
         if Coord(0,0) > internal_index:
             raise IndexError(internal_index)
         return self.level[internal_index]
@@ -527,59 +527,75 @@ class LevelState(object):
         o = self.origin.copy()
         d = np.copy(self.level)
         d = np.flip(d, 0)
-        if self.max_size is None:
-            m = None
-        else:
-            m = self.max_size.copy()
-        return LevelState(o, d, m, self.liquid_type, self.liquid_level)
+        return LevelState(o, d, self.liquid_type, self.liquid_level)
 
 class SamusState(object):
 
-    def __init__(self, position, vertical_speed, horizontal_speed, items, pose):
+    def __init__(self, position, velocity, items, pose):
         self.position = position
-        self.vertical_speed = vertical_speed
-        self.horizontal_speed = horizontal_speed
+        self.velocity = velocity
         self.items = items
         self.pose = pose
 
     def __geq__(self, other):
         p = self.position == other.position
-        vv = self.vertical_speed == other.vertical_speed
+        v = self.velocity == other.velocity
         #TODO: what about negative speed?
-        vh = self.horizontal_speed >= other.horizontal_speed
         i = self.items >= other.items
         pose = self.pose is other.pose
-        return p and vv and vh and i and pose
+        return p and v and i and pose
 
     def meets(self, other):
-        vv = self.vertical_speed == other.vertical_speed
-        vh = self.horizontal_speed >= other.horizontal_speed
+        v = self.velocity >= other.velocity
         i = self.items >= other.items
         pose = self.pose is other.pose
-        return vv and vh and i and pose
+        return v and i and pose
 
     def copy(self):
         return SamusState(self.position.copy(),
-                self.vertical_speed, self.horizontal_speed, self.items.copy(), self.pose)
+                self.velocity.copy(), self.items.copy(), self.pose)
 
     def __hash__(self):
-        return hash((self.position, self.vertical_speed, self.horizontal_speed, self.items, self.pose))
+        return hash((self.position, self.velocity, self.items, self.pose))
 
     def __eq__(self, other):
         p = self.position == other.position
-        v = self.vertical_speed == other.vertical_speed
-        h = self.horizontal_speed == other.horizontal_speed
+        v = self.velocity == other.velocity
         i = self.items == other.items
         pose = self.pose is other.pose
-        return p and v and h and i and pose
+        return p and v and i and pose
 
     def horizontal_flip(self, level):
         position = self.position.flip_in_rect(level.rect, Coord(1, 0))
-        v = self.vertical_speed
-        h = -self.horizontal_speed
+        v = self.velocity.horizontal_flip()
         i = self.items.copy()
         p = self.pose
-        return SamusState(position, v, h, i, p)
+        return SamusState(position, v, i, p)
+
+    def collide(self, ds):
+        s = self.copy()
+        v = self.velocity
+        for d in ds:
+            # Special case - landing on the ground
+            if d == Coord(0, 1) and s.pose != SamusPose.MORPH:
+                vh = HVelocity(VType.RUN, 0)
+                vv = 0
+                v = Velocity(vv, vh)
+                s.v = v
+                s.pose = SamusPose.STAND
+            elif d == Coord(0, -1):
+                vv = 0
+                v = Velocity(s.velocity.vh.copy(), vv)
+                s.v = v
+            # Kill horizontal velocity
+            else:
+                vh = Velocity(VType.RUN, 0)
+                v = Velocity(vh, s.velocity.vv)
+                s.v = v
+        return s
+                
+
+
 
 class SearchState(object):
 
@@ -601,7 +617,7 @@ class SearchState(object):
         return current_state, n_changed, err
 
     def to_image(self):
-        i = Image.new("RGB", (self.level.size.x, self.level.size.y))
+        i = Image.new("RGB", (self.level.shape[0], self.level.shape[1]))
         pixels = i.load()
         # Set the pixels
         for xy in self.level.rect:
@@ -636,21 +652,22 @@ class SamusFunction(object):
     def apply(self, samus_state):
         v = self.vfunction.apply(samus_state.velocity)
         if v is None:
-            return None
+            return None, "Velocity application failed"
         if not samus_state.items >= self.required_items:
-            return None
+            return None, "Missing items"
         else:
-            items |= self.gain_items
+            items = samus_state.items | self.gain_items
         if not samus_state.pose == self.before_pose:
-            return None
+            return None, "Incorrect pose"
         else:
             pose = self.after_pose
         position = samus_state.position + self.after_position
-        return SamusState(position, v, items, pose)
+        return SamusState(position, v, items, pose), None
 
     def horizontal_flip(self):
         vnew = self.vfunction.horizontal_flip()
-        pnew = self.after_position.horizontal_flip()
+        # Flip the after position horizontally too
+        pnew = Coord(-self.after_position.x, self.after_position.y)
         return SamusFunction(vnew, self.required_items, self.gain_items, self.before_pose, self.after_pose, pnew)
 
     def compose(self, other):
@@ -671,18 +688,16 @@ class SamusFunction(object):
         return SamusFunction(vnew, r_i, g_i, b_p, a_p, pnew)
 
 class IntermediateState(object):
-    def __init__(self, samus_state, walls, airs):
-        self.samus = samus_state
+    def __init__(self, pos, walls, airs):
+        self.pos = pos
         self.walls = walls
         self.airs = airs
 
     def horizontal_flip(self):
-        p = Coord(-self.samus.pos.x, self.samus.pos.y)
-        samus = self.samus.copy()
-        samus.pos = p
+        pos = Coord(-self.pos.x, self.pos.y)
         walls = [Coord(-w.x, w.y) for w in self.walls]
         airs = [(Coord(-d.x, d.y), [Coord(-t.x, t.y) for t in tiles]) for d, tiles in self.airs]
-        return IntermediateState(samus, walls, airs)
+        return IntermediateState(pos, walls, airs)
 
     def shift(self, pos):
         s = self.samus_state.copy()
@@ -690,6 +705,39 @@ class IntermediateState(object):
         w = self.walls.copy()
         a = self.airs.copy()
         return IntermediateState(s,w,a)
+
+def level_check_and_make(level, origin, tile, tile_type, samus_state):
+    """Helper for LevelFunction apply()"""
+    #TODO: Use the samus_state to allow interpreting e.g. bomb blocks as air
+    l = get_tile(level, origin, tile)
+    if l is None:
+        return None
+    if l == tile_type or l == AbstractTile.UNKNOWN:
+        level[tile] = tile_type
+        return "ok"
+    else:
+        return None
+
+def level_check(level, origin, tile, tile_type, samus_state):
+    #TODO: use the samus state to allow interpretation!
+    l = get_tile(level, origin, tile)
+    if l is None:
+        return None
+    if l == tile_type:
+        return True
+    else:
+        return False
+
+def get_tile(level, origin, tile):
+    index = tile - origin
+    try:
+        # Do not allow negative indexing
+        if Coord(0,0) > index:
+            return None
+        return level[index]
+    # Do not allow oob indexing
+    except IndexError:
+        return None
 
 class LevelFunction(object):
 
@@ -699,51 +747,69 @@ class LevelFunction(object):
         self.state_list = state_list
 
     def apply(self, state):
-        #check liquid interval compatibility
+        # Convenience variables
+        sl = state.level
+        origin = sl.origin
+        # Check liquid interval compatibility
         # Get absolute interval from relative
-        l_i = self.liquid_interval.shift(state.samus.pos)
+        l_i = self.liquid_interval.shift(state.samus.position.y)
         # Cannot apply if liquid does not match
         if state.level.liquid_level not in l_i:
-            return None
+            return None, "Liquid level does not match!"
         if state.level.liquid_type != self.liquid_type:
-            return None
+            print(state.level.liquid_type)
+            print(self.liquid_type)
+            return None, "Liquid type does not match!"
         # Copy level state for editing
-        level = state.level.copy()
+        level_array = np.copy(state.level.level)
+        level_array.flags.writeable = True
         # Now envision each intermediate state sequentially
+        print([i_state.pos for i_state in self.state_list])
         for i_state in self.state_list:
             # Get the intermediate absolute samus state from relative
-            intermediate_samus = i_state.samus + state.samus.pos
+            #TODO: intermediate samus state may depend on function application
+            intermediate_samus = state.samus.copy()
+            intermediate_samus.position = i_state.pos + state.samus.position
+            print(intermediate_samus.position)
+            print(intermediate_samus.pose)
+            print(i_state.pos)
+            print(i_state.walls)
+            print(i_state.airs)
             # Check and create necessary airs
-            for t in samus_tiles(intermediate_samus.pos, intermediate_samus.pose):
-                ok = level.check_and_make(t, AbstractTile.AIR, intermediate_samus)
+            for t in samus_tiles(intermediate_samus.position, intermediate_samus.pose):
+                ok = level_check_and_make(level_array, origin, t, AbstractTile.AIR, intermediate_samus)
                 # Could not reconcile air to the tiles samus occupies
                 if ok is None:
-                    return None
+                    return None, "Samus occupies solid tiles at {}".format(t)
             # Check and create necessary solids
             for rel_t in i_state.walls:
-                g_t = rel_t + i_state.samus.pos
-                ok = level.check_and_make(g_t, AbstractTile.SOLID, intermediate_samus)
+                g_t = rel_t + intermediate_samus.position
+                ok = level_check_and_make(level_array, origin, g_t, AbstractTile.SOLID, intermediate_samus)
                 # Could not reconcile solid to the tiles indicated as walls
                 if ok is None:
-                    return None
+                    return None, "Required wall not present at {}".format(g_t)
             # Check nearby airs for partial application
             conflict_ds = []
             for d, rel_ts in i_state.airs:
                 conflict = False
                 # Collect partial application conflicts
                 for rel_t in rel_ts:
-                    g_t = rel_t + i_state.samus.pos
+                    g_t = rel_t + intermediate_samus.position
                     # There's a conflict if a required tile can be reconciled to solid
-                    if level.check(g_t, AbstractTile.SOLID, intermediate_samus):
+                    if level_check(level_array, origin, g_t, AbstractTile.SOLID, intermediate_samus):
                         conflict = True
                 if conflict:
                     conflict_ds.append(d)
             # If there was a conflict, partially apply the rule
             if len(conflict_ds) > 0:
-                samus = collide(intermediate_samus, ds)
-                return SearchState(intermediate_samus, ds)
+                print("Collision along {}".format(conflict_ds))
+                samus = intermediate_samus.collide(conflict_ds)
+                level = LevelState(sl.origin.copy(), level_array, sl.liquid_type, sl.liquid_level)
+                return SearchState(intermediate_samus, level), None
         # No conflict
-        return SearchState(intermediate_samus, level)
+        # Create the new level state
+        level = LevelState(sl.origin.copy(), level_array, sl.liquid_type, sl.liquid_level)
+        return SearchState(intermediate_samus, level), None
 
     def horizontal_flip(self):
         l = self.liquid_type
@@ -782,27 +848,33 @@ class LevelFunction(object):
 class StateFunction(object):
 
     def __init__(self, name, state_function, level_transition, cost):
+        self.name = name
         self.state_function = state_function
         self.level_transition = level_transition
         self.cost = cost
 
     #TODO
-    def apply(state):
-        new_s = self.state_function.apply(state.samus)
-        new_l = self.level_transition.apply(state.level)
+    def apply(self, state):
+        print("Applying Rule: {}".format(self.name))
+        new_s, s_err = self.state_function.apply(state.samus)
         # Cannot be applied
-        if new_s is None or new_l is None:
-            return None
+        if new_s is None:
+            return None, s_err
+        # Applying the level transition accesses the entire state
+        new_l, l_err = self.level_transition.apply(state)
+        # Cannot be applied
+        if new_l is None:
+            return None, l_err
         # If it was applied, get the level information and the samus state from the
         # level information and the (possibly partially applied) level transition
-        return new_l
+        return new_l, None
 
     def horizontal_flip(self):
         #TODO: do names even make sense? hf of hf is the same transition with a different name, for example...
         new_name = self.name + "_hf"
         new_sf = self.state_function.horizontal_flip()
         new_lt = self.level_transition.horizontal_flip()
-        return StateFunction(self, new_name, new_sf, new_lt, self.cost)
+        return StateFunction(new_name, new_sf, new_lt, self.cost)
     
     def compose(self, other):
         new_name = self.name + other.name

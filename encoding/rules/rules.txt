@@ -14,9 +14,30 @@ Rule: StepUp
 
 Rule: StepDown
 
+Rule: Morph
+Symmetric
+a_pose: Morph
+
+Rule: Unmorph
+Symmetric
+b_pose: Morph
+
+Rule: MorphStep
+a_pose: Morph
+b_pose: Morph
+
 Test: TestWalk
+a_vh: Run,0
+a_vv: 0
 
 Test: TestWalk_h
+a_vh: Run, 0
+a_vv: 0
+
+Test: TestMorph
+a_vh: Run, 0
+a_vv: 0
+items: MB
 
 #Chain: AAAA, Step
 #Cost_factor: 0.5
