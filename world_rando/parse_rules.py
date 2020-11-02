@@ -5,6 +5,9 @@ from sm_rando.world_rando.rules import *
 from sm_rando.world_rando.coord import Coord, Rect
 from sm_rando.data_types.item_set import ItemSet
 
+def reverse_dict(d):
+    return {v:k for k,v in d.items()}
+
 defaults = {
     "cost": "0",
     "items" : "",
@@ -63,6 +66,7 @@ def make_level(image):
             player_after_pos = xy
         level_array[(xy.x, xy.y)] = m
     #TODO: water stuff
+    # water level is between the lowest air and the highest water
     level = LevelState(Coord(0,0), level_array, LiquidType.NONE, float("inf"))
     return player_before_pos, player_after_pos, level
 
@@ -192,7 +196,7 @@ def normalize_list(coord_list, pos):
 
 def parse_statefunction(level_image, d):
     name = d["Rule"]
-    print("Parsing rule: {}".format(name))
+    #print("Parsing rule: {}".format(name))
     a_items, b_items = get_items(d)
     b_pos, a_pos, level = make_level(level_image)
     scan_direction = (a_pos - b_pos).sign()
@@ -226,7 +230,12 @@ def parse_statefunction(level_image, d):
                 airs_in_d = get_all(level, get_adj(xy, pose_final, direction), AbstractTile.AIR)
                 airs_in_d = normalize_list(airs_in_d, xy)
                 airs.append((direction, airs_in_d))
-            i_states.append(IntermediateState(xy, walls, airs))
+            # The position of this intermediate state relative to the origin
+            rel_pos = xy - b_pos
+            i_states.append(IntermediateState(rel_pos, walls, airs, None))
+    if len(i_states) > 0:
+        # Applies the function at the beginning of the rule
+        i_states[0].samusfunction = sfunction
     #TODO liquid stuff
     ltype = LiquidType.NONE
     li = Interval(-float("inf"), float("inf"))

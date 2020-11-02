@@ -16,10 +16,12 @@ Rule: StepDown
 
 Rule: Morph
 Symmetric
+items: MB
 a_pose: Morph
 
 Rule: Unmorph
 Symmetric
+items: MB
 b_pose: Morph
 
 Rule: MorphStep

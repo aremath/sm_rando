@@ -594,9 +594,6 @@ class SamusState(object):
                 s.v = v
         return s
                 
-
-
-
 class SearchState(object):
 
     def __init__(self, samus, level):
@@ -650,6 +647,7 @@ class SamusFunction(object):
         self.after_position = after_position
 
     def apply(self, samus_state):
+        #print(samus_state.position, samus_state.pose)
         v = self.vfunction.apply(samus_state.velocity)
         if v is None:
             return None, "Velocity application failed"
@@ -658,7 +656,7 @@ class SamusFunction(object):
         else:
             items = samus_state.items | self.gain_items
         if not samus_state.pose == self.before_pose:
-            return None, "Incorrect pose"
+            return None, "Incorrect pose, in {} but needed {}".format(samus_state.pose, self.before_pose)
         else:
             pose = self.after_pose
         position = samus_state.position + self.after_position
@@ -688,23 +686,28 @@ class SamusFunction(object):
         return SamusFunction(vnew, r_i, g_i, b_p, a_p, pnew)
 
 class IntermediateState(object):
-    def __init__(self, pos, walls, airs):
+    def __init__(self, pos, walls, airs, function):
         self.pos = pos
         self.walls = walls
         self.airs = airs
+        self.samusfunction = function
 
     def horizontal_flip(self):
         pos = Coord(-self.pos.x, self.pos.y)
         walls = [Coord(-w.x, w.y) for w in self.walls]
         airs = [(Coord(-d.x, d.y), [Coord(-t.x, t.y) for t in tiles]) for d, tiles in self.airs]
-        return IntermediateState(pos, walls, airs)
+        if self.samusfunction is None:
+            sf = None
+        else:
+            sf = self.samusfunction.horizontal_flip()
+        return IntermediateState(pos, walls, airs, sf)
 
     def shift(self, pos):
         s = self.samus_state.copy()
         s += pos
         w = self.walls.copy()
         a = self.airs.copy()
-        return IntermediateState(s,w,a)
+        return IntermediateState(s,w,a,self.samusfunction)
 
 def level_check_and_make(level, origin, tile, tile_type, samus_state):
     """Helper for LevelFunction apply()"""
@@ -764,17 +767,19 @@ class LevelFunction(object):
         level_array = np.copy(state.level.level)
         level_array.flags.writeable = True
         # Now envision each intermediate state sequentially
-        print([i_state.pos for i_state in self.state_list])
+        intermediate_samus = state.samus.copy()
         for i_state in self.state_list:
             # Get the intermediate absolute samus state from relative
-            #TODO: intermediate samus state may depend on function application
-            intermediate_samus = state.samus.copy()
+            # If it's a "key" state, use the built-in function to determine pose / velocity, etc.
+            if i_state.samusfunction is not None:
+                intermediate_samus, _ = i_state.samusfunction.apply(intermediate_samus)
+                assert intermediate_samus is not None
             intermediate_samus.position = i_state.pos + state.samus.position
-            print(intermediate_samus.position)
-            print(intermediate_samus.pose)
-            print(i_state.pos)
-            print(i_state.walls)
-            print(i_state.airs)
+            #print("pos:", intermediate_samus.position)
+            #print("pose:", intermediate_samus.pose)
+            #print("internal_pos:", i_state.pos)
+            #print("walls", i_state.walls)
+            #print("airs:", i_state.airs)
             # Check and create necessary airs
             for t in samus_tiles(intermediate_samus.position, intermediate_samus.pose):
                 ok = level_check_and_make(level_array, origin, t, AbstractTile.AIR, intermediate_samus)
@@ -802,7 +807,7 @@ class LevelFunction(object):
                     conflict_ds.append(d)
             # If there was a conflict, partially apply the rule
             if len(conflict_ds) > 0:
-                print("Collision along {}".format(conflict_ds))
+                #print("Collision along {}".format(conflict_ds))
                 samus = intermediate_samus.collide(conflict_ds)
                 level = LevelState(sl.origin.copy(), level_array, sl.liquid_type, sl.liquid_level)
                 return SearchState(intermediate_samus, level), None
@@ -855,7 +860,7 @@ class StateFunction(object):
 
     #TODO
     def apply(self, state):
-        print("Applying Rule: {}".format(self.name))
+        #print("Applying Rule: {}".format(self.name))
         new_s, s_err = self.state_function.apply(state.samus)
         # Cannot be applied
         if new_s is None:
