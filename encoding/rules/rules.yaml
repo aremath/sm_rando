@@ -1,0 +1,42 @@
+Rules:
+    - Step:
+
+    - StepUp:
+
+    - StepDown:
+
+    - Morph:
+        Symmetric:
+        items: MB
+        a_pose: Morph
+
+    - Unmorph:
+        Symmetric:
+        items: MB
+        b_pose: Morph
+
+    - MorphStep:
+        a_pose: Morph
+        b_pose: Morph
+        
+Chains:
+
+    # - FOO:
+    #    - Step
+    #    - StepUp
+    #    - StepDown
+    #    - Step
+
+Tests:
+    - TestWalk:
+        a_vh: Run, 0
+        a_vv: 0
+
+    - TestWalk_h:
+        a_vh: Run, 0
+        a_vv: 0
+
+    - TestMorph:
+        a_vh: Run, 0
+        a_vv: 0
+        items: MB

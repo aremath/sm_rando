@@ -1,6 +1,7 @@
 from pathlib import Path
 from PIL import Image
 import numpy as np
+import yaml
 from sm_rando.world_rando.rules import *
 from sm_rando.world_rando.coord import Coord, Rect
 from sm_rando.data_types.item_set import ItemSet
@@ -70,16 +71,8 @@ def make_level(image):
     level = LevelState(Coord(0,0), level_array, LiquidType.NONE, float("inf"))
     return player_before_pos, player_after_pos, level
 
-def get_rule_dict(rule_lines):
-    d = {}
-    for line in rule_lines:
-        # Special flags
-        if line.strip() == "Symmetric":
-            d["Symmetric"] = ""
-        else:
-            l,r = line.split(":")
-            d[l.strip()] = r.strip()
-    # Add defaults
+def add_defaults(rule_dict):
+    d = {k:v for k,v in rule_dict.items()}
     for k,v in defaults.items():
         if k not in d:
             d[k] = v
@@ -194,8 +187,7 @@ def get_all(level, tile_list, tile_type):
 def normalize_list(coord_list, pos):
     return [l - pos for l in coord_list]
 
-def parse_statefunction(level_image, d):
-    name = d["Rule"]
+def parse_statefunction(name, level_image, d):
     #print("Parsing rule: {}".format(name))
     a_items, b_items = get_items(d)
     b_pos, a_pos, level = make_level(level_image)
@@ -269,7 +261,6 @@ def get_v(d, t):
     return Velocity(int(d[t + "_vv"]), vh)
 
 def make_test_state(level_image, d):
-    rule_name = d["Test"]
     b_pos, a_pos, level = make_level(level_image)
     assert b_pos is not None
     assert a_pos is not None
@@ -282,47 +273,40 @@ def make_test_state(level_image, d):
     final_state = a_state
     return initial_state, final_state
 
-def parse_rules(rules_file):
+def parse_rules_yaml(rules_file):
     # Path to directory where the rules.txt lives
     rules_path = Path(rules_file).parents[0]
     f = open(rules_file, "r")
-    all_rule_lines = []
-    current_rule_lines = []
-    for line in f.readlines():
-        line = line.strip()
-        # Blank Line means new rule
-        if len(line) == 0:
-            all_rule_lines.append(current_rule_lines)
-            current_rule_lines = []
-        elif line[0] == "#":
-            continue
-        else:
-            current_rule_lines.append(line)
-    # Append the last room
-    all_rule_lines.append(current_rule_lines)
-    #print(all_rule_lines)
+    rules_yaml = yaml.load(f)
     rules = {}
     tests = {}
-    for rule_lines in all_rule_lines:
-        if len(rule_lines) >= 1:
-            l,r = rule_lines[0].split(":")
-            d = get_rule_dict(rule_lines)
-            rule_name = d[l]
+    if rules_yaml["Rules"] is not None:
+        for r_dict in rules_yaml["Rules"]:
+            rule_name = list(r_dict.keys())[0]
+            print("Rule: {}".format(rule_name))
+            rule_definition = r_dict[rule_name]
+            if rule_definition is None:
+                rule_definition = {}
+            r_dict = add_defaults(rule_definition)
             pic_path = rules_path / (rule_name + ".png")
-            if l == "Chain":
-                #print("Chain: {}".format(rule_name))
-                rule = make_rule_chain(d, rules)
-                rules[rule.name] = rule
-            else:
-                level_image = Image.open(pic_path)
-                if l == "Rule":
-                    #print("Rule: {}".format(rule_name))
-                    made_rules = parse_statefunction(level_image, d)
-                    for r in made_rules:
-                        rules[r.name] = r
-                elif l == "Test":
-                    #print("Test: {}".format(rule_name))
-                    test = make_test_state(level_image, d)
-                    tests[rule_name] = test
-    f.close()
+            level_image = Image.open(pic_path)
+            made_rules = parse_statefunction(rule_name, level_image, r_dict)
+            for r in made_rules:
+                rules[r.name] = r
+    if rules_yaml["Chains"] is not None:
+        for c_dict in rules_yaml["Chains"]:
+            rule = make_rule_chain(c_dict, rules)
+            rules[rule.name] = rule
+    if rules_yaml["Tests"] is not None:
+        for t_dict in rules_yaml["Tests"]:
+            test_name = list(t_dict.keys())[0]
+            print("Test: {}".format(test_name))
+            test_definition = t_dict[test_name]
+            if test_definition is None:
+                test_definition = {}
+            t_dict = add_defaults(test_definition)
+            pic_path = rules_path / (test_name + ".png")
+            level_image = Image.open(pic_path)
+            test = make_test_state(level_image, t_dict)
+            tests[test_name] = test
     return rules, tests

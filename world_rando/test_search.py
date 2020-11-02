@@ -8,6 +8,7 @@ def run_test(rules_folder, rules, test_name, tests):
     i,f = tests[test_name]
     offers, finished, final_state = search.rule_search(i, rules.values(), f)
     if final_state is not None:
+        print("Final state found!")
         out_image = final_state.to_image()
         out_path = rules_folder / (test_name + "_out.png")
         out_image.save(out_path)
@@ -19,8 +20,8 @@ def run_all_tests(rules_folder, rules, tests):
         run_test(rules_folder, rules, test_name, tests)
 
 if __name__ == "__main__":
-    rules_file = Path("../encoding/rules/rules.txt")
+    rules_file = Path("../encoding/rules/rules.yaml")
     rules_folder = rules_file.parents[0]
-    rules, tests = parse_rules.parse_rules(rules_file)
+    rules, tests = parse_rules.parse_rules_yaml(rules_file)
     #run_all_tests(rules_folder, rules, tests)
     run_test(rules_folder, rules, "TestMorph", tests)
