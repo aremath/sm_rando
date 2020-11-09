@@ -64,6 +64,10 @@ class Interval(object):
         """ Horizontally flip """
         return Interval(-self.right, -self.left)
 
+    @property
+    def size(self):
+        return self.right - self.left
+
     def shift(self, n):
         return Interval(self.left + n, self.right + n)
 
@@ -267,6 +271,7 @@ def combine_vs(v1, v2, b1, b2):
         b = VBehavior.LOSE
     return v, b
 
+#TODO: max speed
 class HVelocity(object):
     
     def __init__(self, vtype, value):
@@ -341,50 +346,6 @@ pose_hitboxes = {
     SamusPose.SPIN: [Coord(0,0), Coord(0,1)]
     }
 
-def apply_transition(before_state, transition):
-    rule_before = transition.requirement
-    rule_state = transition.end_state
-    if not before_state.samus.meets(rule_before):
-        return None, 0, "Samus does not meet rule prerequisites"
-    # Determine the global location of frame2 using the local position of samus within frame2
-    frame2_position = before_state.samus.position - rule_before.position
-    #TODO: some way to know if the rule was partially applied
-    new_state, n_changed, err = before_state.level.add(before_state, rule_state, frame2_position)
-    # Can fail if the level additions contradict existing terrain
-    if new_state is None:
-        return None, 0, err
-    return new_state, n_changed, ""
-
-# Iterable over the relative states samus moves through to execute the rule
-# x outer, y inner
-def states_in_order(before_state, rule_state, scan_direction):
-    assert rule_state.level.origin == Coord(0,0)
-    for xy in rule_state.level.rect.iter_direction(scan_direction):
-        # Only actual tiles should be copied
-        if rule_state.level[xy] != AbstractTile.UNKNOWN:
-            vertical_speed = rule_state.samus.position.y - xy.y
-            # Copy horizontal speed and pose from the rule state
-            sstate = rule_state.samus.copy()
-            sstate.position = xy
-            sstate.vertical_speed = vertical_speed
-            s_t = samus_tiles(sstate.pos, sstate.pose)
-            # If the tiles are not all air tiles, samus cannot fit
-            # Determine if the rule puts samus at the given position
-            samus_pass = True
-            for s in s_t:
-                if rule_state.level.in_bounds(s):
-                    tile = rule_state.level[s]
-                    # No air means that samus does not pass through this tile
-                    if tile != AbstractTile.AIR:
-                        samus_pass = False
-                # Out of bounds means that samus does not pass through this tile
-                else:
-                    samus_pass = False
-            if samus_pass:
-                yield xy, sstate
-            else:
-                yield xy, None
-
 def get_adj(pos, pose, direction):
     s_t = samus_tiles(pos, pose)
     h_t = [t + direction for t in s_t if t + direction not in s_t]
@@ -416,56 +377,6 @@ def check_collision(collide_tiles, new_origin, new_level, position):
 
 def samus_tiles(pos, pose):
     return [pos + t for t in pose_hitboxes[pose]]
-
-#TODO: handle negative numbers!
-def update(new_origin, new_level, before_state, rule_state, position):
-    n_changed = 0
-    # The global position of the ending state for samus
-    s_new = position + rule_state.samus.position
-    # The direction of samus' movement during the rule update
-    scan_direction = (s_new - before_state.samus.position).sign()
-    samus_state = before_state
-    for tile, s in states_in_order(before_state, rule_state, scan_direction):
-        # First, check the tile for conflicts and copy the tile
-        global_tile = tile + position
-        # The tile that will actually be written
-        write_tile = simplify(rule_state.level[tile])
-        # If the existing tile can be treated as a the required tile, replace it
-        if new_level[global_tile - new_origin] == AbstractTile.UNKNOWN or new_level[global_tile - new_origin] == write_tile:
-            if new_level[global_tile - new_origin] == AbstractTile.UNKNOWN:
-                n_changed += 1
-            new_level[global_tile - new_origin] = write_tile
-        # Otherwise, there's a tile conflict
-        else:
-            #print("Tile conflict")
-            return None, 0, "Tile conflict at {}".format(global_tile)
-        # If samus travels through this square while executing the rule,
-        # check for early stopping.
-        if s is not None:
-            global_s = s.copy()
-            s.position += position
-            # Get the horizontally relevant squares
-            # A square is relevant if it is horizontally adjacent to the
-            # state and is not blank in the rule
-            # Relevant squares must be checked for collisions for early failure
-            h = get_horizontal_adj(s, rule_state, scan_direction)
-            # Get the vertically relevant squares
-            v = get_vertical_adj(s, rule_state, scan_direction)
-            h_collide = check_collision(h, new_origin, new_level, position)
-            v_collide = check_collision(v, new_origin, new_level, position)
-            # Abort early if samus collides with something
-            #TODO: order of collision matters / both collision?
-            if h_collide:
-                #print("Horizontal Collision")
-                global_s.horizontal_speed = 0
-                return global_s, n_changed, ""
-            elif v_collide:
-                #print("Vertical Collision")
-                global_s.vertical_speed = 0
-                return global_s, n_changed, ""
-    end_state = rule_state.samus.copy()
-    end_state.position += position
-    return end_state, n_changed, ""
 
 class LevelState(object):
     """
@@ -599,19 +510,6 @@ class SearchState(object):
     def __init__(self, samus, level):
         self.samus = samus
         self.level = level
-
-    # Apply a rule to reach a new search state
-    def apply_rule(self, rule):
-        print("Considering: {}".format(rule.name))
-        current_state = self
-        n_changed = 0
-        for transition in rule.transitions:
-            result = apply_transition(current_state, transition)
-            if result is None:
-                return None, 0, err
-            current_state, n, err = result
-            n_changed += n
-        return current_state, n_changed, err
 
     def to_image(self):
         i = Image.new("RGB", (self.level.shape[0], self.level.shape[1]))
@@ -759,7 +657,9 @@ class LevelFunction(object):
         # Cannot apply if liquid does not match
         if state.level.liquid_level not in l_i:
             return None, "Liquid level does not match!"
-        if state.level.liquid_type != self.liquid_type:
+        # If the liquidtype is none, that means that ANY liquidtype is acceptable
+        # within the designated interval
+        if self.liquid_type is not LiquidType.NONE and state.level.liquid_type != self.liquid_type:
             print(state.level.liquid_type)
             print(self.liquid_type)
             return None, "Liquid type does not match!"

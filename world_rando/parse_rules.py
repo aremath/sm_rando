@@ -39,37 +39,76 @@ vbehave_str = {
     "Store": VBehavior.STORE
     }
 
-color_to_abstract = {
-    (255, 255, 255) : AbstractTile.UNKNOWN,
-    (255, 0, 0) : AbstractTile.AIR,
-    (0, 255, 0) : AbstractTile.AIR,
-    (251, 242, 54) : AbstractTile.AIR,
-    (0, 0, 0) : AbstractTile.SOLID,
-    (119, 33, 105) : AbstractTile.GRAPPLE,
-    #(48, 185, 211) : AbstractTile.WATER,
-    #TODO: samus might be underwater / ambiguous
-    }
-
+unknown_color = (255, 255, 255)
 player_before_color = (255, 0, 0)
 player_after_color = (0, 255, 0)
+air_color = (251, 242, 54)
+water_color = (48, 185, 211)
+solid_color = (0, 0, 0)
+grapple_color = (119, 33, 105)
+water_air_color = (30, 211, 106)
+# Indicate water/air ambiguity AND player presence
+player_before_water_air_color = (198, 0, 0)
+player_before_water_color = (145, 0, 0)
+player_after_water_air_color = (0, 198, 0)
+player_after_water_color = (0, 145, 0)
+
+color_to_abstract = {
+    unknown_color : AbstractTile.UNKNOWN,
+    player_before_color : AbstractTile.AIR,
+    player_after_color : AbstractTile.AIR,
+    air_color : AbstractTile.AIR,
+    solid_color : AbstractTile.SOLID,
+    grapple_color : AbstractTile.GRAPPLE,
+    # Water
+    water_color : AbstractTile.AIR,
+    # Water / air ambiguous
+    water_air_color : AbstractTile.AIR,
+    #TODO: other liquids
+    player_before_water_air_color : AbstractTile.AIR,
+    player_before_water_color : AbstractTile.AIR,
+    player_after_water_air_color : AbstractTile.AIR,
+    player_after_water_color : AbstractTile.AIR
+    }
+
+player_before_colors = [player_before_color, player_before_water_air_color, player_before_water_color]
+player_after_colors = [player_after_color, player_after_water_air_color, player_after_water_color]
+
+air_colors = [air_color, player_before_color, player_after_color]
+# Ambiguous
+water_air_colors = [water_air_color, player_before_water_air_color, player_after_water_air_color]
+water_colors = [water_color, player_before_water_color, player_after_water_color]
+#TODO: Other liquids
+
 
 # Parse the level image to get the level definition for a rule
 def make_level(image):
     level_array = np.zeros(image.size, dtype="int")
     player_before_pos = None
     player_after_pos = None
+    lowest_air = -float("inf")
+    highest_liquid = float("inf")
+    liquid_type = LiquidType.NONE
     for xy in Rect(Coord(0,0), Coord(image.size[0], image.size[1])):
         p = image.getpixel((xy.x, xy.y))
         m = color_to_abstract[p]
-        if p == player_before_color and player_before_pos is None:
+        if p in player_before_colors and player_before_pos is None:
             player_before_pos = xy
-        if p == player_after_color and player_after_pos is None:
+        if p in player_after_colors and player_after_pos is None:
             player_after_pos = xy
+        if p in air_colors and xy.y > lowest_air:
+            lowest_air = xy.y
+        if p in water_colors and xy.y < highest_liquid:
+            liquid_type = LiquidType.WATER
+            highest_liquid = xy.y
         level_array[(xy.x, xy.y)] = m
-    #TODO: water stuff
-    # water level is between the lowest air and the highest water
-    level = LevelState(Coord(0,0), level_array, LiquidType.NONE, float("inf"))
-    return player_before_pos, player_after_pos, level
+    #TODO: other liquids
+    # Water level has to be /strictly/ below the lowest air,
+    # and at least as high as the highest liquid
+    liquid_interval = Interval(lowest_air + 1, highest_liquid)
+    # Put the liquid as low as possible
+    level = LevelState(Coord(0,0), level_array, LiquidType.WATER, highest_liquid)
+    return player_before_pos, player_after_pos, level, liquid_interval, liquid_type
 
 def add_defaults(rule_dict):
     d = {k:v for k,v in rule_dict.items()}
@@ -190,7 +229,7 @@ def normalize_list(coord_list, pos):
 def parse_statefunction(name, level_image, d):
     #print("Parsing rule: {}".format(name))
     a_items, b_items = get_items(d)
-    b_pos, a_pos, level = make_level(level_image)
+    b_pos, a_pos, level, liquid_interval, liquid_type = make_level(level_image)
     scan_direction = (a_pos - b_pos).sign()
     r = Rect(Coord(0,0), Coord(level.shape[0], level.shape[1]))
     vf = parse_vfunction(d)
@@ -228,10 +267,7 @@ def parse_statefunction(name, level_image, d):
     if len(i_states) > 0:
         # Applies the function at the beginning of the rule
         i_states[0].samusfunction = sfunction
-    #TODO liquid stuff
-    ltype = LiquidType.NONE
-    li = Interval(-float("inf"), float("inf"))
-    lfunction = LevelFunction(ltype, li, i_states)
+    lfunction = LevelFunction(liquid_type, liquid_interval, i_states)
     cost = int(d["cost"])
     s = StateFunction(name, sfunction, lfunction, cost)
     if "Symmetric" not in d:
@@ -261,7 +297,10 @@ def get_v(d, t):
     return Velocity(int(d[t + "_vv"]), vh)
 
 def make_test_state(level_image, d):
-    b_pos, a_pos, level = make_level(level_image)
+    b_pos, a_pos, level, liquid_interval, _ = make_level(level_image)
+    s = liquid_interval.size
+    # Cannot have test levels with ambiguous water levels
+    assert (s == 0 or s == float("inf"))
     assert b_pos is not None
     assert a_pos is not None
     b_items, a_items = get_items(d)
