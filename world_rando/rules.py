@@ -591,6 +591,13 @@ class SamusFunction(object):
         r_i = self.required_items | other.required_items
         # Gain the items from both
         # Compute the new positions of the other items based on where other is applied relative to self
+        #TODO: this is the "strict" version, where items that you pick up during a long rule
+        # cannot be used later in the rule.
+        # It is also possible to have a "loose" version, where composition picks an instantiation of the item
+        # Then allows use of that item later, but then stores a constraint list for which instantiation was chosen
+        # During application, both the positions of items and the explicit instantiation (if any) would be checked.
+        # This roughly corresponds to the composition semantics for having a different rule for each item that would
+        # be picked up.
         other_items_rel = [o + self.after_position for o in other.gain_items]
         g_i = self.gain_items + other_items_rel
         # Incompatible if the poses don't align
