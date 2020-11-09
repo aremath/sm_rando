@@ -378,18 +378,24 @@ def check_collision(collide_tiles, new_origin, new_level, position):
 def samus_tiles(pos, pose):
     return [pos + t for t in pose_hitboxes[pose]]
 
+def copy_items(items_list):
+    return [(c.copy(), i.copy()) for c,i in self.items]
+
 class LevelState(object):
     """
     Composable structure that keeps track of level data.
     """
 
-    def __init__(self, origin, level, liquid_type, liquid_level):
+    def __init__(self, origin, level, liquid_type, liquid_level, items):
+        # Items is [(Coord, ItemSet)]
         self.origin = origin
         self.level = level
         # Set the writeable false flag in order to allow hashing
         self.level.flags.writeable = False
         self.liquid_type = liquid_type
         self.liquid_level = liquid_level
+        #TODO: does items need to be copied?
+        self.items = items
 
     @property
     def shape(self):
@@ -407,7 +413,7 @@ class LevelState(object):
 
     def copy(self):
         l = np.copy(self.level)
-        return LevelState(self.origin.copy(), l, self.liquid_type, self.liquid_level)
+        return LevelState(self.origin.copy(), l, self.liquid_type, self.liquid_level, self.items)
 
     def __hash__(self):
         return hash((self.origin, bytes(self.level.data), self.liquid_type, self.liquid_level))
@@ -438,7 +444,9 @@ class LevelState(object):
         o = self.origin.copy()
         d = np.copy(self.level)
         d = np.flip(d, 0)
-        return LevelState(o, d, self.liquid_type, self.liquid_level)
+        #TODO: self.items must be flipped
+        assert False
+        return LevelState(o, d, self.liquid_type, self.liquid_level, self.items)
 
 class SamusState(object):
 
@@ -544,15 +552,22 @@ class SamusFunction(object):
         self.after_pose = after_pose
         self.after_position = after_position
 
-    def apply(self, samus_state):
+    def apply(self, samus_state, item_locations):
+        # First, check if samus has the items to complete the rule
+        if not samus_state.items >= self.required_items:
+            return None, "Missing items"
+        # Then, check that items that are picked up during the rule actually exist:
+        items = samus_state.items.copy()
+        for g in self.gain_items:
+            rel_position = g + samus_state.position
+            if rel_position not in item_locations:
+                return None, "Required item does not exist"
+            # Add the item picked up from that location
+            items |= item_locations[rel_position]
         #print(samus_state.position, samus_state.pose)
         v = self.vfunction.apply(samus_state.velocity)
         if v is None:
             return None, "Velocity application failed"
-        if not samus_state.items >= self.required_items:
-            return None, "Missing items"
-        else:
-            items = samus_state.items | self.gain_items
         if not samus_state.pose == self.before_pose:
             return None, "Incorrect pose, in {} but needed {}".format(samus_state.pose, self.before_pose)
         else:
@@ -564,7 +579,9 @@ class SamusFunction(object):
         vnew = self.vfunction.horizontal_flip()
         # Flip the after position horizontally too
         pnew = Coord(-self.after_position.x, self.after_position.y)
-        return SamusFunction(vnew, self.required_items, self.gain_items, self.before_pose, self.after_pose, pnew)
+        # Flip the set of items obtained
+        new_items = [Coord(-g.x, g.y) for g in self.gain_items]
+        return SamusFunction(vnew, self.required_items, new_items, self.before_pose, self.after_pose, pnew)
 
     def compose(self, other):
         vnew = self.vfunction.compose(other.vfunction)
@@ -573,7 +590,9 @@ class SamusFunction(object):
         # Need the items for both
         r_i = self.required_items | other.required_items
         # Gain the items from both
-        g_i = self.gain_items | other.gain_items
+        # Compute the new positions of the other items based on where other is applied relative to self
+        other_items_rel = [o + self.after_position for o in other.gain_items]
+        g_i = self.gain_items + other_items_rel
         # Incompatible if the poses don't align
         if not self.after_pose == other.before_pose:
             return None
@@ -672,7 +691,7 @@ class LevelFunction(object):
             # Get the intermediate absolute samus state from relative
             # If it's a "key" state, use the built-in function to determine pose / velocity, etc.
             if i_state.samusfunction is not None:
-                intermediate_samus, _ = i_state.samusfunction.apply(intermediate_samus)
+                intermediate_samus, _ = i_state.samusfunction.apply(intermediate_samus, sl.items)
                 assert intermediate_samus is not None
             intermediate_samus.position = i_state.pos + state.samus.position
             #print("pos:", intermediate_samus.position)
@@ -709,11 +728,11 @@ class LevelFunction(object):
             if len(conflict_ds) > 0:
                 #print("Collision along {}".format(conflict_ds))
                 samus = intermediate_samus.collide(conflict_ds)
-                level = LevelState(sl.origin.copy(), level_array, sl.liquid_type, sl.liquid_level)
+                level = LevelState(sl.origin.copy(), level_array, sl.liquid_type, sl.liquid_level, sl.items)
                 return SearchState(intermediate_samus, level), None
         # No conflict
         # Create the new level state
-        level = LevelState(sl.origin.copy(), level_array, sl.liquid_type, sl.liquid_level)
+        level = LevelState(sl.origin.copy(), level_array, sl.liquid_type, sl.liquid_level, sl.items)
         return SearchState(intermediate_samus, level), None
 
     def horizontal_flip(self):
@@ -761,7 +780,7 @@ class StateFunction(object):
     #TODO
     def apply(self, state):
         #print("Applying Rule: {}".format(self.name))
-        new_s, s_err = self.state_function.apply(state.samus)
+        new_s, s_err = self.state_function.apply(state.samus, state.level.items)
         # Cannot be applied
         if new_s is None:
             return None, s_err

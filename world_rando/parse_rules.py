@@ -13,6 +13,7 @@ defaults = {
     "cost": "0",
     "items" : "",
     "obtain" : "",
+    "item_exist" : "",
     "b_pose": "Stand",
     "b_vv": "0",
     "b_vh": "Run,0",
@@ -52,6 +53,7 @@ player_before_water_air_color = (198, 0, 0)
 player_before_water_color = (145, 0, 0)
 player_after_water_air_color = (0, 198, 0)
 player_after_water_color = (0, 145, 0)
+item_color = (255, 22, 169)
 
 color_to_abstract = {
     unknown_color : AbstractTile.UNKNOWN,
@@ -68,7 +70,8 @@ color_to_abstract = {
     player_before_water_air_color : AbstractTile.AIR,
     player_before_water_color : AbstractTile.AIR,
     player_after_water_air_color : AbstractTile.AIR,
-    player_after_water_color : AbstractTile.AIR
+    player_after_water_color : AbstractTile.AIR,
+    item_color : AbstractTile.AIR
     }
 
 player_before_colors = [player_before_color, player_before_water_air_color, player_before_water_color]
@@ -89,6 +92,7 @@ def make_level(image):
     lowest_air = -float("inf")
     highest_liquid = float("inf")
     liquid_type = LiquidType.NONE
+    item_locations = []
     for xy in Rect(Coord(0,0), Coord(image.size[0], image.size[1])):
         p = image.getpixel((xy.x, xy.y))
         m = color_to_abstract[p]
@@ -101,14 +105,18 @@ def make_level(image):
         if p in water_colors and xy.y < highest_liquid:
             liquid_type = LiquidType.WATER
             highest_liquid = xy.y
+        if p == item_color:
+            item_locations.append(xy)
         level_array[(xy.x, xy.y)] = m
     #TODO: other liquids
     # Water level has to be /strictly/ below the lowest air,
     # and at least as high as the highest liquid
     liquid_interval = Interval(lowest_air + 1, highest_liquid)
     # Put the liquid as low as possible
-    level = LevelState(Coord(0,0), level_array, LiquidType.WATER, highest_liquid)
-    return player_before_pos, player_after_pos, level, liquid_interval, liquid_type
+    level = LevelState(Coord(0,0), level_array, LiquidType.WATER, highest_liquid, [])
+    if player_after_pos is None:
+        player_after_pos = player_before_pos.copy()
+    return player_before_pos, player_after_pos, level, liquid_interval, liquid_type, item_locations
 
 def add_defaults(rule_dict):
     d = {k:v for k,v in rule_dict.items()}
@@ -187,27 +195,18 @@ def parse_items(items_str):
     s = ItemSet()
     for i in items:
         if len(i) > 0:
-            s.add(i)
+            s = s.add(i)
     return s
 
-def make_rule(level_image, rule_lines):
-    rule_name = d["Rule"]
-    b_pos, a_pos, level = make_level(level_image)
-    assert b_pos is not None
-    assert a_pos is not None
-    items = parse_items(d["items"])
-    b_vv = get_b_velocity(d["b_vv"])
-    b_vh = get_b_velocity(d["b_vh"])
-    b_state = SamusState(b_pos, int(d["b_vv"]), int(d["b_vh"]), items, pose_str[d["b_pose"]])
-    a_state = SamusState(a_pos, int(d["a_vv"]), int(d["a_vh"]), items, pose_str[d["a_pose"]])
-    final_state = SearchState(a_state, level)
-    t = Transition(b_state, final_state)
-    rule =  Rule(d["Rule"], [t], int(d["cost"]))
-    # Also include the horizontal flip
-    if "Symmetric" not in d:
-        return [rule, rule.horizontal_flip()]
-    else:
-        return [rule]
+def parse_items_singleton(items_str):
+    items = [i.strip() for i in items_str.split(",")]
+    item_list = []
+    for i in items:
+        if i != "":
+            s = ItemSet()
+            s = s.add(i)
+            item_list.append(s)
+    return item_list
 
 def index_level(level, coord):
     """ Bounds-checking: out-of-bounds is unknown """
@@ -228,8 +227,7 @@ def normalize_list(coord_list, pos):
 
 def parse_statefunction(name, level_image, d):
     #print("Parsing rule: {}".format(name))
-    a_items, b_items = get_items(d)
-    b_pos, a_pos, level, liquid_interval, liquid_type = make_level(level_image)
+    b_pos, a_pos, level, liquid_interval, liquid_type, item_locations = make_level(level_image)
     scan_direction = (a_pos - b_pos).sign()
     r = Rect(Coord(0,0), Coord(level.shape[0], level.shape[1]))
     vf = parse_vfunction(d)
@@ -238,8 +236,7 @@ def parse_statefunction(name, level_image, d):
     pose_initial = pose_str[d["b_pose"]]
     pose_final = pose_str[d["a_pose"]]
     items_initial = parse_items(d["items"])
-    items_obtained = parse_items(d["obtain"])
-    sfunction = SamusFunction(vf, items_initial, items_obtained, pose_initial, pose_final, a_pos)
+    sfunction = SamusFunction(vf, items_initial, item_locations, pose_initial, pose_final, a_pos)
     #TODO: certain (i.e. the first of each rule) IntermediateStates hold the sfunction so that samus' state
     # can be inferred within the rule
     #TODO: verify by checking that the inferred end state is the same as the end state achieved through function
@@ -297,13 +294,17 @@ def get_v(d, t):
     return Velocity(int(d[t + "_vv"]), vh)
 
 def make_test_state(level_image, d):
-    b_pos, a_pos, level, liquid_interval, _ = make_level(level_image)
+    b_pos, a_pos, level, liquid_interval, _, item_locations = make_level(level_image)
     s = liquid_interval.size
     # Cannot have test levels with ambiguous water levels
     assert (s == 0 or s == float("inf"))
     assert b_pos is not None
     assert a_pos is not None
     b_items, a_items = get_items(d)
+    e_items = parse_items_singleton(d["item_exist"])
+    # Coord -> ItemSet which defines what items are at what locations
+    item_positions = {k: v for k,v in zip(item_locations, e_items)}
+    level.items = item_positions
     b_v = get_v(d, "b")
     a_v = get_v(d, "a")
     b_state = SamusState(b_pos, b_v, b_items, pose_str[d["b_pose"]])

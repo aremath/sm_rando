@@ -19,6 +19,8 @@ Rules:
         a_pose: Morph
         b_pose: Morph
         
+    - GetItemGround:
+        
 Chains:
 
     # - FOO:
@@ -40,3 +42,9 @@ Tests:
         a_vh: Run, 0
         a_vv: 0
         items: MB
+        
+    - TestGrabMorph:
+        a_vh: Run, 0
+        a_vv: 0
+        obtain: MB
+        item_exist: MB
