@@ -2,31 +2,61 @@ from PIL import Image
 import numpy as np
 from enum import IntEnum
 from sm_rando.world_rando.coord import Coord, Rect
+from sm_rando.data_types.item_set import ItemSet
 
+Infinity = float("inf")
+
+# Part 1: Enumerated types
 class AbstractTile(IntEnum):
     UNKNOWN = 0
     AIR = 1
     SOLID = 2
     GRAPPLE = 3
+    BLOCK_BOMB = 4
+    BLOCK_MISSILE = 5
+    BLOCK_SUPER = 6
+    BLOCK_POWER_BOMB = 7
+    BLOCK_GRAPPLE = 8
+    BLOCK_SPEED = 9
+    BLOCK_CRUMBLE = 10
+
+# Translation between tile colors and types of tile
+unknown_color = (255, 255, 255)
+player_before_color = (255, 0, 0)
+player_after_color = (0, 255, 0)
+air_color = (251, 242, 54)
+water_color = (48, 185, 211)
+solid_color = (0, 0, 0)
+grapple_color = (119, 33, 105)
+water_air_color = (30, 211, 106)
+# Indicate water/air ambiguity AND player presence
+player_before_water_air_color = (198, 0, 0)
+player_before_water_color = (145, 0, 0)
+player_after_water_air_color = (0, 198, 0)
+player_after_water_color = (0, 145, 0)
+item_color = (255, 22, 169)
+# Destructible blocks
+block_bomb_color = (141, 73, 154)
+block_missile_color = (154, 73, 73)
+block_power_bomb_color = (154, 150, 73)
+block_super_color = (73, 154, 82)
+block_grapple_color = (73, 150, 154)
+block_speed_color = (73, 90, 154)
+block_crumble_color = (107, 154, 73)
 
 abstract_to_color = {
-    AbstractTile.UNKNOWN : (255, 255, 255),
-    AbstractTile.AIR : (251, 242, 54),
-    AbstractTile.SOLID : (0, 0, 0),
-    AbstractTile.GRAPPLE : (119, 33, 105),
+    AbstractTile.UNKNOWN : unknown_color,
+    AbstractTile.AIR : air_color,
+    AbstractTile.SOLID : solid_color,
+    AbstractTile.GRAPPLE : grapple_color,
+    AbstractTile.BLOCK_BOMB : block_bomb_color,
+    AbstractTile.BLOCK_MISSILE : block_missile_color,
+    AbstractTile.BLOCK_SUPER : block_super_color,
+    AbstractTile.BLOCK_POWER_BOMB : block_power_bomb_color,
+    AbstractTile.BLOCK_GRAPPLE : block_grapple_color,
+    AbstractTile.BLOCK_SPEED : block_speed_color,
+    AbstractTile.BLOCK_CRUMBLE : block_crumble_color,
     }
-
-def simplify(tile):
-    if tile == AbstractTile.AIR_VERT_STOP:
-        return AbstractTile.AIR
-    elif tile == AbstractTile.AIR_HORIZ_STOP:
-        return AbstractTile.AIR
-    elif tile == AbstractTile.WATER_VERT_STOP:
-        return AbstractTile.WATER
-    elif tile == AbstractTile.WATER_HORIZ_STOP:
-        return AbstractTile.WATER
-    else:
-        return tile
 
 class SamusPose(IntEnum):
     STAND = 0
@@ -45,6 +75,13 @@ class VType(IntEnum):
     RUN = 1
     SPEED = 2
     WATER = 3
+
+# The number of tiles to run when you reach maximum horizontal velocity
+velocity_maxima = {
+    VType.RUN: 4,
+    VType.SPEED: 30,
+    VType.WATER: 5
+        }
 
 class VBehavior(IntEnum):
     STORE = 0
@@ -101,6 +138,9 @@ class Interval(object):
 
     def copy(self):
         return Interval(self.left, self.right)
+
+    def __repr__(self):
+        return "i({}, {})".format(self.left, self.right)
 
 class HVelocitySet(object):
 
@@ -271,11 +311,11 @@ def combine_vs(v1, v2, b1, b2):
         b = VBehavior.LOSE
     return v, b
 
-#TODO: max speed
 class HVelocity(object):
     
     def __init__(self, vtype, value):
         self.type = vtype
+        assert vtype in velocity_maxima
         self.value = value
 
     def __eq__(self, other):
@@ -297,7 +337,13 @@ class HVelocity(object):
         # Type mismatch is bad
         else:
             return None
-        return HVelocity(t, self.value + other.value)
+        v = self.value + other.value
+        vmax = velocity_maxima[t]
+        if v > vmax:
+            v = vmax
+        elif v < -vmax:
+            v = -vmax
+        return HVelocity(t, v)
 
     def __hash__(self):
         return hash((self.type, self.value))
@@ -338,7 +384,87 @@ class Velocity(object):
         hv = self.vh.copy()
         return Velocity(self.vv, hv)
 
-#TODO
+    def __repr__(self):
+        return "V: {}, H: {}, {}".format(self.vv, self.vh.type, self.vh.value)
+
+#TODO: to "break" a block, need a set of {pose, item}.
+# e.g. to break bomb blocks, need either bombs+mb, pbs+mb (and any pose), or screw + spin
+# OR can be a speed! To break speed blocks, need max speedbooster speed or shinespark pose
+#TODO: how to handle super block in a tunnel? You don't necessarily need stand to destroy a super block...
+#TODO: a "plant power bomb 'action' as part of the BFS? -> a fire super missile action...
+# Gets very complex very quickly though...
+
+any_velocity_type = set([VType.RUN, VType.SPEED, VType.WATER])
+any_pose = set([SamusPose.STAND, SamusPose.MORPH, SamusPose.JUMP, SamusPose.SPIN])
+any_interval = Interval(-Infinity, Infinity)
+any_velocity = VelocitySet(any_interval, HVelocitySet(any_velocity_type, any_interval))
+
+# The requirements to treat blocks as solid
+# Cannot treat a tile as solid if either it is not in this data structure, or samus does not meet one of
+# the necessary requirements
+block_solid_requirements = {
+        AbstractTile.SOLID : [(any_velocity, ItemSet([]), any_pose)],
+        AbstractTile.BLOCK_CRUMBLE: "Reciprocal"
+}
+
+speed_hv = HVelocitySet(set([VType.SPEED]), Interval(30, Infinity))
+# Exposing a weakness of velocity sets as single-sided intervals
+speed_velocity_l = VelocitySet(any_interval, speed_hv)
+speed_velocity_r = VelocitySet(any_interval, speed_hv.horizontal_flip())
+# Negative vertical speed and no horizontal speed
+crumble_velocity = VelocitySet(Interval(0, Infinity), HVelocitySet(any_velocity_type, Interval(0,0)))
+
+# The requirements to treat blocks as air
+block_air_requirements = {
+    AbstractTile.AIR : [(any_velocity, ItemSet([]), any_pose)],
+    AbstractTile.BLOCK_BOMB : [(any_velocity, ItemSet(["MB", "B"]), any_pose),
+                               (any_velocity, ItemSet(["MB", "PB"]), any_pose),
+                               (any_velocity, ItemSet(["SA"]), set([SamusPose.SPIN]))],
+    AbstractTile.BLOCK_MISSILE : [(any_velocity, ItemSet(["M"]), any_pose)],
+    AbstractTile.BLOCK_SUPER : [(any_velocity, ItemSet(["S"]), any_pose)],
+    AbstractTile.BLOCK_POWER_BOMB : [(any_velocity, ItemSet(["MB", "PB"]), any_pose)],
+    AbstractTile.BLOCK_GRAPPLE : [(any_velocity, ItemSet(["G"]), any_pose)],
+    AbstractTile.BLOCK_SPEED : [(speed_velocity_l, ItemSet(["SB"]), any_pose),
+                                (speed_velocity_r, ItemSet(["SB"]), any_pose)],
+    #TODO: can't actually treat /adjacent/ crumble blocks as air...
+    # Positional requirements
+    AbstractTile.BLOCK_CRUMBLE : [(crumble_velocity, ItemSet([]), any_pose)],
+}
+
+def meets(samus_state, requirement):
+    v, i, p = requirement
+    iv = samus_state.velocity in v
+    ii = samus_state.items >= i
+    ip = samus_state.pose in p
+    return iv and ii and ip
+
+def tile_is_air(samus_state, tile_type):
+    if tile_type not in block_air_requirements:
+        return False
+    requirements = block_air_requirements[tile_type]
+    for r in requirements:
+        if meets(samus_state, r):
+            return True
+    return False
+
+def tile_is_solid(samus_state, tile_type):
+    if tile_type not in block_solid_requirements:
+        return False
+    requirements = block_solid_requirements[tile_type]
+    if requirements == "Reciprocal":
+        return not tile_is_air(samus_state, tile_type)
+    for r in requirements:
+        if meets(samus_state, r):
+            return True
+    return False
+
+def tile_matches(samus_state, tile_type, as_what):
+    assert as_what in [AbstractTile.SOLID, AbstractTile.AIR]
+    if as_what == AbstractTile.SOLID:
+        return tile_is_solid(samus_state, tile_type)
+    else:
+        return tile_is_air(samus_state, tile_type)
+
 pose_hitboxes = {
     SamusPose.STAND: [Coord(0,0), Coord(0,1), Coord(0,2)],
     SamusPose.MORPH: [Coord(0,0)],
@@ -518,7 +644,8 @@ class SearchState(object):
     def __init__(self, samus, level):
         self.samus = samus
         self.level = level
-
+    
+    #TODO: water?
     def to_image(self):
         i = Image.new("RGB", (self.level.shape[0], self.level.shape[1]))
         pixels = i.load()
@@ -635,22 +762,23 @@ class IntermediateState(object):
 
 def level_check_and_make(level, origin, tile, tile_type, samus_state):
     """Helper for LevelFunction apply()"""
-    #TODO: Use the samus_state to allow interpreting e.g. bomb blocks as air
     l = get_tile(level, origin, tile)
     if l is None:
         return None
-    if l == tile_type or l == AbstractTile.UNKNOWN:
+    if l == AbstractTile.UNKNOWN:
         level[tile] = tile_type
+        return "ok"
+    # Don't need to overwrite if there's already a tile that matches
+    if tile_matches(samus_state, l, tile_type):
         return "ok"
     else:
         return None
 
 def level_check(level, origin, tile, tile_type, samus_state):
-    #TODO: use the samus state to allow interpretation!
     l = get_tile(level, origin, tile)
     if l is None:
         return None
-    if l == tile_type:
+    if tile_matches(samus_state, l, tile_type):
         return True
     else:
         return False

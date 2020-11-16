@@ -2,7 +2,7 @@ import heapq
 
 block_cost = 0
 cost_weight = 0.5
-max_rules = 60
+max_rules = 100
 
 def rule_search(start_state, rules, goal_state):
     print("Search to reach {} from {}".format(goal_state.position, start_state.samus.position))

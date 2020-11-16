@@ -25,4 +25,4 @@ if __name__ == "__main__":
     rules_folder = rules_file.parents[0]
     rules, tests = parse_rules.parse_rules_yaml(rules_file)
     #run_all_tests(rules_folder, rules, tests)
-    run_test(output_folder, rules, "TestGrabMorph", tests)
+    run_test(output_folder, rules, "TestGrabBombs", tests)

@@ -48,3 +48,10 @@ Tests:
         a_vv: 0
         obtain: MB
         item_exist: MB
+        
+    - TestGrabBombs:
+        a_vh: Run, 0
+        a_vv: 0
+        items: MB
+        obtain: B
+        item_exist: B

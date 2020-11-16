@@ -156,3 +156,8 @@
 #TODO: initial position of Samus doesn't matter....
 14,6 - Grapple Wall Jump
 #TODO: starting position of samus is underneath ending position... OR starting position is anywhere "near" grapple point...
+
+
+0,10 - Colors for destructible blocks: tl->br
+	- Column 1: destructible blocks: bombs, missiles (e.g. door), power bombs, super missiles, crumble grapple, speed booster, crumble
+	- Column 3: bosses: Kraid, Phantoon, Draygon, Ridley, Bomb Torizo, Golden Torizo, Botwoon, Spore Spawn, Crocomire, Mother Brain, Ceres Ridley

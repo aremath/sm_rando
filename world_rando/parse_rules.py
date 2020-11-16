@@ -40,21 +40,7 @@ vbehave_str = {
     "Store": VBehavior.STORE
     }
 
-unknown_color = (255, 255, 255)
-player_before_color = (255, 0, 0)
-player_after_color = (0, 255, 0)
-air_color = (251, 242, 54)
-water_color = (48, 185, 211)
-solid_color = (0, 0, 0)
-grapple_color = (119, 33, 105)
-water_air_color = (30, 211, 106)
-# Indicate water/air ambiguity AND player presence
-player_before_water_air_color = (198, 0, 0)
-player_before_water_color = (145, 0, 0)
-player_after_water_air_color = (0, 198, 0)
-player_after_water_color = (0, 145, 0)
-item_color = (255, 22, 169)
-
+# Separate from color_to_abstract because the mapping is not one to one
 color_to_abstract = {
     unknown_color : AbstractTile.UNKNOWN,
     player_before_color : AbstractTile.AIR,
@@ -71,7 +57,13 @@ color_to_abstract = {
     player_before_water_color : AbstractTile.AIR,
     player_after_water_air_color : AbstractTile.AIR,
     player_after_water_color : AbstractTile.AIR,
-    item_color : AbstractTile.AIR
+    item_color : AbstractTile.AIR,
+    # Destructible blocks:
+    block_bomb_color : AbstractTile.BLOCK_BOMB,
+    block_missile_color : AbstractTile.BLOCK_MISSILE,
+    block_power_bomb_color : AbstractTile.BLOCK_POWER_BOMB,
+    block_super_color : AbstractTile.BLOCK_SUPER,
+    block_grapple_color : AbstractTile.BLOCK_GRAPPLE,
     }
 
 player_before_colors = [player_before_color, player_before_water_air_color, player_before_water_color]
