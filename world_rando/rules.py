@@ -19,6 +19,7 @@ class AbstractTile(IntEnum):
     BLOCK_GRAPPLE = 8
     BLOCK_SPEED = 9
     BLOCK_CRUMBLE = 10
+    BLOCK_SHOT = 11
 
 # Translation between tile colors and types of tile
 unknown_color = (255, 255, 255)
@@ -38,11 +39,12 @@ item_color = (255, 22, 169)
 # Destructible blocks
 block_bomb_color = (141, 73, 154)
 block_missile_color = (154, 73, 73)
-block_power_bomb_color = (154, 150, 73)
+block_power_bomb_color = (154, 116, 73)
 block_super_color = (73, 154, 82)
 block_grapple_color = (73, 150, 154)
 block_speed_color = (73, 90, 154)
 block_crumble_color = (107, 154, 73)
+block_shot_color = (154, 150, 73)
 
 abstract_to_color = {
     AbstractTile.UNKNOWN : unknown_color,
@@ -56,6 +58,7 @@ abstract_to_color = {
     AbstractTile.BLOCK_GRAPPLE : block_grapple_color,
     AbstractTile.BLOCK_SPEED : block_speed_color,
     AbstractTile.BLOCK_CRUMBLE : block_crumble_color,
+    AbstractTile.BLOCK_SHOT : block_shot_color
     }
 
 class SamusPose(IntEnum):
@@ -404,7 +407,9 @@ any_velocity = VelocitySet(any_interval, HVelocitySet(any_velocity_type, any_int
 # the necessary requirements
 block_solid_requirements = {
         AbstractTile.SOLID : [(any_velocity, ItemSet([]), any_pose)],
-        AbstractTile.BLOCK_CRUMBLE: "Reciprocal"
+        AbstractTile.BLOCK_CRUMBLE: "Reciprocal",
+        # Can treat a shot block as either solid or air depending on the situation
+        AbstractTile.BLOCK_SHOT : [(any_velocity, ItemSet([]), any_pose)],
 }
 
 speed_hv = HVelocitySet(set([VType.SPEED]), Interval(30, Infinity))
@@ -424,11 +429,13 @@ block_air_requirements = {
     AbstractTile.BLOCK_SUPER : [(any_velocity, ItemSet(["S"]), any_pose)],
     AbstractTile.BLOCK_POWER_BOMB : [(any_velocity, ItemSet(["MB", "PB"]), any_pose)],
     AbstractTile.BLOCK_GRAPPLE : [(any_velocity, ItemSet(["G"]), any_pose)],
+    #TODO: speed can break bomb blocks
     AbstractTile.BLOCK_SPEED : [(speed_velocity_l, ItemSet(["SB"]), any_pose),
                                 (speed_velocity_r, ItemSet(["SB"]), any_pose)],
     #TODO: can't actually treat /adjacent/ crumble blocks as air...
     # Positional requirements
     AbstractTile.BLOCK_CRUMBLE : [(crumble_velocity, ItemSet([]), any_pose)],
+    AbstractTile.BLOCK_SHOT : [(any_velocity, ItemSet([]), any_pose)],
 }
 
 def meets(samus_state, requirement):
@@ -513,7 +520,6 @@ class LevelState(object):
     """
 
     def __init__(self, origin, level, liquid_type, liquid_level, items):
-        # Items is [(Coord, ItemSet)]
         self.origin = origin
         self.level = level
         # Set the writeable false flag in order to allow hashing
@@ -521,6 +527,7 @@ class LevelState(object):
         self.liquid_type = liquid_type
         self.liquid_level = liquid_level
         #TODO: does items need to be copied?
+        # Items is Coord -> ItemSet
         self.items = items
 
     @property
@@ -607,7 +614,7 @@ class SamusState(object):
         p = self.position == other.position
         v = self.velocity == other.velocity
         i = self.items == other.items
-        pose = self.pose is other.pose
+        pose = self.pose == other.pose
         return p and v and i and pose
 
     def horizontal_flip(self, level):
