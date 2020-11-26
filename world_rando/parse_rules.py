@@ -64,6 +64,7 @@ color_to_abstract = {
     block_power_bomb_color : AbstractTile.BLOCK_POWER_BOMB,
     block_super_color : AbstractTile.BLOCK_SUPER,
     block_grapple_color : AbstractTile.BLOCK_GRAPPLE,
+    block_shot_color : AbstractTile.BLOCK_SHOT,
     }
 
 player_before_colors = [player_before_color, player_before_water_air_color, player_before_water_color]
@@ -154,6 +155,8 @@ def parse_interval(interval_string):
     1 <= X
     4 (means X = 4 or 4 <= X <= 4)
     """
+    if isinstance(interval_string, int):
+        return Interval(interval_string, interval_string)
     constraints = interval_string.split("<=")
     l = -float("inf")
     r = float("inf")
@@ -165,10 +168,12 @@ def parse_interval(interval_string):
         l, r = constraints
         if l == "X":
             c = l
+            l = -float("inf")
             r = int(r)
         elif r == "X":
             c = r
             l = int(l)
+            r = float("inf")
         else:
             assert False
     elif len(constraints) == 1:
@@ -312,7 +317,7 @@ def parse_rules_yaml(rules_file):
     rules_yaml = yaml.load(f)
     rules = {}
     tests = {}
-    if rules_yaml["Rules"] is not None:
+    if "Rules" in rules_yaml and rules_yaml["Rules"] is not None:
         for r_dict in rules_yaml["Rules"]:
             rule_name = list(r_dict.keys())[0]
             print("Rule: {}".format(rule_name))
@@ -325,11 +330,11 @@ def parse_rules_yaml(rules_file):
             made_rules = parse_statefunction(rule_name, level_image, r_dict)
             for r in made_rules:
                 rules[r.name] = r
-    if rules_yaml["Chains"] is not None:
+    if "Chains" in rules_yaml and rules_yaml["Chains"] is not None:
         for c_dict in rules_yaml["Chains"]:
             rule = make_rule_chain(c_dict, rules)
             rules[rule.name] = rule
-    if rules_yaml["Tests"] is not None:
+    if "Tests" in rules_yaml and rules_yaml["Tests"] is not None:
         for t_dict in rules_yaml["Tests"]:
             test_name = list(t_dict.keys())[0]
             print("Test: {}".format(test_name))
@@ -341,4 +346,16 @@ def parse_rules_yaml(rules_file):
             level_image = Image.open(pic_path)
             test = make_test_state(level_image, t_dict)
             tests[test_name] = test
+    return rules, tests
+
+def parse_rules(r_list):
+    """
+    Parse and combine multiple rules files.
+    """
+    all_rules = [parse_rules_yaml(r) for r in r_list]
+    rules = {}
+    tests = {}
+    for r,t in all_rules:
+        rules.update(r)
+        tests.update(t)
     return rules, tests

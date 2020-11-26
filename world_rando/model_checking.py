@@ -3,6 +3,7 @@ from pyModelChecking.CTL import *
 from itertools import product, chain, combinations
 from pathlib import Path
 import numpy as np
+from tqdm import tqdm
 
 from rules import *
 import parse_rules
@@ -77,11 +78,11 @@ def verify(test, spec, rules):
     #TODO also check other velocity types
     xvs = range(-velocity_maxima[VType.RUN], velocity_maxima[VType.RUN])
     all_valid_states = set()
-    for s in iter_all_states(x_range, y_range, xvs, yvs, item_sets):
+    for s in tqdm(iter_all_states(x_range, y_range, xvs, yvs, item_sets)):
         # Only consider states where samus is not inside an object
         if check_samus_pos(level, s):
             all_valid_states.add(s)
-    for s in all_valid_states:
+    for s in tqdm(all_valid_states):
         # Can stay still (function must be left-total)
         transitions.append((s,s))
         ss = SearchState(s, level)
@@ -100,13 +101,16 @@ def verify(test, spec, rules):
                     transitions.append((s, next_samus))
     #TODO: optionally other labels
     #assert i_samus in states
-    k = Kripke(S=all_valid_states,S0=[i_samus],R=transitions,L=labels)
+    #print(len(all_valid_states))
+    initial_states = set([i_samus])
+    k = Kripke(S=all_valid_states,S0=initial_states,R=transitions,L=labels)
     sat_states = modelcheck(k, spec)
     # Spec holds if it is true at the start state
-    return (i_samus in sat_states)
+    return (initial_states <= sat_states)
 
 if __name__ == "__main__":
     rules_file = Path("../encoding/rules/rules.yaml")
-    rules, tests = parse_rules.parse_rules_yaml(rules_file)
+    rules, tests = parse_rules.parse_rules(["../encoding/rules/rules.yaml",
+        "../encoding/rules/model_checking_tests/model_checking_tests.yaml"])
     t = verify(tests["TestGrabBombsVerify"], no_softlocks, rules.values())
     print(t)

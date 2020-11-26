@@ -19,6 +19,34 @@ Rules:
         a_pose: Morph
         b_pose: Morph
         
+    - BombJump:
+        b_pose: Morph
+        a_pose: Morph
+        items: B
+    
+    - MorphFall0:
+        b_pose: Morph
+        a_pose: Morph
+        b_vv: 0
+        b_vh: Run,0
+        a_vv: 1,Store
+        a_vh: Run,0,Lose
+    
+    - MorphFall1:
+        Symmetric:
+        b_pose: Morph
+        a_pose: Morph
+        b_vv: 0<=X
+        b_vh: Run,0
+        a_vv: 1,Store
+        a_vh: Run,0,Lose
+    
+    - GetItemMorph:
+        b_pose: Morph
+        a_pose: Morph
+        
+    #- GetItem2:
+        
     - GetItemGround:
         
 Chains:
@@ -62,3 +90,4 @@ Tests:
         items: MB
         obtain: B
         item_exist: B
+        

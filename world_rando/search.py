@@ -16,12 +16,12 @@ def rule_search(start_state, rules, goal_state):
         priority, _, state = heapq.heappop(h)
         #if state in finished:
         #    continue
-        print("Was at: {}|{}".format(state.samus.position, state.samus.pose))
+        print("Was at: {}|{}|{}".format(state.samus.position, state.samus.pose, state.samus.velocity))
         next_states = [(r, r.apply(state)) for r in rules]
         for rule, (next_state, err) in next_states:
             if next_state is not None:
                 print("Applied rule: {} at level {}".format(rule.name, n_rules))
-                print("Now at: {}|{}".format(next_state.samus.position, next_state.samus.pose))
+                print("Now at: {}|{}|{}".format(next_state.samus.position, next_state.samus.pose, state.samus.velocity))
                 statestr = "{}_{}".format(n_rules, rule.name)
                 fname = "../output/rule_{}.png".format(statestr)
                 state_img = next_state.to_image()

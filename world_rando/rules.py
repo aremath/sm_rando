@@ -5,6 +5,7 @@ from sm_rando.world_rando.coord import Coord, Rect
 from sm_rando.data_types.item_set import ItemSet
 
 Infinity = float("inf")
+TERMINAL_VELOCITY = 1
 
 # Part 1: Enumerated types
 class AbstractTile(IntEnum):
@@ -374,7 +375,7 @@ class Velocity(object):
         return self.vv == other.vv and self.vh == other.vh
 
     def __add__(self, other):
-        #TODO: what about min and max?
+        #TODO: TERMINAL_VELOCITY
         v = self.vv + other.vv
         h = self.vh + other.vh
         assert h is not None
@@ -625,25 +626,32 @@ class SamusState(object):
         return SamusState(position, v, i, p)
 
     def collide(self, ds):
+        print("collided")
         s = self.copy()
         v = self.velocity
         for d in ds:
-            # Special case - landing on the ground
-            if d == Coord(0, 1) and s.pose != SamusPose.MORPH:
+            # Landing on the ground
+            if d == Coord(0, 1):
                 vh = HVelocity(VType.RUN, 0)
                 vv = 0
                 v = Velocity(vv, vh)
-                s.v = v
-                s.pose = SamusPose.STAND
+                s.velocity = v
+                # Any non-morph pose leaves you standing
+                #TODO: what if you're in spin in a 2-high gap -- this will clip you into the floor!!
+                if s.pose != SamusPose.MORPH:
+                    s.pose = SamusPose.STAND
+            # Colliding with the ceiling
             elif d == Coord(0, -1):
                 vv = 0
-                v = Velocity(s.velocity.vh.copy(), vv)
-                s.v = v
-            # Kill horizontal velocity
+                v = Velocity(vv, s.velocity.vh.copy())
+                s.velocity = v
+            # Colliding with a wall (kill horizontal velocity)
             else:
-                vh = Velocity(VType.RUN, 0)
-                v = Velocity(vh, s.velocity.vv)
-                s.v = v
+                vh = HVelocity(VType.RUN, 0)
+                v = Velocity(s.velocity.vv, vh)
+                s.velocity = v
+        print(s.position)
+        print(s.velocity)
         return s
                 
 class SearchState(object):
@@ -871,7 +879,7 @@ class LevelFunction(object):
                 #print("Collision along {}".format(conflict_ds))
                 samus = intermediate_samus.collide(conflict_ds)
                 level = LevelState(sl.origin.copy(), level_array, sl.liquid_type, sl.liquid_level, sl.items)
-                return SearchState(intermediate_samus, level), None
+                return SearchState(samus, level), None
         # No conflict
         # Create the new level state
         level = LevelState(sl.origin.copy(), level_array, sl.liquid_type, sl.liquid_level, sl.items)
@@ -921,7 +929,9 @@ class StateFunction(object):
 
     #TODO
     def apply(self, state):
-        #print("Applying Rule: {}".format(self.name))
+        print("Applying Rule: {}".format(self.name))
+        print(state.samus.position)
+        print(state.samus.velocity)
         new_s, s_err = self.state_function.apply(state.samus, state.level.items)
         # Cannot be applied
         if new_s is None:
@@ -933,6 +943,9 @@ class StateFunction(object):
             return None, l_err
         # If it was applied, get the level information and the samus state from the
         # level information and the (possibly partially applied) level transition
+        print("New:")
+        print(new_l.samus.position)
+        print(new_l.samus.velocity)
         return new_l, None
 
     def horizontal_flip(self):
