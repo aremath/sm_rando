@@ -618,6 +618,9 @@ class SamusState(object):
         pose = self.pose == other.pose
         return p and v and i and pose
 
+    def __repr__(self):
+        return "({}|{}|{}|{})".format(self.position, self.velocity, self.pose, self.items)
+
     def horizontal_flip(self, level):
         position = self.position.flip_in_rect(level.rect, Coord(1, 0))
         v = self.velocity.horizontal_flip()
@@ -625,8 +628,7 @@ class SamusState(object):
         p = self.pose
         return SamusState(position, v, i, p)
 
-    def collide(self, ds):
-        print("collided")
+    def collide(self, ds, debug=False):
         s = self.copy()
         v = self.velocity
         for d in ds:
@@ -650,8 +652,9 @@ class SamusState(object):
                 vh = HVelocity(VType.RUN, 0)
                 v = Velocity(s.velocity.vv, vh)
                 s.velocity = v
-        print(s.position)
-        print(s.velocity)
+        if debug:
+            print("Collided")
+            print(s)
         return s
                 
 class SearchState(object):
@@ -816,7 +819,7 @@ class LevelFunction(object):
         self.liquid_interval = liquid_interval
         self.state_list = state_list
 
-    def apply(self, state):
+    def apply(self, state, debug=False):
         # Convenience variables
         sl = state.level
         origin = sl.origin
@@ -844,9 +847,7 @@ class LevelFunction(object):
                 intermediate_samus, _ = i_state.samusfunction.apply(intermediate_samus, sl.items)
                 assert intermediate_samus is not None
             intermediate_samus.position = i_state.pos + state.samus.position
-            #print("pos:", intermediate_samus.position)
-            #print("pose:", intermediate_samus.pose)
-            #print("internal_pos:", i_state.pos)
+            #print("intermediate samus:{}".format(intermediate_samus))
             #print("walls", i_state.walls)
             #print("airs:", i_state.airs)
             # Check and create necessary airs
@@ -869,15 +870,15 @@ class LevelFunction(object):
                 # Collect partial application conflicts
                 for rel_t in rel_ts:
                     g_t = rel_t + intermediate_samus.position
-                    # There's a conflict if a required tile can be reconciled to solid
-                    if level_check(level_array, origin, g_t, AbstractTile.SOLID, intermediate_samus):
+                    # There's a conflict if a required tile cannot be reconciled to air
+                    if not level_check_and_make(level_array, origin, g_t, AbstractTile.AIR, intermediate_samus):
                         conflict = True
                 if conflict:
                     conflict_ds.append(d)
             # If there was a conflict, partially apply the rule
             if len(conflict_ds) > 0:
                 #print("Collision along {}".format(conflict_ds))
-                samus = intermediate_samus.collide(conflict_ds)
+                samus = intermediate_samus.collide(conflict_ds, debug)
                 level = LevelState(sl.origin.copy(), level_array, sl.liquid_type, sl.liquid_level, sl.items)
                 return SearchState(samus, level), None
         # No conflict
@@ -927,25 +928,24 @@ class StateFunction(object):
         self.level_transition = level_transition
         self.cost = cost
 
-    #TODO
-    def apply(self, state):
-        print("Applying Rule: {}".format(self.name))
-        print(state.samus.position)
-        print(state.samus.velocity)
+    def apply(self, state, debug=False):
+        if debug:
+            print("Applying Rule: {}".format(self.name))
+            print(state.samus)
         new_s, s_err = self.state_function.apply(state.samus, state.level.items)
         # Cannot be applied
         if new_s is None:
             return None, s_err
         # Applying the level transition accesses the entire state
-        new_l, l_err = self.level_transition.apply(state)
+        new_l, l_err = self.level_transition.apply(state, debug)
         # Cannot be applied
         if new_l is None:
             return None, l_err
         # If it was applied, get the level information and the samus state from the
         # level information and the (possibly partially applied) level transition
-        print("New:")
-        print(new_l.samus.position)
-        print(new_l.samus.velocity)
+        if debug:
+            print("New:")
+            print(new_l.samus)
         return new_l, None
 
     def horizontal_flip(self):

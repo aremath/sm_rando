@@ -20,6 +20,7 @@ Rules:
         b_pose: Morph
         
     - BombJump:
+        Symmetric:
         b_pose: Morph
         a_pose: Morph
         items: B
@@ -39,6 +40,15 @@ Rules:
         b_vv: 0<=X
         b_vh: Run,0
         a_vv: 1,Store
+        a_vh: Run,0,Lose
+        
+    - MorphLand:
+        Symmetric:
+        b_pose: Morph
+        a_pose: Morph
+        b_vv: 0<=X
+        b_vh: Run,
+        a_vv: 0,Lose
         a_vh: Run,0,Lose
     
     - GetItemMorph:
@@ -84,10 +94,9 @@ Tests:
         obtain: B
         item_exist: B
         
-    - TestGrabBombsVerify:
+    - TestBombJump:
+        b_pose: Morph
         a_vh: Run, 0
         a_vv: 0
-        items: MB
-        obtain: B
-        item_exist: B
-        
+        a_pose: Morph
+        items: MB,B

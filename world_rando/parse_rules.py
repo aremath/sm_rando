@@ -157,6 +157,8 @@ def parse_interval(interval_string):
     """
     if isinstance(interval_string, int):
         return Interval(interval_string, interval_string)
+    if interval_string == "":
+        return Interval(-float("inf"), float("inf"))
     constraints = interval_string.split("<=")
     l = -float("inf")
     r = float("inf")

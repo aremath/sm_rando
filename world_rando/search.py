@@ -2,7 +2,7 @@ import heapq
 
 block_cost = 0
 cost_weight = 0.5
-max_rules = 100
+max_rules = 200
 
 def rule_search(start_state, rules, goal_state):
     print("Search to reach {} from {}".format(goal_state.position, start_state.samus.position))
@@ -16,21 +16,22 @@ def rule_search(start_state, rules, goal_state):
         priority, _, state = heapq.heappop(h)
         #if state in finished:
         #    continue
-        print("Was at: {}|{}|{}".format(state.samus.position, state.samus.pose, state.samus.velocity))
+        print("Was at: {}".format(state.samus))
         next_states = [(r, r.apply(state)) for r in rules]
         for rule, (next_state, err) in next_states:
             if next_state is not None:
                 print("Applied rule: {} at level {}".format(rule.name, n_rules))
-                print("Now at: {}|{}|{}".format(next_state.samus.position, next_state.samus.pose, state.samus.velocity))
+                print("Now at: {}".format(next_state.samus))
                 statestr = "{}_{}".format(n_rules, rule.name)
-                fname = "../output/rule_{}.png".format(statestr)
-                state_img = next_state.to_image()
-                state_img.save(fname)
+                #fname = "../output/rule_{}.png".format(statestr)
+                #state_img = next_state.to_image()
+                #state_img.save(fname)
                 # Mark it
-                offers[next_state] = state
                 #TODO: requiring equality may be too much
                 # >=?
+                # Found the goal state
                 if next_state.samus == goal_state:
+                    offers[next_state] = (rule, state)
                     return offers, finished, next_state
                 distance = next_state.samus.position.euclidean(goal_state.position)
                 #TODO
@@ -42,6 +43,7 @@ def rule_search(start_state, rules, goal_state):
                 #print(distance)
                 #print(priority)
                 if next_state not in finished:
+                    offers[next_state] = (rule, state)
                     finished.add(next_state)
                     heapq.heappush(h, (priority, entry_count, next_state))
                 entry_count += 1
@@ -54,3 +56,15 @@ def rule_search(start_state, rules, goal_state):
     # Did not find the goal state :(
     print("Applied {} rules".format(n_rules))
     return offers, finished, None
+
+def get_path(offers, start_state, goal_state):
+    end_states = [o for o in offers if o.samus == goal_state]
+    assert len(end_states) > 0, "Goal state not found!"
+    current_state = end_states[0]
+    path = []
+    #print({k.samus:(r.name, v.samus) for k,(r,v) in offers.items()})
+    while current_state.samus != start_state.samus:
+        rule, prev_state = offers[current_state]
+        path.insert(0, rule)
+        current_state = prev_state
+    return path

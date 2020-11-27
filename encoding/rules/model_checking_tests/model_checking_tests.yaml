@@ -22,3 +22,10 @@ Tests:
         a_vh: Run, 0
         a_vv: 0
         items: MB
+        
+    - TestGrabBombsVerify:
+        a_vh: Run, 0
+        a_vv: 0
+        items: MB
+        obtain: B
+        item_exist: B
