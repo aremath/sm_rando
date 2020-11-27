@@ -32,6 +32,7 @@ def rule_search(start_state, rules, goal_state):
                 # Found the goal state
                 if next_state.samus == goal_state:
                     offers[next_state] = (rule, state)
+                    finished.add(next_state)
                     return offers, finished, next_state
                 distance = next_state.samus.position.euclidean(goal_state.position)
                 #TODO
