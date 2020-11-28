@@ -375,8 +375,9 @@ class Velocity(object):
         return self.vv == other.vv and self.vh == other.vh
 
     def __add__(self, other):
-        #TODO: TERMINAL_VELOCITY
         v = self.vv + other.vv
+        if v > TERMINAL_VELOCITY:
+            v = TERMINAL_VELOCITY
         h = self.vh + other.vh
         assert h is not None
         return Velocity(v, h)

@@ -2,7 +2,7 @@ import heapq
 
 block_cost = 0
 cost_weight = 0.5
-max_rules = 200
+max_rules = 400
 
 def rule_search(start_state, rules, goal_state):
     print("Search to reach {} from {}".format(goal_state.position, start_state.samus.position))
@@ -49,8 +49,9 @@ def rule_search(start_state, rules, goal_state):
                     heapq.heappush(h, (priority, entry_count, next_state))
                 entry_count += 1
             else:
-                print("Rule failed: {}".format(rule.name))
-                print("Because: {}".format(err))
+                pass
+                #print("Rule failed: {}".format(rule.name))
+                #print("Because: {}".format(err))
         if n_rules >= max_rules:
             print("Reached max rules!")
             break

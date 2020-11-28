@@ -58,6 +58,28 @@ Rules:
     #- GetItem2:
         
     - GetItemGround:
+    
+    - Jump:
+        a_pose: Jump
+    
+    - Fall0:
+        b_pose: Jump
+        b_vv: 0
+        b_vh: Run,0
+        a_vv: 1,Store
+        a_vh: Run,0,Lose
+    
+    - Fall1:
+        b_pose: Jump
+        Symmetric:
+        b_vv: 0<=X
+        b_vh: Run,0
+        a_vv: 1,Store
+        a_vh: Run,0,Lose
+    
+    - Land:
+        b_pose: Jump
+        a_pose: Stand
         
 Chains:
 

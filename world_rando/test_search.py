@@ -23,10 +23,10 @@ def run_all_tests(rules_folder, rules, tests):
         run_test(rules_folder, rules, test_name, tests)
 
 if __name__ == "__main__":
-    rules_file = Path("../encoding/rules/rules.yaml")
+    rules_files = ["../encoding/rules/rules.yaml", "../encoding/rules/model_checking_tests/model_checking_tests.yaml"]
     output_folder = Path("../output/")
-    rules_folder = rules_file.parents[0]
-    rules, tests = parse_rules.parse_rules_yaml(rules_file)
-    #run_all_tests(rules_folder, rules, tests)
-    run_test(output_folder, rules, "TestBombJump", tests)
+    rules, tests = parse_rules.parse_rules(rules_files)
+    #run_all_tests(output_folder, rules, tests)
+    #run_test(output_folder, rules, "TestBombJump", tests)
     #run_test(output_folder, rules, "TestGrabBombs", tests)
+    run_test(output_folder, rules, "ConstructionZone", tests)

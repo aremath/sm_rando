@@ -109,7 +109,6 @@ def verify(test, spec, rules):
     return (initial_states <= sat_states)
 
 if __name__ == "__main__":
-    rules_file = Path("../encoding/rules/rules.yaml")
     rules, tests = parse_rules.parse_rules(["../encoding/rules/rules.yaml",
         "../encoding/rules/model_checking_tests/model_checking_tests.yaml"])
     t = verify(tests["TestGrabBombsVerify"], no_softlocks, rules.values())
