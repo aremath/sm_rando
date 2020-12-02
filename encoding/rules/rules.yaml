@@ -24,6 +24,14 @@ Rules:
         b_pose: Morph
         a_pose: Morph
         items: B
+        
+    - MorphFallOff:
+        b_pose: Morph
+        a_pose: Morph
+        b_vv: 0
+        b_vh: Run,0
+        a_vv: 1,Lose
+        a_vh: Run,0,Lose
     
     - MorphFall0:
         b_pose: Morph
@@ -55,15 +63,44 @@ Rules:
         b_pose: Morph
         a_pose: Morph
         
-    #- GetItem2:
+    - GetItem0:
+    
+    - GetItem1:
+    
+    - GetItem2:
+    
+    - GetItem0J:
+        b_pose: Jump
+        a_pose: Jump
+        b_vv:
+        a_vv: 0,Store
         
-    - GetItemGround:
+    - GetItem1J:
+        b_pose: Jump
+        a_pose: Jump
+        b_vv:
+        a_vv: 0,Store
+        
+    - GetItem2J:
+        b_pose: Jump
+        a_pose: Jump
+        b_vv:
+        a_vv: 0,Store
     
     - Jump:
         a_pose: Jump
+        
+    - FallOff:
+        b_pose: Stand
+        a_pose: Jump
+        b_vv: 0
+        b_vh: Run,0
+        a_vv: 1,Lose
+        a_vh: Run,0,Lose
     
     - Fall0:
         b_pose: Jump
+        a_pose: Jump
         b_vv: 0
         b_vh: Run,0
         a_vv: 1,Store
@@ -71,6 +108,7 @@ Rules:
     
     - Fall1:
         b_pose: Jump
+        a_pose: Jump
         Symmetric:
         b_vv: 0<=X
         b_vh: Run,0

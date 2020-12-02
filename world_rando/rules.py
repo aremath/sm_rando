@@ -390,7 +390,7 @@ class Velocity(object):
         return Velocity(self.vv, hv)
 
     def __repr__(self):
-        return "V: {}, H: {}, {}".format(self.vv, self.vh.type, self.vh.value)
+        return "V: {}, H: {}, {}".format(self.vv, self.vh.type.name, self.vh.value)
 
 #TODO: to "break" a block, need a set of {pose, item}.
 # e.g. to break bomb blocks, need either bombs+mb, pbs+mb (and any pose), or screw + spin
@@ -532,6 +532,19 @@ class LevelState(object):
         # Items is Coord -> ItemSet
         self.items = items
 
+    #TODO: water?
+    def to_image(self, tint_pos=set(), tint_color=None):
+        i = Image.new("RGB", (self.shape[0], self.shape[1]))
+        pixels = i.load()
+        # Set the pixels
+        for xy in self.rect:
+            pixel_xy = xy - self.origin
+            if xy in tint_pos:
+                pixels[pixel_xy] = tint_color
+            else:
+                pixels[pixel_xy] = abstract_to_color[self[xy]]
+        return i
+
     @property
     def shape(self):
         return Coord(self.level.shape[0], self.level.shape[1])
@@ -620,7 +633,7 @@ class SamusState(object):
         return p and v and i and pose
 
     def __repr__(self):
-        return "({}|{}|{}|{})".format(self.position, self.velocity, self.pose, self.items)
+        return "({}|{}|{}|{})".format(self.position, self.velocity, self.pose.name, self.items)
 
     def horizontal_flip(self, level):
         position = self.position.flip_in_rect(level.rect, Coord(1, 0))
@@ -665,14 +678,8 @@ class SearchState(object):
         self.level = level
     
     #TODO: water?
-    def to_image(self):
-        i = Image.new("RGB", (self.level.shape[0], self.level.shape[1]))
-        pixels = i.load()
-        # Set the pixels
-        for xy in self.level.rect:
-            pixel_xy = xy - self.level.origin
-            pixels[pixel_xy] = abstract_to_color[self.level[xy]]
-        return i
+    def to_image(self, tint_pos=set(), tint_color=None):
+        return self.level.to_image(tint_pos, tint_color)
 
     def __hash__(self):
         return hash((self.samus, self.level))

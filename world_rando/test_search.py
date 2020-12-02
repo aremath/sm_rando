@@ -3,6 +3,8 @@ from pathlib import Path
 import parse_rules
 import search
 
+finished_color = (0, 255, 0)
+
 def run_test(output_folder, rules, test_name, tests):
     print("Doing Test: {}".format(test_name))
     i,f = tests[test_name]
@@ -16,6 +18,10 @@ def run_test(output_folder, rules, test_name, tests):
         out_path = output_folder / (test_name + "_out.png")
         out_image.save(out_path)
     else:
+        all_positions = set([s.samus.position for s in finished])
+        out_image = i.to_image(all_positions, finished_color)
+        out_path = output_folder / (test_name + "_out.png")
+        out_image.save(out_path)
         print("Final state not found!")
 
 def run_all_tests(rules_folder, rules, tests):

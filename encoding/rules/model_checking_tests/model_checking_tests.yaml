@@ -21,7 +21,7 @@ Tests:
     - TestTrap:
         a_vh: Run, 0
         a_vv: 0
-        items: MB
+        items: MB, B
         
     - TestGrabBombsVerify:
         a_vh: Run, 0

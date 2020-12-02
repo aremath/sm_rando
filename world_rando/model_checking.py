@@ -9,10 +9,14 @@ from rules import *
 import parse_rules
 
 no_softlocks = AG(EF("goal"))
+no_softlocks_inner = EF("goal")
 # TODO: you cannot return to the start state because picking up items is one-way
 # Instead, we want to be able to return to the start POSITION
 return_to_start = AG(EF("start"))
+return_to_start_inner = EF("start")
 reach_goal = EF("goal")
+
+counterexample_color = (255, 0, 0)
 
 def powerset(iterable):
     n = len(iterable)
@@ -57,23 +61,20 @@ def iter_all_states(x_range, y_range, xvs, yvs, item_sets):
         s = SamusState(pos, v, i, p)
         yield s
 
-def verify(test, spec, rules):
-    initial_state, final_state = test
-    i_samus = initial_state.samus
-    level = initial_state.level
+def make_kripke(initial_state, final_state, level, rules):
     # Check the level for no blank tiles
     for i in np.nditer(level.level):
         assert i != AbstractTile.UNKNOWN
     x_range = range(level.shape[0])
     y_range = range(level.shape[1])
-    initial_items = i_samus.items
+    initial_items = initial_state.items
     # Powerset of obtainable items is all possible item states within the level
     item_sets = all_itemsets(initial_items, level.items.values())
     states = []
     transitions = []
     labels = {}
     labels[final_state] = ["goal"]
-    labels[i_samus] = ["start"]
+    labels[initial_state] = ["start"]
     yvs = range(-1,6)
     #TODO also check other velocity types
     xvs = range(-velocity_maxima[VType.RUN], velocity_maxima[VType.RUN])
@@ -100,16 +101,76 @@ def verify(test, spec, rules):
                 if check_samus_pos(level, next_samus):
                     transitions.append((s, next_samus))
     #TODO: optionally other labels
-    #assert i_samus in states
     #print(len(all_valid_states))
-    initial_states = set([i_samus])
+    initial_states = set([initial_state])
     k = Kripke(S=all_valid_states,S0=initial_states,R=transitions,L=labels)
+    return initial_states, k
+
+def find_counterexample(initial_states, sat_states, k, ag_formula, inner_formula):
+    # Sanity check - provide both AG(F) and F
+    assert AG(inner_formula) == ag_formula
+    # Can't find a counterexample if the formula was actually satisfied
+    assert not initial_states <= sat_states
+    # If AG(F) is not satisfied by K, then EF(not F) is satisfied by K
+    # The counterexample is a path to a state where not F holds
+    # First compute the set of states where F holds:
+    inner_holds = modelcheck(k, inner_formula)
+    # Now BFS through states where AG(F) does not hold (starting with the initial state)
+    # to find a state where not F holds
+    offers = {}
+    finished = set()
+    final_state = None
+    queue = list(initial_states)
+    while len(queue) > 0:
+        state = queue.pop()
+        # If F does not hold at the current state, we are done
+        if state not in inner_holds:
+            final_state = state
+        next_states = k.next(state)
+        for next_state in next_states:
+            if next_state not in finished:
+                finished.add(next_state)
+                offers[next_state] = state
+                queue.append(next_state)
+    # Since AG(F) does not hold, this should never fire
+    assert final_state is not None, "No path found!"
+    # Now use offers to decode the path that was used
+    path = []
+    current_state = final_state
+    print(k.next(final_state))
+    while current_state not in initial_states:
+        path.insert(0, current_state)
+        current_state = offers[current_state]
+    # Append the final current_state which is an initial state
+    path.insert(0, current_state)
+    return path
+
+
+def verify(test, rules, spec, output=None, inner_spec=None):
+    i_state, final_state = test
+    initial_state = i_state.samus
+    level = i_state.level
+    initial_states, k = make_kripke(initial_state, final_state, level, rules)
     sat_states = modelcheck(k, spec)
     # Spec holds if it is true at the start state
-    return (initial_states <= sat_states)
+    if initial_states <= sat_states:
+        return True
+    else:
+        # Find a counterexample path if desired
+        if inner_spec is not None:
+            path = find_counterexample(initial_states, sat_states, k, spec, inner_spec)
+            print(path)
+            path_positions = [s.position for s in path]
+            # Now path is the counterexample. Draw it using the level:
+            out_image = level.to_image(path_positions, counterexample_color)
+            # Save it
+            out_path = output / "counterexample.png"
+            out_image.save(out_path)
+        return False
 
 if __name__ == "__main__":
+    out_path = Path("../output")
     rules, tests = parse_rules.parse_rules(["../encoding/rules/rules.yaml",
         "../encoding/rules/model_checking_tests/model_checking_tests.yaml"])
-    t = verify(tests["TestGrabBombsVerify"], no_softlocks, rules.values())
+    t = verify(tests["TestTrap"], rules.values(), no_softlocks, out_path, no_softlocks_inner)
     print(t)

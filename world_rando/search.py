@@ -2,7 +2,7 @@ import heapq
 
 block_cost = 0
 cost_weight = 0.5
-max_rules = 400
+max_rules = 10000
 
 def rule_search(start_state, rules, goal_state):
     print("Search to reach {} from {}".format(goal_state.position, start_state.samus.position))
@@ -20,9 +20,9 @@ def rule_search(start_state, rules, goal_state):
         next_states = [(r, r.apply(state)) for r in rules]
         for rule, (next_state, err) in next_states:
             if next_state is not None:
-                print("Applied rule: {} at level {}".format(rule.name, n_rules))
-                print("Now at: {}".format(next_state.samus))
-                statestr = "{}_{}".format(n_rules, rule.name)
+                print("\t{} applied at level {}".format(rule.name, n_rules))
+                print("\tNow at: {}".format(next_state.samus))
+                #statestr = "{}_{}".format(n_rules, rule.name)
                 #fname = "../output/rule_{}.png".format(statestr)
                 #state_img = next_state.to_image()
                 #state_img.save(fname)
@@ -50,8 +50,7 @@ def rule_search(start_state, rules, goal_state):
                 entry_count += 1
             else:
                 pass
-                #print("Rule failed: {}".format(rule.name))
-                #print("Because: {}".format(err))
+                print("\t{} failed because {}".format(rule.name, err))
         if n_rules >= max_rules:
             print("Reached max rules!")
             break
