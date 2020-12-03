@@ -118,6 +118,7 @@ Rules:
     - Land:
         b_pose: Jump
         a_pose: Stand
+        b_vv: 0<=X
         
 Chains:
 

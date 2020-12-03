@@ -322,7 +322,7 @@ def parse_rules_yaml(rules_file):
     if "Rules" in rules_yaml and rules_yaml["Rules"] is not None:
         for r_dict in rules_yaml["Rules"]:
             rule_name = list(r_dict.keys())[0]
-            print("Rule: {}".format(rule_name))
+            #print("Rule: {}".format(rule_name))
             rule_definition = r_dict[rule_name]
             if rule_definition is None:
                 rule_definition = {}
@@ -339,7 +339,7 @@ def parse_rules_yaml(rules_file):
     if "Tests" in rules_yaml and rules_yaml["Tests"] is not None:
         for t_dict in rules_yaml["Tests"]:
             test_name = list(t_dict.keys())[0]
-            print("Test: {}".format(test_name))
+            #print("Test: {}".format(test_name))
             test_definition = t_dict[test_name]
             if test_definition is None:
                 test_definition = {}

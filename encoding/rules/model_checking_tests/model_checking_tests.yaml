@@ -1,8 +1,14 @@
 Tests:
     - ConstructionZone:
-            a_vh: Run, 0
-            a_vv: 0
-            item_exist: MB,M
+        a_vh: Run, 0
+        a_vv: 0
+        item_exist: MB,M
+        obtain: MB,M
+            
+    - ConstructionSub:
+        a_vh: Run, 0
+        a_vv: 0
+        items: MB, M
     
     - TestImplicitItem:
         a_vh: Run, 0

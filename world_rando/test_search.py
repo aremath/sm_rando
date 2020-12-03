@@ -18,11 +18,11 @@ def run_test(output_folder, rules, test_name, tests):
         out_path = output_folder / (test_name + "_out.png")
         out_image.save(out_path)
     else:
-        all_positions = set([s.samus.position for s in finished])
-        out_image = i.to_image(all_positions, finished_color)
-        out_path = output_folder / (test_name + "_out.png")
-        out_image.save(out_path)
         print("Final state not found!")
+    all_positions = set([s.samus.position for s in finished])
+    reached_image = i.to_image(all_positions, finished_color)
+    out_path = output_folder / (test_name + "_reached.png")
+    reached_image.save(out_path)
 
 def run_all_tests(rules_folder, rules, tests):
     for test_name in tests.keys():
@@ -36,3 +36,4 @@ if __name__ == "__main__":
     #run_test(output_folder, rules, "TestBombJump", tests)
     #run_test(output_folder, rules, "TestGrabBombs", tests)
     run_test(output_folder, rules, "ConstructionZone", tests)
+    #run_test(output_folder, rules, "ConstructionSub", tests)

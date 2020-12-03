@@ -122,7 +122,7 @@ def find_counterexample(initial_states, sat_states, k, ag_formula, inner_formula
     final_state = None
     queue = list(initial_states)
     while len(queue) > 0:
-        state = queue.pop()
+        state = queue.pop(0)
         # If F does not hold at the current state, we are done
         if state not in inner_holds:
             final_state = state
