@@ -101,7 +101,7 @@ def make_kripke(initial_state, final_state, level, rules):
                 if check_samus_pos(level, next_samus):
                     transitions.append((s, next_samus))
     #TODO: optionally other labels
-    #print(len(all_valid_states))
+    print("Number of States: {}".format(len(all_valid_states)))
     initial_states = set([initial_state])
     k = Kripke(S=all_valid_states,S0=initial_states,R=transitions,L=labels)
     return initial_states, k
@@ -172,5 +172,5 @@ if __name__ == "__main__":
     out_path = Path("../output")
     rules, tests = parse_rules.parse_rules(["../encoding/rules/rules.yaml",
         "../encoding/rules/model_checking_tests/model_checking_tests.yaml"])
-    t = verify(tests["TestTrap"], rules.values(), no_softlocks, out_path, no_softlocks_inner)
+    t = verify(tests["ConstructionZone"], rules.values(), no_softlocks, out_path, no_softlocks_inner)
     print(t)

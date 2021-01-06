@@ -39,12 +39,14 @@ def room_setup(room_tiles, cmap):
 # Tile rooms is Coord -> room id,
 # paths is [(start_node, end_node, [MCoord])]
 # rooms is room_id -> room
+#TODO: Generate "master room graph" then use sub to create room graphs
 def room_graphs(rooms, tile_rooms, paths):
     #TODO: node_locs for each node and each door node.
     # room_node_locs: room_id -> node -> Coord
     for (start, end, path, items) in paths:
         room_start = tile_rooms[path[0]]
         room_end = tile_rooms[path[-1]]
+        # Add nodes for the items at the start and end of this path
         gstart = rooms[room_start].graph
         if start not in gstart.nodes:
             rooms[room_start].items.append(Item(start, path[0] - rooms[room_start].pos))
@@ -56,13 +58,13 @@ def room_graphs(rooms, tile_rooms, paths):
         current_room = room_start
         current_node = start
         current_pos = path[0]
+        # Travel along the path, creating the necessary doors
         for new_pos in path:
             new_room = tile_rooms[new_pos]
             if new_room != current_room:
                 gcurrent = rooms[current_room].graph
                 gnew = rooms[new_room].graph
-                # Create a door
-                # Node in the old room
+                # Create a door node in the old room
                 current_wr = current_pos.wall_relate(new_pos)
                 current_door = str(current_room) + "_" + str(current_pos) + "_" + current_wr
                 if current_door not in gcurrent.nodes:
@@ -85,7 +87,7 @@ def room_graphs(rooms, tile_rooms, paths):
                 # the new current node is the door we came into the new room by
                 current_node = new_door
             current_pos = new_pos
-        # link the final current node with end
+        # Link the final current node with end
         gend.update_edge(current_node, end, items)
 
 def make_rooms(room_tiles, cmap, paths, settings, patterns):
