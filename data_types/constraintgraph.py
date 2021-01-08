@@ -35,6 +35,8 @@ from sm_rando.data_types.minsetset import MinSetSet
 from sm_rando.data_types.item_set import ItemSet
 from sm_rando.data_types.orderedset import OrderedSet
 
+infinity = float("inf")
+
 #TODO: now that node, item set are both hashable... hash this?
 #TODO: alter graph so that the edge list is part of the node data structure?
 #TODO: alter graph so that node ID is an index into the graph? (faster hashing?)
@@ -175,7 +177,7 @@ class ConstraintGraph(object):
         for inode, index in indices_to_remove.items():
             del self.node_edges[inode][index]
 
-    def BFS_optimized(self, start_state, end_state=None):
+    def BFS_optimized(self, start_state, end_state=None, edge_pred=lambda x: True):
         """I don't care about every possible way to get everywhere -
         just BFS until you find end, noting that picking up items is
         always beneficial."""
@@ -215,7 +217,7 @@ class ConstraintGraph(object):
                     items = new_items
             # make an offer to every adjacent node reachable with this item set
             for edge in self.node_edges[node]:
-                if edge.items.matches(items):
+                if edge.items.matches(items) and edge_pred((node, edge.terminal)):
                     # if we haven't already visited terminal with those items...
                     if items not in finished[edge.terminal]:
                         offers[edge.terminal][items] = state.copy()
@@ -376,6 +378,47 @@ class ConstraintGraph(object):
             return None
         else:
             return bfs_backtrack(start_state, end_state, bfs_offers)
+
+    def network_flow(self, items, edge_weights, source, sink):
+        assert source in self.name_node
+        assert sink in self.name_node
+        # Edge weights is (node1, node2) -> non-negative float
+        current_edge_weights = edge_weights.copy()
+        start_state = BFSState(source, items)
+        # TODO: can you pick up new items during the search?
+        # TODO: is it correct to use BFS_optimized when we wish not to collect items?
+        end_state = BFSState(sink, items)
+        # Both refer to the (mutable) current edge weights
+        edge_inf = lambda x: current_edge_weights[x] == infinity
+        edge_nonzero = lambda x: current_edge_weights[x] > 0
+        # Check if there is a path of weight infinity from source to sink
+        _, _, inf_path, _ = self.BFS_optimized(start_state, end_state, edge_pred=edge_inf)
+        if inf_path:
+            # No cut is possible since every cut has infinite weight
+            return infinity, None
+        # If there is no inf_path, then there is a finite-weight cut
+        while True:
+            o, f, p, _ = self.BFS_optimized(start_state, end_state, edge_pred=edge_nonzero)
+            # No nonzero path means a cut has been found
+            if not p:
+                break
+            # If there is a nonzero path, create regret along it
+            path = bfs_backtrack(start_state, end_state, o)
+            path_pairs = zip(path, path[1:])
+            # The smallest edge limits the amount of possible flow
+            regret = min([edge_weights[(u,v)] for u,v in path_pairs])
+            # Update the edge weights with the regret:
+            for u,v in path_pairs:
+                edge_weights[(u,v)] -= regret
+                edge_weights[(v,u)] += regret
+        # Find the cut by first finding the nodes reachable from the source
+        _, f, _, _ = self.BFS_optimized(start_state)
+        source_nodes = set(f.keys())
+        # All the edges which cross the boundary
+        cut_edges = [(u, v.terminal) for u in source_nodes
+                for v in self.name_node[u].edges if v.terminal not in source_nodes]
+        total_cut_weight = sum([edge_weights[e] for e in cut_edges])
+        return total_cut_weight, cut_edges
 
     def add_room(self, door1, door2, room_graph):
         """adds a room to self, connecting door1 in self to door2 in room_graph"""

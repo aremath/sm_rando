@@ -9,7 +9,7 @@ from rom_tools.rom_manager import RomManager
 from door_rando import settings
 from door_rando.rando_algs import item_quota_rando
 from data_types.item_set import ItemSet
-from data_types.graph import BFSState
+from data_types.constraintgraph import BFSState
 from misc import rng, settings_parse
 
 #TODO: A better file structure would keep all the rando algorithms that produce door changes and item changes somewhere else

@@ -1,5 +1,5 @@
 from parse_rooms import *
-from graph import *
+from constraintgraph import *
 from alg_support import *
 
 #TODO: test files in another folder?
