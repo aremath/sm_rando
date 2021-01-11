@@ -379,7 +379,7 @@ class ConstraintGraph(object):
         else:
             return bfs_backtrack(start_state, end_state, bfs_offers)
 
-    def network_flow(self, items, edge_weights, source, sink):
+    def network_flow(self, edge_weights, source, sink, items=ItemSet()):
         assert source in self.name_node
         assert sink in self.name_node
         # Edge weights is (node1, node2) -> non-negative float
@@ -397,26 +397,30 @@ class ConstraintGraph(object):
             # No cut is possible since every cut has infinite weight
             return infinity, None
         # If there is no inf_path, then there is a finite-weight cut
+        iteration = 0
         while True:
+            iteration += 1
             o, f, p, _ = self.BFS_optimized(start_state, end_state, edge_pred=edge_nonzero)
             # No nonzero path means a cut has been found
             if not p:
                 break
             # If there is a nonzero path, create regret along it
             path = bfs_backtrack(start_state, end_state, o)
-            path_pairs = zip(path, path[1:])
+            # List because we are going to re-use it
+            path_pairs = list(zip(path, path[1:]))
             # The smallest edge limits the amount of possible flow
-            regret = min([edge_weights[(u,v)] for u,v in path_pairs])
+            regret = min([current_edge_weights[(u,v)] for u,v in path_pairs])
             # Update the edge weights with the regret:
+            #TODO: assumes current_edge_weights is complete
             for u,v in path_pairs:
-                edge_weights[(u,v)] -= regret
-                edge_weights[(v,u)] += regret
+                current_edge_weights[(u,v)] -= regret
+                current_edge_weights[(v,u)] += regret
         # Find the cut by first finding the nodes reachable from the source
-        _, f, _, _ = self.BFS_optimized(start_state)
+        _, f, _, _ = self.BFS_optimized(start_state, edge_pred=edge_nonzero)
         source_nodes = set(f.keys())
         # All the edges which cross the boundary
         cut_edges = [(u, v.terminal) for u in source_nodes
-                for v in self.name_node[u].edges if v.terminal not in source_nodes]
+                for v in self.node_edges[u] if v.terminal not in source_nodes]
         total_cut_weight = sum([edge_weights[e] for e in cut_edges])
         return total_cut_weight, cut_edges
 
@@ -512,7 +516,7 @@ def bfs_backtrack(start_state, end_state, bfs_offers):
        Intended for use with BFS_opt and BFS_target."""
     path = []
     # since BFS only guarantees that end_state items will be a superset of items, pick an offer for end_node that matches
-    ending_states = [bfs_offers[end_state.node][items] for items in bfs_offers[end_state.node].keys() if items >= end_state.items]
+    ending_states = [BFSState(end_state.node, items) for items in bfs_offers[end_state.node].keys() if items >= end_state.items]
     assert len(ending_states) > 0, "Backtrack: no path to reach " + end_state.node
     state = ending_states[0]
     # loop from the end state until we reach the start state
