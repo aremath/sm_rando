@@ -544,6 +544,7 @@ def parse_image_folder(folder):
     return image_dict
 
 def samus_state_to_image(state, context_state):
+    """ Helper function for LevelState.pretty_print() """
     # Use the context to determine the facing
     if context_state is not None:
         if state.position.x >= context_state.position.x:
@@ -564,6 +565,32 @@ def samus_state_to_image(state, context_state):
         return "samus_spin_{}.png".format(facing)
     else:
         assert False, "Bad SamusPose"
+
+# Helper for LevelState.pretty_print()
+item_to_image = {
+    ItemSet(["MB"]): "item_morph.png",
+    ItemSet(["M"]): "item_missile.png",
+    ItemSet(["B"]): "item_bombs.png",
+    ItemSet(["PB"]): "item_power_bomb.png",
+    ItemSet(["SPB"]): "item_springball.png",
+    ItemSet(["S"]): "item_super.png",
+    ItemSet(["G"]): "item_grapple.png",
+    ItemSet(["SA"]): "item_screw.png",
+    ItemSet(["V"]): "item_varia.png",
+    ItemSet(["GS"]): "item_gravity.png",
+    ItemSet(["SB"]): "item_speed.png",
+    ItemSet(["HJ"]): "item_hi_jump.png",
+    ItemSet(["CB"]): "item_charge.png",
+    ItemSet(["WB"]): "item_wave.png",
+    ItemSet(["WB"]): "item_wave.png",
+    ItemSet(["E"]): "item_energy.png",
+    ItemSet(["PLB"]): "item_plasma.png",
+    ItemSet(["Spazer"]): "item_spazer.png",
+    ItemSet(["RT"]): "item_reserve.png",
+    ItemSet(["XR"]): "item_xray.png",
+    ItemSet(["IB"]): "item_ice.png",
+    ItemSet(["SJ"]): "item_space_jump.png",
+    }
 
 class LevelState(object):
     """
@@ -617,6 +644,15 @@ class LevelState(object):
             s_i = image_dict[samus_state_to_image(s2, s1)]
             pos = (s2.position - self.origin) * scale_factor
             i.paste(s_i, (pos[0], pos[1]))
+        # Draw the items (over the samuses, to make them visible, under the arrows)
+        for pos, item in self.items.items():
+            if item in item_to_image:
+                item_image = image_dict[item_to_image[item]]
+            else:
+                # Handles bosses, etc.
+                item_image = image_dict["item_unknown.png"]
+            real_pos = pos * scale_factor
+            i.paste(item_image, (real_pos[0], real_pos[1]))
         # Convert to numpy to draw arrows using CV2
         numpy_i = np.array(i)
         # Draw the arrows connecting the samusstates
