@@ -6,6 +6,7 @@ import operator
 
 from sm_rando.data_types import basicgraph, item_set
 from sm_rando.encoding import item_order, sm_global
+from sm_rando.world_rando.util import pairwise
 
 #TODO: every item needs to keep a unique ID
 # so that it can know its PLM index when it
@@ -26,11 +27,6 @@ def abstract_map(settings):
     rsg = region_subgraphs(graph, region_finished)
     #print(es)
     return order, graph, rsg, es, region_order
-
-def pairwise(iterable):
-    a,b = itertools.tee(iterable)
-    next(b, None)
-    return zip(a,b)
 
 def order_graph():
     """Creates an item order graph, which is an

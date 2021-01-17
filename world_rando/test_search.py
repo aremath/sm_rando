@@ -11,13 +11,19 @@ def run_test(output_folder, rules, test_name, tests):
     offers, finished, final_state = search.rule_search(i, rules.values(), f)
     if final_state is not None:
         print("Final state found!")
-        path = search.get_path(offers, i, f)
+        rule_path, state_path = search.get_path(offers, i, f)
         print("Using:")
-        print([p.name for p in path])
-        print(len(path))
+        print([p.name for p in rule_path])
+        print(len(rule_path))
+        # Print the final level state
         out_image = final_state.to_image()
         out_path = output_folder / (test_name + "_out.png")
         out_image.save(out_path)
+        # Pretty-print the path:
+        samus_state_path = [p.samus for p in state_path]
+        out_pretty = final_state.level.pretty_print(samus_state_path, "../encoding/levelstate_tiles")
+        out_pretty_path = output_folder / (test_name + "_out_pretty.png")
+        out_pretty.save(out_pretty_path)
     else:
         print("Final state not found!")
     all_positions = set([s.samus.position for s in finished])
@@ -35,6 +41,6 @@ if __name__ == "__main__":
     rules, tests = parse_rules.parse_rules(rules_files)
     #run_all_tests(output_folder, rules, tests)
     #run_test(output_folder, rules, "TestBombJump", tests)
-    run_test(output_folder, rules, "TestGrabMorph", tests)
+    #run_test(output_folder, rules, "TestGrabMorph", tests)
     run_test(output_folder, rules, "ConstructionZone", tests)
     #run_test(output_folder, rules, "ConstructionSub", tests)

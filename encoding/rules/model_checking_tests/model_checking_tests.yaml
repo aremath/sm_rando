@@ -4,6 +4,18 @@ Tests:
         a_vv: 0
         item_exist: MB,M
         obtain: MB,M
+        
+    - ModifiedConstructionZone1:
+        a_vh: Run, 0
+        a_vv: 0
+        item_exist: MB,M
+        obtain: MB,M
+        
+    - ModifiedConstructionZone2:
+        a_vh: Run, 0
+        a_vv: 0
+        item_exist: MB,M
+        obtain: MB,M
             
     - ConstructionSub:
         a_vh: Run, 0

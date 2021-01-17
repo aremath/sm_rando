@@ -1017,8 +1017,8 @@ def level_from_bytes(levelbytes, dimensions):
     # Cut off the size
     levelbytes = levelbytes[2:]
     # Make sure everything matches
-    assert levelsize % 2 == 0, "Purported level size is not even length"
-    assert levelsize == dimensions.x * dimensions.y * 2, "Level data length does not match specified room dimensions"
+    assert levelsize % 2 == 0, "Purported level size {} is not even!".format(levelsize)
+    assert levelsize == dimensions.x * dimensions.y * 2, "Level data length {} does not match specified room dimensions {}".format(levelsize, dimensions.x * dimensions.y * 2)
     # The level might not include level2 data
     if len(levelbytes) == int(2.5 * levelsize):
         has_level2 = True

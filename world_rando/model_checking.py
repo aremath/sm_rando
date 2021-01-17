@@ -88,15 +88,15 @@ def make_kripke(initial_state, final_state, level, rules):
         transitions.append((s,s))
         ss = SearchState(s, level)
         new_states = [r.apply(ss) for r in rules]
-        for next_state, err in new_states:
+        for r, (next_state, err) in zip(rules, new_states):
             if next_state is not None:
                 next_samus = next_state.samus
+                # As a sanity check, ensure that you can't go out of bounds by applying rules
                 if next_samus not in all_valid_states:
                     print("ASSERT")
-                    print(next_samus.position)
-                    print(next_samus.velocity)
-                    print(next_samus.items)
-                    print(next_samus.pose)
+                    print(r.name)
+                    print(s)
+                    print(next_samus)
                     assert False
                 if check_samus_pos(level, next_samus):
                     transitions.append((s, next_samus))
@@ -166,11 +166,16 @@ def verify(test, rules, spec, output=None, inner_spec=None):
             # Save it
             out_path = output / "counterexample.png"
             out_image.save(out_path)
+            # Pretty print it
+            out_pretty = level.pretty_print(path, "../encoding/levelstate_tiles")
+            out_path = output / "counterexample_pretty.png"
+            out_pretty.save(out_path)
         return False
 
 if __name__ == "__main__":
     out_path = Path("../output")
     rules, tests = parse_rules.parse_rules(["../encoding/rules/rules.yaml",
         "../encoding/rules/model_checking_tests/model_checking_tests.yaml"])
-    t = verify(tests["ConstructionZone"], rules.values(), no_softlocks, out_path, no_softlocks_inner)
+    t = verify(tests["ModifiedConstructionZone2"], rules.values(), no_softlocks, out_path, no_softlocks_inner)
+    #t = verify(tests["ConstructionSub"], rules.values(), no_softlocks, out_path, no_softlocks_inner)
     print(t)

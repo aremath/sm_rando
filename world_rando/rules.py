@@ -1,7 +1,10 @@
 from PIL import Image
 import numpy as np
+import cv2
 from enum import IntEnum
+from pathlib import Path
 from sm_rando.world_rando.coord import Coord, Rect
+from sm_rando.world_rando.util import pairwise
 from sm_rando.data_types.item_set import ItemSet
 
 Infinity = float("inf")
@@ -60,6 +63,21 @@ abstract_to_color = {
     AbstractTile.BLOCK_SPEED : block_speed_color,
     AbstractTile.BLOCK_CRUMBLE : block_crumble_color,
     AbstractTile.BLOCK_SHOT : block_shot_color
+    }
+
+abstract_to_image = {
+    AbstractTile.UNKNOWN : "",
+    AbstractTile.AIR : "tile_air.png",
+    AbstractTile.SOLID : "tile_solid.png",
+    AbstractTile.GRAPPLE : "tile_grapple.png",
+    AbstractTile.BLOCK_BOMB : "tile_bomb.png",
+    AbstractTile.BLOCK_MISSILE : "tile_missile.png",
+    AbstractTile.BLOCK_SUPER : "tile_super.png",
+    AbstractTile.BLOCK_POWER_BOMB : "tile_power_bomb.png",
+    AbstractTile.BLOCK_GRAPPLE : "tile_grapple_crumble.png",
+    AbstractTile.BLOCK_SPEED : "tile_speed.png",
+    AbstractTile.BLOCK_CRUMBLE : "tile_crumble.png",
+    AbstractTile.BLOCK_SHOT : "tile_shot.png"
     }
 
 class SamusPose(IntEnum):
@@ -516,6 +534,37 @@ def samus_tiles(pos, pose):
 def copy_items(items_list):
     return [(c.copy(), i.copy()) for c,i in self.items]
 
+def parse_image_folder(folder):
+    """ Helper function for LevelState.pretty_print() """
+    image_dict = {}
+    image_paths = Path(folder).glob("**/*.png")
+    for image_path in image_paths:
+        i = Image.open(str(image_path))
+        image_dict[image_path.name] = i
+    return image_dict
+
+def samus_state_to_image(state, context_state):
+    # Use the context to determine the facing
+    if context_state is not None:
+        if state.position.x >= context_state.position.x:
+            facing = "right"
+        else:
+            facing = "left"
+    # Unknown -> arbitrary
+    else:
+        facing = "right"
+        pass
+    if state.pose == SamusPose.STAND:
+        return "samus_stand_{}.png".format(facing)
+    elif state.pose == SamusPose.MORPH:
+        return "samus_morph.png"
+    elif state.pose == SamusPose.JUMP:
+        return "samus_jump_{}.png".format(facing)
+    elif state.pose == SamusPose.SPIN:
+        return "samus_spin_{}.png".format(facing)
+    else:
+        assert False, "Bad SamusPose"
+
 class LevelState(object):
     """
     Composable structure that keeps track of level data.
@@ -543,6 +592,49 @@ class LevelState(object):
                 pixels[pixel_xy] = tint_color
             else:
                 pixels[pixel_xy] = abstract_to_color[self[xy]]
+        return i
+
+    def pretty_print(self, samus_states, image_folder):
+        tile_size = 16
+        scale_factor = Coord(tile_size, tile_size)
+        center = Coord(tile_size // 2, tile_size // 2)
+        image_dict = parse_image_folder(image_folder)
+        i = Image.new("RGB", (self.shape[0] * tile_size, self.shape[1] * tile_size))
+        pixels = i.load()
+        # Draw the level
+        for xy in self.rect:
+            pos = (xy - self.origin) * scale_factor
+            # Have to convert pos from coord to tuple for some reason
+            i.paste(image_dict[abstract_to_image[self[xy]]], (pos[0], pos[1]))
+        # Draw the samusstates
+        # Draw s0 arbitrarily first
+        if len(samus_states) > 0:
+            s0_i = image_dict[samus_state_to_image(samus_states[0], None)]
+            pos = (samus_states[0].position - self.origin) * scale_factor
+            i.paste(s0_i, (pos[0], pos[1]))
+        # Samus facing direction depends on context of previous state
+        for s1, s2 in pairwise(samus_states):
+            s_i = image_dict[samus_state_to_image(s2, s1)]
+            pos = (s2.position - self.origin) * scale_factor
+            i.paste(s_i, (pos[0], pos[1]))
+        # Convert to numpy to draw arrows using CV2
+        numpy_i = np.array(i)
+        # Draw the arrows connecting the samusstates
+        for index, (s1, s2) in enumerate(pairwise(samus_states)):
+            p1 = s1.position * scale_factor + center
+            p2 = s2.position * scale_factor + center
+            # cv2 does not have fixed size tiplengths
+            length = p2.euclidean(p1)
+            if length == 0:
+                tiplength = 0
+            else:
+                tiplength = 6 / length
+            percent = index / len(samus_states)
+            c_index = int(255 * percent)
+            color = (c_index, 0, 255 - c_index)
+            cv2.arrowedLine(numpy_i, p1, p2, color, 2, tipLength=tiplength)
+        # Convert back to PIL
+        i = Image.fromarray(numpy_i)
         return i
 
     @property
@@ -654,7 +746,10 @@ class SamusState(object):
                 s.velocity = v
                 # Any non-morph pose leaves you standing
                 #TODO: what if you're in spin in a 2-high gap -- this will clip you into the floor!!
-                if s.pose != SamusPose.MORPH:
+                if s.pose == SamusPose.SPIN:
+                    s.pose = SamusPose.STAND
+                    s.position += Coord(0, -1)
+                elif s.pose != SamusPose.MORPH:
                     s.pose = SamusPose.STAND
             # Colliding with the ceiling
             elif d == Coord(0, -1):
@@ -717,7 +812,17 @@ class SamusFunction(object):
                 return None, "Required item does not exist"
             # Add the item picked up from that location
             items |= item_locations[rel_position]
-        #print(samus_state.position, samus_state.pose)
+        # Samus automatically gains items if her hitbox is inside an item.
+        # Important for model checking because skipping items can be "beneficial" from that
+        # point of view, so we want to model more precisely when an item can be skipped.
+        #TODO: Need to also check this during application of a LevelFunction that moves through an item
+        # using collide()
+        t = samus_tiles(samus_state.position, samus_state.pose)
+        for tile in t:
+            if tile in item_locations:
+                # It's okay to allow samus to pick up the same item multiple times
+                items |= item_locations[tile]
+        # Determine the new velocity
         v = self.vfunction.apply(samus_state.velocity)
         if v is None:
             return None, "Velocity application failed"
@@ -885,8 +990,19 @@ class LevelFunction(object):
                     conflict_ds.append(d)
             # If there was a conflict, partially apply the rule
             if len(conflict_ds) > 0:
-                #print("Collision along {}".format(conflict_ds))
+                #TODO: Crouch pose for allowing 2-high passageways to function
                 samus = intermediate_samus.collide(conflict_ds, debug)
+                i_samus_tiles = samus_tiles(samus.position, samus.pose)
+                # Try to assign air to all the tiles that samus winds up in after the collision
+                for t in i_samus_tiles:
+                    ok = level_check_and_make(level_array, origin, t, AbstractTile.AIR, samus)
+                    if ok is None:
+                        #print("Collide Fail")
+                        #print(t, level_array[t])
+                        #print(state.samus)
+                        #print(samus)
+                        #print(i_samus_tiles)
+                        return None, "Collision clipped Samus into a wall at {}".format(t)
                 level = LevelState(sl.origin.copy(), level_array, sl.liquid_type, sl.liquid_level, sl.items)
                 return SearchState(samus, level), None
         # No conflict

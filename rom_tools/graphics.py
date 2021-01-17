@@ -182,7 +182,7 @@ def get_tile(index, sce_tile_table, cre_tile_table):
         return sce_tile_table[index - 0x100]
     
 def level_image(level, sce_tile_table_images, cre_tile_table_images):
-    l_image = Image.new("RGBA", (level.dimensions.x * 16, level.dimensions.y * 16), "white")
+    l_image = Image.new("RGBA", (level.dimensions.x * 16, level.dimensions.y * 16), "black")
     for c in level.itercoords():
         tile = level[c]
         tile_image = get_tile(tile.texture.index, sce_tile_table_images, cre_tile_table_images)

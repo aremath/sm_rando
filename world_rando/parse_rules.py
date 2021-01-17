@@ -227,6 +227,7 @@ def normalize_list(coord_list, pos):
 def parse_statefunction(name, level_image, d):
     #print("Parsing rule: {}".format(name))
     b_pos, a_pos, level, liquid_interval, liquid_type, item_locations = make_level(level_image)
+    rel_pos = a_pos - b_pos
     scan_direction = (a_pos - b_pos).sign()
     r = Rect(Coord(0,0), Coord(level.shape[0], level.shape[1]))
     vf = parse_vfunction(d)
@@ -235,7 +236,7 @@ def parse_statefunction(name, level_image, d):
     pose_initial = pose_str[d["b_pose"]]
     pose_final = pose_str[d["a_pose"]]
     items_initial = parse_items(d["items"])
-    sfunction = SamusFunction(vf, items_initial, item_locations, pose_initial, pose_final, a_pos)
+    sfunction = SamusFunction(vf, items_initial, item_locations, pose_initial, pose_final, rel_pos)
     #TODO: certain (i.e. the first of each rule) IntermediateStates hold the sfunction so that samus' state
     # can be inferred within the rule
     #TODO: verify by checking that the inferred end state is the same as the end state achieved through function
@@ -328,7 +329,7 @@ def parse_rules_yaml(rules_file):
                 rule_definition = {}
             r_dict = add_defaults(rule_definition)
             pic_path = rules_path / (rule_name + ".png")
-            level_image = Image.open(pic_path)
+            level_image = load_image(pic_path)
             made_rules = parse_statefunction(rule_name, level_image, r_dict)
             for r in made_rules:
                 rules[r.name] = r
@@ -345,10 +346,16 @@ def parse_rules_yaml(rules_file):
                 test_definition = {}
             t_dict = add_defaults(test_definition)
             pic_path = rules_path / (test_name + ".png")
-            level_image = Image.open(pic_path)
+            level_image = load_image(pic_path)
             test = make_test_state(level_image, t_dict)
             tests[test_name] = test
     return rules, tests
+
+def load_image(path):
+    level_image = Image.open(path)
+    mode = level_image.mode
+    assert mode == "RGB", "Wrong image mode: {} -> {}".format(path, mode)
+    return level_image
 
 def parse_rules(r_list):
     """

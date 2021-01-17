@@ -1,4 +1,5 @@
 import random
+from itertools import tee
 
 # Credit to Weighted Random Sampling, Efraimidis, Spirakis 2005
 def weighted_random_order(l, weights, n=None):
@@ -29,3 +30,8 @@ def split_zeros(l, weights):
             w_new.append(weights[i])
     return l_new, w_new, zero_l
 
+# Iterate through an iterable by pairs
+def pairwise(iterable):
+    a,b = tee(iterable)
+    next(b, None)
+    return zip(a,b)

@@ -62,10 +62,11 @@ def get_path(offers, start_state, goal_state):
     end_states = [o for o in offers if o.samus == goal_state]
     assert len(end_states) > 0, "Goal state not found!"
     current_state = end_states[0]
-    path = []
-    #print({k.samus:(r.name, v.samus) for k,(r,v) in offers.items()})
+    rule_path = []
+    state_path = [end_states[0]]
     while current_state.samus != start_state.samus:
         rule, prev_state = offers[current_state]
-        path.insert(0, rule)
+        rule_path.insert(0, rule)
+        state_path.insert(0, prev_state)
         current_state = prev_state
-    return path
+    return rule_path, state_path

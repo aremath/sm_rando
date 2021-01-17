@@ -90,6 +90,9 @@ Rules:
     - Jump:
         a_pose: Jump
         
+    - JumpRight:
+        a_pose: Jump
+        
     - FallOff:
         b_pose: Stand
         a_pose: Jump
@@ -114,9 +117,31 @@ Rules:
         b_vh: Run,0
         a_vv: 1,Store
         a_vh: Run,0,Lose
+        
+    - SpinFall0:
+        b_pose: Spin
+        a_pose: Spin
+        b_vv: 0
+        b_vh: Run,0
+        a_vv: 1,Store
+        a_vh: Run,0,Lose
+    
+    - SpinFall1:
+        b_pose: Spin
+        a_pose: Spin
+        Symmetric:
+        b_vv: 0<=X
+        b_vh: Run,0
+        a_vv: 1,Store
+        a_vh: Run,0,Lose
     
     - Land:
         b_pose: Jump
+        a_pose: Stand
+        b_vv: 0<=X
+        
+    - SpinLand:
+        b_pose: Spin
         a_pose: Stand
         b_vv: 0<=X
         
