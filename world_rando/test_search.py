@@ -8,6 +8,11 @@ finished_color = (0, 255, 0)
 def run_test(output_folder, rules, test_name, tests):
     print("Doing Test: {}".format(test_name))
     i,f = tests[test_name]
+    # Pretty-print the level
+    out_pretty_path = output_folder / (test_name + "_test_pretty.png")
+    out_pretty = i.level.pretty_print([i.samus,f], "../encoding/levelstate_tiles")
+    out_pretty.save(out_pretty_path)
+    # Find a path
     offers, finished, final_state = search.rule_search(i, rules.values(), f)
     if final_state is not None:
         print("Final state found!")
@@ -42,5 +47,6 @@ if __name__ == "__main__":
     #run_all_tests(output_folder, rules, tests)
     #run_test(output_folder, rules, "TestBombJump", tests)
     #run_test(output_folder, rules, "TestGrabMorph", tests)
-    run_test(output_folder, rules, "ConstructionZone", tests)
+    #run_test(output_folder, rules, "ConstructionZone", tests)
+    run_test(output_folder, rules, "ModifiedConstructionZone1", tests)
     #run_test(output_folder, rules, "ConstructionSub", tests)

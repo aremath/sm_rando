@@ -4,9 +4,12 @@ from itertools import product, chain, combinations
 from pathlib import Path
 import numpy as np
 from tqdm import tqdm
+import time
+import graphviz
 
-from rules import *
 import parse_rules
+from rules import *
+from search import *
 
 no_softlocks = AG(EF("goal"))
 no_softlocks_inner = EF("goal")
@@ -79,10 +82,13 @@ def make_kripke(initial_state, final_state, level, rules):
     #TODO also check other velocity types
     xvs = range(-velocity_maxima[VType.RUN], velocity_maxima[VType.RUN])
     all_valid_states = set()
-    for s in tqdm(iter_all_states(x_range, y_range, xvs, yvs, item_sets)):
-        # Only consider states where samus is not inside an object
-        if check_samus_pos(level, s):
-            all_valid_states.add(s)
+    # Find valid states
+    time_a = time.perf_counter()
+    o, f, p = rule_search(SearchState(initial_state, level), rules, None)
+    all_valid_states = set([f_i.samus for f_i in f])
+    time_b = time.perf_counter()
+    print("Enumerated {} states in {} seconds".format(len(all_valid_states), time_b - time_a))
+    # Build the graph
     for s in tqdm(all_valid_states):
         # Can stay still (function must be left-total)
         transitions.append((s,s))
@@ -104,6 +110,8 @@ def make_kripke(initial_state, final_state, level, rules):
     print("Number of States: {}".format(len(all_valid_states)))
     initial_states = set([initial_state])
     k = Kripke(S=all_valid_states,S0=initial_states,R=transitions,L=labels)
+    time_c = time.perf_counter()
+    print("Built graph with {} edges in {} seconds".format(len(transitions), time_c - time_b))
     return initial_states, k
 
 def find_counterexample(initial_states, sat_states, k, ag_formula, inner_formula):
@@ -151,7 +159,11 @@ def verify(test, rules, spec, output=None, inner_spec=None):
     initial_state = i_state.samus
     level = i_state.level
     initial_states, k = make_kripke(initial_state, final_state, level, rules)
+    kripke_to_dot(k, output)
+    time_a = time.perf_counter()
     sat_states = modelcheck(k, spec)
+    time_b = time.perf_counter()
+    print("Checked model in {} seconds".format(time_b - time_a))
     # Spec holds if it is true at the start state
     if initial_states <= sat_states:
         return True
@@ -171,6 +183,20 @@ def verify(test, rules, spec, output=None, inner_spec=None):
             out_path = output / "counterexample_pretty.png"
             out_pretty.save(out_path)
         return False
+
+def kripke_to_dot(k, out_path):
+    g = graphviz.Digraph()
+    state_set = set(k.states())
+    state_ids = {k:i for i,k in enumerate(state_set)}
+    for state in state_set:
+        state_id = str(state_ids[state])
+        g.node(state_id)
+    for s1, s2 in k.transitions():
+        s1_id = str(state_ids[s1])
+        s2_id = str(state_ids[s2])
+        g.edge(s1_id, s2_id)
+    with open(out_path / "model_graph.dot", "w") as f:
+        f.write(str(g))
 
 if __name__ == "__main__":
     out_path = Path("../output")
