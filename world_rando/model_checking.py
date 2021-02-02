@@ -6,6 +6,7 @@ import numpy as np
 from tqdm import tqdm
 import time
 import graphviz
+import pickle
 
 import parse_rules
 from rules import *
@@ -166,7 +167,7 @@ def verify(test, rules, spec, output=None, inner_spec=None):
     print("Checked model in {} seconds".format(time_b - time_a))
     # Spec holds if it is true at the start state
     if initial_states <= sat_states:
-        return True
+        return True, k, None
     else:
         # Find a counterexample path if desired
         if inner_spec is not None:
@@ -182,7 +183,7 @@ def verify(test, rules, spec, output=None, inner_spec=None):
             out_pretty = level.pretty_print(path, "../encoding/levelstate_tiles")
             out_path = output / "counterexample_pretty.png"
             out_pretty.save(out_path)
-        return False
+        return False, k, path
 
 def kripke_to_dot(k, out_path):
     g = graphviz.Digraph()
@@ -197,11 +198,13 @@ def kripke_to_dot(k, out_path):
         g.edge(s1_id, s2_id)
     with open(out_path / "model_graph.dot", "w") as f:
         f.write(str(g))
+    with open(out_path / "kripke", "wb") as f:
+        pickle.dump(k, f)
 
 if __name__ == "__main__":
     out_path = Path("../output")
     rules, tests = parse_rules.parse_rules(["../encoding/rules/rules.yaml",
         "../encoding/rules/model_checking_tests/model_checking_tests.yaml"])
-    t = verify(tests["ModifiedConstructionZone2"], rules.values(), no_softlocks, out_path, no_softlocks_inner)
+    t, _, _ = verify(tests["ModifiedConstructionZone2"], rules.values(), no_softlocks, out_path, no_softlocks_inner)
     #t = verify(tests["ConstructionSub"], rules.values(), no_softlocks, out_path, no_softlocks_inner)
     print(t)

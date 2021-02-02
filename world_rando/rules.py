@@ -664,7 +664,7 @@ class LevelState(object):
             if length == 0:
                 tiplength = 0
             else:
-                tiplength = 6 / length
+                tiplength = 10 / length
             percent = index / len(samus_states)
             c_index = int(255 * percent)
             color = (c_index, 0, 255 - c_index)

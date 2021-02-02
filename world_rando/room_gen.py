@@ -322,14 +322,6 @@ class Adjacency(object):
         # Value - the cardinal direction of that SubroomNode relative to this adj
         self.direction = direction
         assert len(self.direction) == 2
-        if impassables is not None:
-            self.impassables = impassables
-        else:
-            self.impassables = []
-        if entrance is not None:
-            self.entrance = entrance
-        else:
-            self.entrance = None
         # list of ItemSet which are the ItemSets used to cross this adj
         self.crossings = []
 
