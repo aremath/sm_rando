@@ -6,6 +6,17 @@ class BasicGraph(object):
         self.nodes = {} # key - node name, value - node data
         self.nnodes = 0
 
+    def __getitem__(self, index):
+        try:
+            l = len(index)
+            assert l == 2, "Bad Index {}".format(index)
+            return self.get_edge_data(self, index[0], index[1])
+        except TypeError:
+            return self.get_node_data(self, node)
+
+    def neighbors(self, name):
+        return [edge.terminal for edge in self.nodes[name].edges]
+
     def add_node(self, name, data=None):
         if name is None:
                 name = str(self.nnodes)
@@ -84,7 +95,6 @@ class BasicGraph(object):
         """Get the data (if any) in the specified node."""
         assert node in self.nodes, "Node does not exist: " + node
         return self.nodes[node].data
-
 
     def remove_node(self, node):
         assert node in self.nodes, "Node does not exist: " + node

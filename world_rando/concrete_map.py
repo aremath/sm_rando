@@ -327,22 +327,43 @@ def path_concat(path1, path2):
     assert path1[-1] == path2[0], "Incompatible paths"
     return path1[:-1] + path2
 
+def bfs(space, start, goal=None):
+    offers = {}
+    finished = {start}
+    q = [start]
+    while len(q) != 0:
+        pos = q.popleft()
+        for neighbor in pos.neighbors():
+            if neighbor in finished or neighbor not in space:
+                continue
+            finished.add(neighbor)
+            offers[neighbor] = pos
+            if neighbor == goal:
+                return offers, finished
+            q.append(neighbor)
+    return offers, finished
+
+
 #lambda x: 0 means BFS in a heapq (first element first)
 # can use random to alter the pattern of vertices grabbed by
 # each mean
-def bfs_partition(space, means, priority=lambda x: 0):
+def bfs_partition(space, means, meansets=None, priorities=None):
     """
     Actually do the partitioning for the BFS partition
+    meansets is (key: mean -> value: set) the pre-owned sets for that mean
+    priorities is (key: mean -> value: (position -> integer))
     """
     # Setup
     # Key - mean, value - set of positions that mean has considered
-    mfinished = {mean: set() for mean in means}
-    # Key - mean, value - for position p, what made the a* offer to p?
+    if meansets is None:
+        mfinished = {mean: set(mean) for mean in means}
+        mheaps = {mean: [(0, mean)] for mean in means}
+    else:
+        mfinished = {mean: meansets[mean] for mean in means}
+        mheaps = {mean: [(0, m) for m in meansets[mean]] for mean in means}
+    # Key - mean, value - for position p, what made the offer to p?
     moffers = {mean: {} for mean in means}
-    for mean in means:
-        mfinished[mean].add(mean)
     mpos = {mean: mean for mean in means}
-    mheaps = {mean: [(0, mean)] for mean in means}
     all_finished = set(means)
     while all_finished != space:
         for mean in means:
@@ -352,7 +373,11 @@ def bfs_partition(space, means, priority=lambda x: 0):
                 continue
             for n in mpos[mean].neighbors():
                 if n not in all_finished and n in space:
-                    heapq.heappush(mheaps[mean], (priority(n), n))
+                    if priorities is None:
+                        p = 0
+                    else:
+                        p = priorities[mean](n)
+                    heapq.heappush(mheaps[mean], (p, n))
                     mfinished[mean].add(n)
                     all_finished.add(n)
                     moffers[mean][n] = mpos[mean]
