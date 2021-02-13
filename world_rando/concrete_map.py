@@ -330,7 +330,7 @@ def path_concat(path1, path2):
 def bfs(space, start, goal=None):
     offers = {}
     finished = {start}
-    q = [start]
+    q = collections.deque([start])
     while len(q) != 0:
         pos = q.popleft()
         for neighbor in pos.neighbors():
@@ -338,7 +338,7 @@ def bfs(space, start, goal=None):
                 continue
             finished.add(neighbor)
             offers[neighbor] = pos
-            if neighbor == goal:
+            if goal is not None and neighbor == goal:
                 return offers, finished
             q.append(neighbor)
     return offers, finished

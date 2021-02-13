@@ -10,9 +10,9 @@ class BasicGraph(object):
         try:
             l = len(index)
             assert l == 2, "Bad Index {}".format(index)
-            return self.get_edge_data(self, index[0], index[1])
+            return self.get_edge_data(index[0], index[1])
         except TypeError:
-            return self.get_node_data(self, node)
+            return self.get_node_data(index)
 
     def neighbors(self, name):
         return [edge.terminal for edge in self.nodes[name].edges]
@@ -20,17 +20,17 @@ class BasicGraph(object):
     def add_node(self, name, data=None):
         if name is None:
                 name = str(self.nnodes)
-        assert name not in self.nodes, "A node with this name already exists: " + name
+        assert name not in self.nodes, "A node with this name already exists: {}".format(name)
         self.nnodes += 1
         self.nodes[name] = Node(data)
         pass
 
     def add_edge(self, node1, node2, data=None):
-        assert node1 in self.nodes, "Node does not exist: " + node1
-        assert node2 in self.nodes, "Node does not exist: " + node2
+        assert node1 in self.nodes, "Node does not exist: {}".format(node1)
+        assert node2 in self.nodes, "Node does not exist: {}".format(node2)
         # check if there already is an edge:
         for edge in self.nodes[node1].edges:
-            assert edge.terminal != node2, "An edge already exists: " + node1 + " -> " + node2
+            assert edge.terminal != node2, "An edge already exists: {}->{}".format(node1, node2)
         edge = Edge(node2, data)
         self.nodes[node1].edges.append(edge)
 
@@ -66,8 +66,8 @@ class BasicGraph(object):
 
     def is_edge(self, node1, node2, p=lambda x: True):
         """Is there an edge from node1 to node2 satisfying p?"""
-        assert node1 in self.nodes, "Node does not exist: " + node1
-        assert node2 in self.nodes, "Node does not exist: " + node2
+        assert node1 in self.nodes, "Node does not exist: {}".format(node1)
+        assert node2 in self.nodes, "Node does not exist: {}".format(node2)
         for edge in self.nodes[node1].edges:
             if edge.terminal == node2 and p(edge.data):
                 return True
@@ -75,34 +75,34 @@ class BasicGraph(object):
 
     def get_edge_data(self, node1, node2):
         """Get the data (if any), in the edge from n1 to n2 """
-        assert node1 in self.nodes, "Node does not exist: " + node1
-        assert node2 in self.nodes, "Node does not exist: " + node2
+        assert node1 in self.nodes, "Node does not exist: {}".format(node1)
+        assert node2 in self.nodes, "Node does not exist: {}".format(node2)
         for edge in self.nodes[node1].edges:
             if edge.terminal == node2:
                 return edge.data
         return None
 
     def remove_edge(self, node1, node2):
-        assert node1 in self.nodes, "Node does not exist: " + node1
-        assert node2 in self.nodes, "Node does not exist: " + node2
+        assert node1 in self.nodes, "Node does not exist: {}".format(node1)
+        assert node2 in self.nodes, "Node does not exist: {}".format(node2)
         for index, edge in enumerate(self.nodes[node1].edges):
             if edge.terminal == node2:
                 del self.nodes[node1].edges[index]
                 return
-        assert False, "No such edge: " + node1 + " -> " + node2
+        assert False, "No such edge: {} -> {}".format(node1, node2)
 
     def get_node_data(self, node):
         """Get the data (if any) in the specified node."""
-        assert node in self.nodes, "Node does not exist: " + node
+        assert node in self.nodes, "Node does not exist: {}".format(node)
         return self.nodes[node].data
 
     def remove_node(self, node):
-        assert node in self.nodes, "Node does not exist: " + node
+        assert node in self.nodes, "Node does not exist: {}".format(node)
         self.nnodes -= 1
         del self.nodes[node]
         for inode in self.nodes:
             indices_to_delete = []
-            for index, edge in enumerate(inode.edges):
+            for index, edge in enumerate(self.nodes[inode].edges):
                 if edge.terminal == node:
                     indices_to_delete.append(index)
             for index in indices_to_delete:

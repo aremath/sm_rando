@@ -226,12 +226,18 @@ def level_of_cmap(room):
     # Level has a 16x16 tile for every maptile
     #level = room_dtypes.Level(cmap.dimensions * Coord(16,16))
     cmap = room.cmap
+    cmap_rect = Rect(Coord(0,0), cmap.dimensions)
     doors = room.doors
     level = Level(cmap.dimensions.scale(16))
     # Make walls
     for w_pos, tile in cmap.items():
         for direction in tile.walls:
             mk_wall(level, w_pos, direction)
+    # Fill tiles outside the map
+    for pos in cmap_rect:
+        if pos not in cmap.tiles:
+            r = Rect(pos, pos+Coord(1,1))
+            mk_default_rect(level, r.scale(16))
     # Make doors
     for door in doors:
         mk_door(level, door.pos - room.pos, door.direction, door.id)

@@ -189,6 +189,12 @@ class Rect(object):
             for y in range(self.start.y, self.end.y):
                 yield Coord(x,y)
 
+    def __eq__(self, other):
+        return self.start == other.start and self.end == other.end
+
+    def __hash__(self):
+        return hash((self.start, self.end))
+
     def as_set(self):
         s = set()
         for x in range(self.start.x, self.end.x):

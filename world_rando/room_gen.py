@@ -2,6 +2,7 @@ import itertools
 import random
 import collections
 from collections import OrderedDict
+from functools import reduce
 
 from sm_rando.data_types import basicgraph
 from sm_rando.world_rando.room_dtypes import Room, Level, Tile, Texture, Type
@@ -264,27 +265,27 @@ def mk_door_obstacles(room):
         obstacles.append(door_obstacle)
     return obstacles
 
-#TODO: instead of constantly CHANGING adjacencies, simply create NEW, smaller adjacencies
-# between lower elements of the subroom tree.
 def make_subrooms(room, settings, patterns):
     """
     Create the subrooms for a room
     """
+    start_subroom = Subroom(set([t for t in room.level.tiles if room.level.tiles[t].tile_type == Type(0x0,0x0)]))
     door_obstacles = mk_door_obstacles(room)
+    subroom_state = SubroomState(start_subroom, [], door_obstacles)
     # Partition into subrooms avoiding doors
     print("Creating subrooms")
     max_parts = settings["max_room_partitions"]
     min_part_size = settings["min_room_partition_size"]
-    roots, subrooms = subroom_partition(room, max_parts, min_part_size, door_obstacles)
+    subroom_partition(room, max_parts, min_part_size, subroom_state)
     print("Final subrooms:")
-    print_subrooms(subrooms)
-    subroom_leaves = find_leaves(subrooms, roots)
+    print(subroom_state)
     # DEBUG: view the map
     room.viz_cmap("./output/")
     # Fill the walls so that the item generation will know where to look
-    make_subroom_walls(room.level, subroom_leaves)
+    subroom_state.mk_adj_walls(room.level)
     # DEBUG: look at the level data
     room.viz_level("./output/")
+    return
     # Generate item locations
     print("Generating item locations")
     placement_chances = settings["item_placement_chances"]
@@ -312,11 +313,18 @@ def make_subrooms(room, settings, patterns):
     room.detailed_room_graph = detailed_room_graph
     room.subroom_nodes = subroom_nodes
 
+# For recognizing when an error has caused
+# SubroomState to violate an invariant
+#TODO: revisit the need for this by only altering data structures after possible violations would be detected
+class SubroomException(Exception):
+    pass
+
 class SubroomState(object):
     """Manages the creation / deletion of subrooms and the subroom graph"""
 
-    def __init__(self, start_subroom, walls):
+    def __init__(self, start_subroom, walls, obstacles):
         #TODO: how to represent cross-room adjacencies?
+        #TODO: are "walls" actually used?
         self.subroom_id_counter = 0
         self.recycle_ids = []
         self.walls = walls
@@ -326,8 +334,14 @@ class SubroomState(object):
         #TODO: check borderedness of the starting subroom?
         # -> only need to do one check since borderedness is invariant under split, merge
 
+    def __getitem__(self,index):
+        return self.g[index]
+
+    def __repr__(self):
+        return self.g.__repr__()
+
     def get_new_id(self):
-        if len(self.recycle_ids == 0):
+        if len(self.recycle_ids) == 0:
             new_id = self.subroom_id_counter
             self.subroom_id_counter += 1
             return new_id
@@ -335,8 +349,9 @@ class SubroomState(object):
             return self.recycle_ids.pop()
 
     def delete_subroom(self, sid):
-        for _, n in self.g.get_edges(sid):
-            assert not self.g.is_edge(n, sid), "Cannot delete while an edge exists"
+        for _, e in self.g.nodes[sid].edges:
+            e = e.terminal
+            assert not self.g.is_edge(e, sid), "Cannot delete while an edge exists"
         self.g.remove_node(sid)
         self.recycle_ids.append(sid)
 
@@ -355,11 +370,19 @@ class SubroomState(object):
         self.g.add_edge(s1, s2, data=adj)
         self.g.add_edge(s2, s1, data=adj)
 
+    def split_subroom_unknown(self, adj, min_size=None):
+        for sid in self.g.nodes:
+            sub_tiles = self.g[sid].tiles
+            if adj.tiles < sub_tiles:
+                return self.split_subroom(sid, adj, min_size)
+        assert False, "Adjacency not within a subroom"
+
     #TODO: add and remove obstacles (ensuring obstacles and targets are within subrooms)
 
-    #TODO: Allow specification of required subroom size
-    #TODO: then have check-valid
-    def split_subroom(self, sid, adj):
+    def split_subroom(self, sid, adj, min_size=None):
+        """
+        Split an existing subroom into two smaller subrooms using adj
+        """
         # First ensure that the proposed adj doesn't break any obstacles
         for o in self.obstacles:
             i = (o.target_set | o.obstacle_set) & adj.tiles
@@ -369,22 +392,18 @@ class SubroomState(object):
         s_tiles = self.g[sid].tiles
         # The tiles that make up both subrooms
         new_tiles = s_tiles - adj.tiles
-        assert len(new_tiles) > 0
-        # Arbitrary element to be the root
-        s1_root = next(iter(new_tiles))
-        _, s1_tiles = bfs(new_tiles, s1_root)
-        not_s1_tiles = new_tiles - s1_tiles
-        assert len(s2_tiles) > 0
-        # Arbitrary element to be the root
-        s2_root = next(iter(not_s1_tiles))
-        _, s2_tiles = bfs(new_tiles, s2_root)
-        # Check that all tiles are accounted for
-        assert s1_tiles | s2_tiles == new_tiles
-        # Check that no tiles are double counted
-        assert len(s1_tiles & s2_tiles) == 0
+        components = find_components(new_tiles)
+        assert len(components) == 2, "Adj does not create exactly two regions"
+        s1_tiles, s2_tiles = components
+        #TODO: some metric besides size?
+        if min_size is not None:
+            s1x, s1y = Subroom(s1_tiles).size()
+            s2x, s2y = Subroom(s2_tiles).size()
+            assert min(s1x, s1y) > min_size, "Subroom too small"
+            assert min(s2x, s2y) > min_size, "Subroom too small"
         # Create the new subrooms
-        sid1 = self.new_subroom(s1_tiles)
-        sid2 = self.new_subroom(s2_tiles)
+        sid1 = self.new_subroom(Subroom(s1_tiles))
+        sid2 = self.new_subroom(Subroom(s2_tiles))
         self.new_adjacency(sid1, sid2, adj)
         # For all subrooms that used to border sid,
         # Update old adjacencies by creating new edges
@@ -394,7 +413,8 @@ class SubroomState(object):
             adj_border = adj.border()
             border1 = adj_border & s1_tiles
             border2 = adj_border & s2_tiles
-            assert len(border1 & border2) == 0, "Non-disjoint border pair"
+            if len(border1 & border2) != 0:
+                raise SubroomException("Non-disjoint border pair")
             # Split old adjacency if it borders both subrooms
             # Split the old adjacency by partitioning it with a "growing partition"
             # where the priority of cells to grab depends on average distance to the other border
@@ -413,17 +433,20 @@ class SubroomState(object):
                 self.new_adjacnecy(n, sid2, adj2)
             # If it only borders one, update the ID
             else:
-                elif len(border1) != 0:
+                if len(border1) != 0:
                     b = sid1
                 elif len(border2) != 0:
                     b = sid2
                 else:
-                    assert False, "Edge without border"
+                    raise SubroomException("Edge without border")
                 self.new_adjacency(n, b, adj)
         # Delete the old subroom
         self.delete_subroom(sid)
 
     def merge_subrooms(self, sid1, sid2):
+        """
+        Combine two smaller subrooms along the existing adj
+        """
         # Create a new subroom with a new id that has the union of the two subrooms
         # and their corresponding adjacency in tiles
         adj = self.delete_adjacency(sid1, sid2)
@@ -440,7 +463,7 @@ class SubroomState(object):
                 new_adj = Adjacency(adj1.tiles | adj2.tiles)
                 self.new_adjacency(sid, n, new_adj)
             else:
-                elif n in n1:
+                if n in n1:
                     new_adj = self.delete_adjacency(sid1, n)
                 elif n in n2:
                     new_adj = self.delete_adjacency(sid2, n)
@@ -450,9 +473,64 @@ class SubroomState(object):
         self.delete_subroom(sid1)
         self.delete_subroom(sid2)
 
+    def place_subroom(self, subroom_tiles, min_size=None):
+        """
+        Create an entirely new subroom by using its border with existing subrooms as adjs
+        """
+        parent_id = None
+        parent_subroom = None
+        for s in self.g.nodes:
+            subroom = self.g[s]
+            if subroom_tiles < subroom.tiles:
+                parent_id = s
+                parent_subroom = subroom
+                # Can't get more than one subset since subrooms are disjoint
+                break
+        # The new subroom must be a (strict) subset of a single existing subroom
+        assert parent_id is not None, "Proposed subroom is not within an existing subroom"
+        # Check contiguity
+        s_root = next(iter(subroom_tiles))
+        _, s_tiles = bfs(subroom_tiles, s_root)
+        assert s_tiles == subroom_tiles, "Proposed subroom is not contiguous"
+        # The border that will become potentially many adjacencies
+        border = coord_set_border(subroom_tiles) & parent_subroom.tiles
+        subroom_complement = parent_subroom.tiles - subroom_tiles
+        adj_components = find_components(border)
+        # Group the adjacency components using search
+        adjacencies = []
+        while len(adj_components) > 0:
+            adj = adj_components[0]
+            adj_root = next(iter(adj))
+            # Find all tiles in the complement containing adj
+            _, adj_tiles = bfs(subroom_complement, adj_root)
+            # Use that to build an Adjacency that will actually separate the new subroom from those tiles
+            adj_group = [a for a in adj_components if a <= adj_tiles]
+            assert len(adj_group) > 0 # Should at least contain adj
+            adj_group_tiles = reduce(lambda x,y: x|y, adj_group)
+            adjacencies.append(Adjacency(adj_group_tiles))
+            # Can remove them from components now that we've found the adj
+            for a in adj_group:
+                adj_components.remove(a)
+        # Split on each adjacency
+        for adj in adjacencies:
+            self.split_subroom_unknown(adj, min_size)
+
+    def choose_subroom(self, metric):
+        subrooms = [self.g[i] for i in self.g.nodes]
+        weights = [metric(s) for s in subrooms]
+        return random.choices(subrooms, weights)[0]
+
+    def mk_adj_walls(self, level):
+        for s1, s2 in itertools.combinations(self.g.nodes.keys(), 2):
+            adj = self[(s1, s2)]
+            for t in adj.tiles:
+                mk_default_rect(level, t)
+
+#TODO: ways to have thicker borders, borders with corners, etc.
 def coord_set_border(s):
     directions = [Coord(0,1), Coord(1,0), Coord(-1,0), Coord(0,-1)]
-    border = sorted([p + d for p in s for d in directions if p + d not in s])
+    border = set([p + d for p in s for d in directions if p + d not in s])
+    return border
 
 # A subroom is a contiguous set of tiles which is surrounded by walls or adjacencies
 # An adjacency is a set of tiles (not necessarily contiguous) which is required to traverse in order
@@ -462,7 +540,7 @@ class Subroom(object):
     """A subroom is a contiguous set of tiles which is surrounded by
     wall tiles or adjacency tiles"""
 
-    def __init__(self, sid, tiles):
+    def __init__(self, tiles):
         self.tiles = tiles
 
     # The bounding box of the tiles
@@ -472,11 +550,77 @@ class Subroom(object):
 
     # Tuple of minimum x-extent, minimum y-extent
     def size(self):
-        #TODO
-        pass
+        xs = set([c.x for c in self.tiles])
+        xys = [set([c.y for c in self.tiles if c.x == x]) for x in xs]
+        ysizes = [count_min_contig(ys) for ys in xys]
+        ysize = min(ysizes, default=0)
+        ys = set([c.y for c in self.tiles])
+        yxs = [set([c.x for c in self.tiles if c.y == y]) for y in ys]
+        xsizes = [count_min_contig(xs) for xs in yxs]
+        xsize = min(xsizes, default=0)
+        return xsize, ysize
+
+    # Consider the set of cells that are within any inscribed rectangle of a 
+    # specific size (ex. 2x4). For a subroom to be "valid" we want this set of
+    # cells to be connected and border all of the adjacencies.
+    def check_valid(self, rect, adjs):
+        rects = [rect.translate(x).as_set for x in self.tiles]
+        valid_rects = [r for r in rects if r <= self.tiles]
+        # Set of all cells that can be visited by the desired rectangle size
+        u = reduce(lambda x,y: x|y, valid_rects, set([]))
+        if len(u) == 0:
+            return False
+        u_root = next(iter(u))
+        _, u_tiles = bfs(u)
+        # Set is not connected
+        if u_tiles != u:
+            return False
+        # Now check if all adjacencies are bordered
+        u_border = coord_set_border(u)
+        for a in adjacencies:
+            if len(u_border & a.tiles) == 0:
+                return False
+        return True
 
     def border(self):
         return coord_set_border(self.tiles)
+
+    def choose_split_adj(self):
+        """
+        Randomly choose an adjacency that splits self
+        """
+        xs = [c.x for c in self.tiles]
+        ys = [c.x for c in self.tiles]
+        direction, l = random.choices([("x", xs),("y", ys)], weights=[len(xs), len(ys)])[0]
+        index = random.choice(l)
+        return self.split_adj(index, direction)
+
+    def split_adj(self, index, direction):
+        if direction == "x":
+            adj_tiles = set([t for t in self.tiles if t.x == index])
+        if direction == "y":
+            adj_tiles = set([t for t in self.tiles if t.y == index])
+        return Adjacency(adj_tiles)
+
+def count_min_contig(s):
+    """
+    Helper for size(). Returns the length of the smallest contiguous
+    set in a set of integers.
+    """
+    min_extent = float("inf")
+    sp = set([])
+    print(s - sp)
+    while sp != s:
+        x = next(iter(s - sp))
+        current_extent = 1
+        sp.add(x)
+        while x+1 in s:
+            sp.add(x+1)
+            current_extent += 1
+            x = x+1
+        if current_extent < min_extent:
+            min_extent = current_extent
+    return min_extent
 
 class Adjacency(object):
     """An adjacency is a set of tiles (may not be contiguous) which must be traversed to get
@@ -490,6 +634,7 @@ class Adjacency(object):
     #TODO: use patterns to check if an adjacency is usable at all
 
 #TODO: image DSL for obstacles
+#TODO: obstacle for each door (immediately in front of the door)
 class Obstacle(object):
 
     def __init__(self, name, obstacle_rect, target_rect):
@@ -497,16 +642,17 @@ class Obstacle(object):
         self.obstacle_set = obstacle_rect.as_set()
         self.target_set = target_rect.as_set()
 
-#TODO: implement as a method of Subroom. Useful for strategies
-#    def choose_cut(self):
-#        """Randomly choose a possible cut."""
-#        directions = [Coord(1,0), Coord(0,1)]
-#        # Get the horizontal and vertical size of the direction
-#        sizes = [self.rect.size(d) for d in directions]
-#        ds = list(zip(directions, sizes))
-#        direction, size = random.choices(ds, sizes)[0]
-#        index = random.randrange(size)
-#        return index, direction
+def find_components(s):
+    """ Partition s into a list of connected component sets """
+    components = []
+    current_s = s.copy()
+    while len(current_s) > 0:
+        root = next(iter(current_s))
+        _, root_tiles = bfs(current_s, root)
+        components.append(root_tiles)
+        current_s = current_s - root_tiles
+    return components
+        
 
 #TODO: Some way to determine the subroom that houses a given obstacle for graphs
 #def find_coord(subrooms, roots, coord):
@@ -639,171 +785,99 @@ class Obstacle(object):
 
 # Contintue to partition until EACH subroom fails a partition (because it is too small,
 # or intersects an obstacle)
-def subroom_partition(room, max_parts, min_partsize, obstacles):
+def subroom_partition(room, max_parts, min_partsize, subroom_state):
     """
     Creates a partition of the room into subrooms
     Respects that obstacles (such as doors) must be fully within a subroom
     """
     # First, generate a greedy rectangularization of the concrete map for the room
     print("PART: Finding rectangularization")
-    current_id, roots, subrooms = rectangularize(room.cmap, obstacles)
+    rectangularize(subroom_state, room.cmap)
+    random_partition(subroom_state, max_parts, min_partsize)
+
+def random_partition(subroom_state, max_parts, min_partsize):
     print("PART: Generating partitions")
-    while True:
+    # Choose a partition to subdivide
+    while len(subroom_state.g.nodes) < max_parts:
         print("PART: subrooms")
-        print_subrooms(subrooms)
-        print("end subrooms")
-        current_children = roots
-        # Choose a partition to subdivide
-        while len(current_children) != 0:
-            current_nodes = [subrooms[i] for i in current_children]
-            weights = [i.size() for i in current_nodes]
-            current_node = random.choices(current_nodes, weights)[0]
-            if current_node.is_leaf():
-                break
-            else:
-                current_children = current_node.children
-        # choose an x or a y to subdivide it at
-        index, direction = current_node.choose_cut()
-        # break if the xy is invalid
-        #   - causes a partition area to be too small
-        #   - goes through an obstacle like a door
-        #   - creates a partition over the max
-        if current_node.check_valid(index, direction, min_partsize):
-            id1 = current_id
-            current_id += 1
-            id2 = current_id
-            current_id += 1
-            current_node.subdivide(index, direction, id1, id2, subrooms)
-        else:
+        print(subroom_state)
+        #TODO: this metric may not be uniform in the number of possible subdivisions
+        subroom = subroom_state.choose_subroom(metric = lambda x: len(x.tiles))
+        adj = subroom.choose_split_adj()
+        try:
+            subroom_state.split_subroom(subroom, adj)
+        #TODO: debug the assertionerrors
+        # The first failed subroom will cause the subdivision process to end
+        except AssertionError:
             break
-    return roots, subrooms
 
 #TODO: use split()ing to make this code much easier to read
 #TODO: parameterized by direction in both x and y
 # i.e. which corner to start from.
-def rectangularize(cmap, obstacles):
+def rectangularize(subroom_state, cmap):
     """
     Finds a set of initial rectangular subrooms for the given concrete map
     """
-    subrooms = {}
-    # Stores the set of CMAP tiles for each subroom
-    subroom_sets = {}
-    roots = []
-    current_id = 0
-    # Sorts topmost leftmost
-    positions = sorted(cmap.keys())
+    position_order = list(cmap.keys())
+    random.shuffle(position_order)
+    positions = set(cmap.keys())
+    # Gross way of getting the main set of tiles
+    assert len(subroom_state.g.nodes.keys()) == 1
+    # Main subroom is always initially subroom 0
+    main_subroom = subroom_state[0]
     # Find rectangles until the entire cmap is covered
+    rects = []
     print("RECT: Finding rectangles")
     while len(positions) > 0:
-        pos = positions[0]
+        pos = position_order[0]
         rect = find_rect(positions, pos)
-        for c in rect.as_list():
-            #BUG: x not in list
+        for c in rect:
             positions.remove(c)
+            position_order.remove(c)
         #TODO: rects are not relative to the room position, but they should be...
         print(rect)
-        # Add it to the subroom tree, and convert its size and position into the level format
-        subrooms[current_id] = SubroomNode(current_id, rect.scale(16), [], [])
-        subroom_sets[current_id] = rect.as_set()
-        roots.append(current_id)
-        current_id += 1
-    # Find adjacencies between the rectangles
-    print("RECT: Finding adjacencies")
-    for r1, r2 in itertools.combinations(roots, 2):
-        # Since positions was sorted and the combinations function
-        # outputs tuples in sorted order, r_1 is above / to the left of r_2
-        adj = add_adjacency(subrooms[r1], subroom_sets[r1], subrooms[r2], subroom_sets[r2])
-    # Assign the obstacles to their respective subrooms
-    print("RECT: Assigning obstacles")
-    for o in obstacles:
-        done = False
-        for s in subrooms.values():
-            # If the object is contained by the subroom...
-            if o.obstacle_rect.within(s.rect):
-                s.obstacles.append(o)
-                done = True
-                break
-        if not done:
-            assert False, "Obstacle not contained by a single subroom: " + str(o.obstacle_rect)
-    return current_id, roots, subrooms
+        rects.append(rect)
+    # The existing subroom does not need to be divided if we have only a single rectangle
+    if len(rects) > 1:
+        for rect in rects:
+            # Realize the rectangle by splitting the subroom
+            rect_room = rect.scale(16).as_set() & main_subroom.tiles
+            subroom_state.place_subroom(rect_room)
 
-def add_adjacency(r1, r1_set, r2, r2_set):
-    """
-    Adds an adjacency between two subrooms if their sets of contained regions border each other
-    """
-    # D R L U
-    directions = [Coord(0,1), Coord(1,0), Coord(-1,0), Coord(0,-1)]
-    for d in directions:
-        neighbors = sorted([p + d for p in r1_set if p + d not in r1_set and p + d in r2_set])
-        if len(neighbors) > 0:
-            # The top left corner of the topmost leftmost neighbor
-            tl_neighbor = neighbors[0].scale(16)
-            # The top left corner of the cell directly adjacent to the topmost
-            # leftmost neighbor (in direction d)
-            tl_self = tl_neighbor + d.scale(-16)
-            if tl_neighbor < tl_self:
-                tl1 = tl_neighbor
-                tl2 = tl_self
-            else:
-                tl1 = tl_self
-                tl2 = tl_neighbor
-            da = d.abs()
-            # Perpendicular to da and also positive
-            pa = Coord(1,1) - d.abs()
-            dist = 16 * len(neighbors)
-            start = tl1 + da.scale(15)
-            end = start + pa.scale(dist) + da.scale(2)
-            rect = Rect(start, end)
-            directions = {}
-            directions[r2.id] = d
-            directions[r1.id] = -d
-            a = Adjacency(r1.id, r2.id, rect, directions)
-            r1.adj.append(a)
-            r2.adj.append(a)
-            return
-        # They do not border each other
-        else:
-            pass
-
-#TODO: this is less efficient than search-based methods.
-#TODO: Expand the rectangle to the right first in order to get more horizontal rooms
 def find_rect(positions, pos):
-    """
-    Finds biggest rectangle that fits at pos for a given set of map positions that
-    the rectangle may occupy. Expands the rectangle down and to the right.
-    """
     assert pos in positions
-    print("FIND: finding best rectangle for " + str(pos))
-    # The current best rectangle
-    best_rect = Rect(pos, pos + Coord(1,1))
-    # The set of all coords that represent the bottom left corner of a rectangle that contains pos
-    # and doesn't include squares not in positions
-    tried = set([pos])
-    # Whether or not we found a useful rectangle on this iteration
-    new = True
-    y_start = 1
-    n = 2
-    # While trying larger rectangles will produce results
-    while new:
-        new = False
-        start_pos = pos + Coord(0,1).scale(y_start)
-        # Move up the diagonal from start_pos and check each rectangle
-        for i in range(n):
-            p = start_pos + Coord(1,-1).scale(i)
-            l = p - Coord(1,0)
-            u = p - Coord(0,1)
-            check_left = l in tried or l.x < pos.x
-            check_up = u in tried or u.y < pos.y
-            if p in positions and check_left and check_up:
-                new = True
-                tried.add(p)
-                r = Rect(pos, p + Coord(1,1))
-                if r.area() > best_rect.area():
-                    best_rect = r
-        n += 1
-        y_start += 1
-    return best_rect
+    i_rect = Rect(pos, pos + Coord(1,1))
+    finished = set([i_rect])
+    q = [i_rect]
+    while len(q) > 0:
+        r = q.pop()
+        expands = expand_rect(positions, r)
+        for e in expands:
+            if e not in finished:
+                finished.add(e)
+                q.append(e)
+    max_rect = max(finished, key=lambda x: x.area())
+    return max_rect
 
+def expand_rect(positions, rect):
+    """
+    Helper for find_rect
+    """
+    #TODO: randomize order?
+    # R D L U
+    rects = []
+    directions = [Coord(1,0), Coord(0,1), Coord(-1,0), Coord(0,-1)]
+    for d in directions:
+        if d < Coord(0,0):
+            r = Rect(rect.start+d, rect.end)
+        else:
+            r = Rect(rect.start, rect.end + d)
+        # Need the resulting expanded rect to be a subset of the space
+        if r.as_set() <= positions:
+            rects.append(r)
+    return rects
+
+#TODO: move to room_utils?
 # Translates the (uncompressed) leveldata bytes to a level dictionary.
 # levelsize is the number of bytes in the decompressed level1 data
 # = 2 * the number of BTS bytes
