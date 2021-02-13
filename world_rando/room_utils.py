@@ -222,6 +222,7 @@ def mk_left_door(level, pos, door_id, size):
     level[pos + Coord(size-1,2)] = Tile(Texture(0x2C, (1,1)), Type(0x0D, 0xFE))
     level[pos + Coord(size-1,3)] = Tile(Texture(0x0C, (1,1)), Type(0x0D, 0xFD))
 
+#TODO: add corners
 def level_of_cmap(room):
     # Level has a 16x16 tile for every maptile
     #level = room_dtypes.Level(cmap.dimensions * Coord(16,16))

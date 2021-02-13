@@ -269,6 +269,8 @@ def make_subrooms(room, settings, patterns):
     """
     Create the subrooms for a room
     """
+    # DEBUG: view the map
+    room.viz_cmap("./output/")
     start_subroom = Subroom(set([t for t in room.level.tiles if room.level.tiles[t].tile_type == Type(0x0,0x0)]))
     door_obstacles = mk_door_obstacles(room)
     subroom_state = SubroomState(start_subroom, [], door_obstacles)
@@ -279,8 +281,6 @@ def make_subrooms(room, settings, patterns):
     subroom_partition(room, max_parts, min_part_size, subroom_state)
     print("Final subrooms:")
     print(subroom_state)
-    # DEBUG: view the map
-    room.viz_cmap("./output/")
     # Fill the walls so that the item generation will know where to look
     subroom_state.mk_adj_walls(room.level)
     # DEBUG: look at the level data
@@ -362,8 +362,8 @@ class SubroomState(object):
 
     def delete_adjacency(self, s1, s2):
         adj = self.g[(s1, s2)]
-        self.g.remove_edge(sid, n)
-        self.g.remove_edge(n, sid)
+        self.g.remove_edge(s1, s2)
+        self.g.remove_edge(s2, s1)
         return adj
 
     def new_adjacency(self, s1, s2, adj):
@@ -521,10 +521,17 @@ class SubroomState(object):
         return random.choices(subrooms, weights)[0]
 
     def mk_adj_walls(self, level):
-        for s1, s2 in itertools.combinations(self.g.nodes.keys(), 2):
+        for s1, s2 in self.g.get_edges():
             adj = self[(s1, s2)]
             for t in adj.tiles:
-                mk_default_rect(level, t)
+                r = Rect(t, t + Coord(1,1))
+                mk_default_rect(level, r)
+
+    def tile_to_subroom(self, t):
+        for sid in self.g.nodes:
+            subroom = self.g[sid]
+            if t in subroom.tiles:
+                return sid
 
 #TODO: ways to have thicker borders, borders with corners, etc.
 def coord_set_border(s):
@@ -590,7 +597,7 @@ class Subroom(object):
         Randomly choose an adjacency that splits self
         """
         xs = [c.x for c in self.tiles]
-        ys = [c.x for c in self.tiles]
+        ys = [c.y for c in self.tiles]
         direction, l = random.choices([("x", xs),("y", ys)], weights=[len(xs), len(ys)])[0]
         index = random.choice(l)
         return self.split_adj(index, direction)
@@ -598,8 +605,10 @@ class Subroom(object):
     def split_adj(self, index, direction):
         if direction == "x":
             adj_tiles = set([t for t in self.tiles if t.x == index])
-        if direction == "y":
+        elif direction == "y":
             adj_tiles = set([t for t in self.tiles if t.y == index])
+        else:
+            assert False, "Bad direction: {}".format(direction)
         return Adjacency(adj_tiles)
 
 def count_min_contig(s):
@@ -627,6 +636,7 @@ class Adjacency(object):
     between a pair of subrooms."""
 
     def __init__(self, tiles):
+        assert len(tiles) > 0
         self.tiles = tiles
 
     def border(self):
@@ -831,18 +841,26 @@ def rectangularize(subroom_state, cmap):
     while len(positions) > 0:
         pos = position_order[0]
         rect = find_rect(positions, pos)
-        for c in rect:
-            positions.remove(c)
-            position_order.remove(c)
+        # Only need to create a subroom if the remaining cmap component that
+        # contains it also contains other cells
+        cmap_components = find_components(positions)
+        r_set = rect.as_set()
+        r_components = [c for c in cmap_components if r_set <= c]
+        assert len(r_components) == 1
+        r_component = r_components[0]
         #TODO: rects are not relative to the room position, but they should be...
         print(rect)
         rects.append(rect)
-    # The existing subroom does not need to be divided if we have only a single rectangle
-    if len(rects) > 1:
-        for rect in rects:
-            # Realize the rectangle by splitting the subroom
-            rect_room = rect.scale(16).as_set() & main_subroom.tiles
+        if r_set < r_component:
+            # Find the sid for the component in question
+            t = next(iter(r_component)).scale(16) + Coord(8,8)
+            component_parent_sid = subroom_state.tile_to_subroom(t)
+            rect_room = rect.scale(16).as_set() & subroom_state[component_parent_sid].tiles
             subroom_state.place_subroom(rect_room)
+        # Update positions
+        for c in rect:
+            positions.remove(c)
+            position_order.remove(c)
 
 def find_rect(positions, pos):
     assert pos in positions
@@ -911,7 +929,6 @@ def level_from_bytes(levelbytes, dimensions):
             else:
                 level2 = 0
             #TODO: level2 info dropped on the floor
-            
             ttype = level1 >> 12
             hflip = (level1 >> 11) & 1
             vflip = (level1 >> 10) & 1
