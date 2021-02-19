@@ -223,7 +223,7 @@ def mk_left_door(level, pos, door_id, size):
     level[pos + Coord(size-1,3)] = Tile(Texture(0x0C, (1,1)), Type(0x0D, 0xFD))
 
 #TODO: add corners
-def level_of_cmap(room):
+def level_of_cmap(room, wall_thickness=2):
     # Level has a 16x16 tile for every maptile
     #level = room_dtypes.Level(cmap.dimensions * Coord(16,16))
     cmap = room.cmap
@@ -233,7 +233,26 @@ def level_of_cmap(room):
     # Make walls
     for w_pos, tile in cmap.items():
         for direction in tile.walls:
-            mk_wall(level, w_pos, direction)
+            mk_wall(level, w_pos, direction, wall_thickness)
+    # Make Corners
+    for pos in cmap_rect:
+        if pos not in cmap.tiles:
+            for d in coord_directions:
+                d90 = Coord(-d.y, d.x)
+                diag = d + d90
+                if pos+d in cmap.tiles and pos+d90 in cmap.tiles and pos+diag in cmap.tiles:
+                    p1 = (pos + diag).scale(16)
+                    # Corner square of the correct size
+                    r = Rect(p1, p1 + Coord(wall_thickness, wall_thickness))
+                    # Now translate it to the correct position
+                    px = Coord(0,0)
+                    if diag.x < 0:
+                        px = Coord(16 - wall_thickness, 0)
+                    py = Coord(0,0)
+                    if diag.y < 0:
+                        py = Coord(0, 16 - wall_thickness)
+                    r = r.translate(px + py)
+                    mk_default_rect(level, r)
     # Fill tiles outside the map
     for pos in cmap_rect:
         if pos not in cmap.tiles:

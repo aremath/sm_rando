@@ -242,25 +242,27 @@ def mk_door_obstacles(room):
     obstacles = []
     for door in room.doors:
         map_pos = door.pos - room.pos
-        room_pos = find_door_pos(map_pos, door.direction)
+        # Door obstacle extends slightly into the room
+        room_pos_a = find_door_pos(map_pos, door.direction, size=3)
+        room_pos_b = find_door_pos(map_pos, door.direction, size=2)
         direction = door.direction
         #TODO: some way to have this as a construct rather than writing it out every time...
         if direction == "U":
-            obstacle_rect_rel = Rect(Coord(0,0), Coord(4,2))
+            obstacle_rect_rel = Rect(Coord(0,0), Coord(4,3))
             target_rect_rel = Rect(Coord(0,0), Coord(4,1))
         elif direction == "D":
-            obstacle_rect_rel = Rect(Coord(0,0), Coord(4,2))
+            obstacle_rect_rel = Rect(Coord(0,0), Coord(4,3))
             target_rect_rel = Rect(Coord(0,1), Coord(4,2))
         elif direction == "L":
-            obstacle_rect_rel = Rect(Coord(0,0), Coord(2,4))
+            obstacle_rect_rel = Rect(Coord(0,0), Coord(3,4))
             target_rect_rel = Rect(Coord(0,0), Coord(1,4))
         elif direction == "R":
-            obstacle_rect_rel = Rect(Coord(0,0), Coord(2,4))
+            obstacle_rect_rel = Rect(Coord(0,0), Coord(3,4))
             target_rect_rel = Rect(Coord(1,0), Coord(2,4))
         else:
             assert False, "Bad direction: " + str(direction)
-        obstacle_rect = obstacle_rect_rel.translate(room_pos)
-        target_rect = target_rect_rel.translate(room_pos)
+        obstacle_rect = obstacle_rect_rel.translate(room_pos_a)
+        target_rect = target_rect_rel.translate(room_pos_b)
         door_obstacle = Obstacle(door.name, obstacle_rect, target_rect)
         obstacles.append(door_obstacle)
     return obstacles
@@ -399,6 +401,9 @@ class SubroomState(object):
         if min_size is not None:
             s1x, s1y = Subroom(s1_tiles).size()
             s2x, s2y = Subroom(s2_tiles).size()
+            #print("Resulting room sizes:")
+            #print(s1x, s1y)
+            #print(s2x, s2y)
             assert min(s1x, s1y) > min_size, "Subroom too small"
             assert min(s2x, s2y) > min_size, "Subroom too small"
         # Create the new subrooms
@@ -410,9 +415,8 @@ class SubroomState(object):
         for n in self.g.neighbors(sid):
             # Delete the old edges
             adj = self.delete_adjacency(sid, n)
-            adj_border = adj.border()
-            border1 = adj_border & s1_tiles
-            border2 = adj_border & s2_tiles
+            border1 = adj.tiles & coord_set_border(s1_tiles)
+            border2 = adj.tiles & coord_set_border(s2_tiles)
             if len(border1 & border2) != 0:
                 raise SubroomException("Non-disjoint border pair")
             # Split old adjacency if it borders both subrooms
@@ -430,7 +434,7 @@ class SubroomState(object):
                 adj1 = Adjacency(f[b1_root])
                 adj2 = Adjacency(f[b2_root])
                 self.new_adjacency(n, sid1, adj1)
-                self.new_adjacnecy(n, sid2, adj2)
+                self.new_adjacency(n, sid2, adj2)
             # If it only borders one, update the ID
             else:
                 if len(border1) != 0:
@@ -516,9 +520,12 @@ class SubroomState(object):
             self.split_subroom_unknown(adj, min_size)
 
     def choose_subroom(self, metric):
-        subrooms = [self.g[i] for i in self.g.nodes]
+        subroom_ids = list(self.g.nodes.keys())
+        subrooms = [self.g[i] for i in subroom_ids]
         weights = [metric(s) for s in subrooms]
-        return random.choices(subrooms, weights)[0]
+        sidrooms = list(zip(subroom_ids, subrooms))
+        sid, subroom = random.choices(sidrooms, weights)[0]
+        return sid, subroom
 
     def mk_adj_walls(self, level):
         for s1, s2 in self.g.get_edges():
@@ -535,8 +542,7 @@ class SubroomState(object):
 
 #TODO: ways to have thicker borders, borders with corners, etc.
 def coord_set_border(s):
-    directions = [Coord(0,1), Coord(1,0), Coord(-1,0), Coord(0,-1)]
-    border = set([p + d for p in s for d in directions if p + d not in s])
+    border = set([p + d for p in s for d in coord_directions if p + d not in s])
     return border
 
 # A subroom is a contiguous set of tiles which is surrounded by walls or adjacencies
@@ -618,7 +624,7 @@ def count_min_contig(s):
     """
     min_extent = float("inf")
     sp = set([])
-    print(s - sp)
+    #print(s - sp)
     while sp != s:
         x = next(iter(s - sp))
         current_extent = 1
@@ -803,22 +809,24 @@ def subroom_partition(room, max_parts, min_partsize, subroom_state):
     # First, generate a greedy rectangularization of the concrete map for the room
     print("PART: Finding rectangularization")
     rectangularize(subroom_state, room.cmap)
+    print("PART: Generating subpartitions")
     random_partition(subroom_state, max_parts, min_partsize)
 
 def random_partition(subroom_state, max_parts, min_partsize):
-    print("PART: Generating partitions")
     # Choose a partition to subdivide
     while len(subroom_state.g.nodes) < max_parts:
         print("PART: subrooms")
         print(subroom_state)
         #TODO: this metric may not be uniform in the number of possible subdivisions
-        subroom = subroom_state.choose_subroom(metric = lambda x: len(x.tiles))
+        sid, subroom = subroom_state.choose_subroom(metric = lambda x: len(x.tiles))
+        print("Splitting room {}".format(sid))
         adj = subroom.choose_split_adj()
         try:
-            subroom_state.split_subroom(subroom, adj)
+            subroom_state.split_subroom(sid, adj, min_partsize)
         #TODO: debug the assertionerrors
         # The first failed subroom will cause the subdivision process to end
-        except AssertionError:
+        except AssertionError as e:
+            print(e)
             break
 
 #TODO: use split()ing to make this code much easier to read
@@ -882,12 +890,10 @@ def expand_rect(positions, rect):
     Helper for find_rect
     """
     #TODO: randomize order?
-    # R D L U
     rects = []
-    directions = [Coord(1,0), Coord(0,1), Coord(-1,0), Coord(0,-1)]
-    for d in directions:
+    for d in coord_directions:
         if d < Coord(0,0):
-            r = Rect(rect.start+d, rect.end)
+            r = Rect(rect.start + d, rect.end)
         else:
             r = Rect(rect.start, rect.end + d)
         # Need the resulting expanded rect to be a subset of the space

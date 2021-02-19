@@ -171,6 +171,8 @@ class Coord(tuple):
     def copy(self):
         return Coord(self.x, self.y)
 
+# D R L U
+coord_directions = [Coord(0,1), Coord(1,0), Coord(-1,0), Coord(0,-1)]
 
 class Rect(object):
     """ Two-dimensional rectangle data type. """
@@ -340,4 +342,15 @@ class Rect(object):
 
     def copy(self):
         return Rect(self.start.copy(), self.end.copy())
+
+def rect_of_points(points):
+    """Create a rect given the four corners of a rectangle"""
+    assert len(points) == 4, "Not enough points"
+    xs = set([p.x for x in points])
+    ys = set([p.y for y in points])
+    assert len(xs) == 2, "Points out of alignment"
+    assert len(ys) == 2, "Points out of alignment"
+    start = Coord(min(xs), min(ys))
+    end = Coord(max(xs), max(ys))
+    return Rect(start, end)
 
