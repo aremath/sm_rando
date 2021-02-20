@@ -352,5 +352,5 @@ def rect_of_points(points):
     assert len(ys) == 2, "Points out of alignment"
     start = Coord(min(xs), min(ys))
     end = Coord(max(xs), max(ys))
-    return Rect(start, end)
+    return Rect(start, end + Coord(1,1))
 

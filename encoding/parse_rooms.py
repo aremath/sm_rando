@@ -66,7 +66,7 @@ def make_room(room_defn):
         if isinstance(node_data, Item):
             item_nodes.append(node_name)
 
-    # make it a connected graph
+    # make it a complete graph
     for origin_node_name in room_nodes:
         for destination_node_name in room_nodes:
             if origin_node_name != destination_node_name:
@@ -81,7 +81,6 @@ def make_room(room_defn):
         else:
             for node1, node2 in edges:
                 graph.add_edge(room_name + "_" + node1, room_name + "_" + node2, constraint)
-
 
     # remove "scheduled_for_destruction" edges
     # first, get rid of duplicates.
