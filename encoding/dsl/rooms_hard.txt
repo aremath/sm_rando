@@ -1253,7 +1253,7 @@ ALL -> T						- | GS (& HJ SPB G) (& CB IB HJ G)
 McElligot's_Pool - 7D104
 L
 B
-B -> L							- | GS HJ (& CB IB)
+B -> L							- & (| GS HJ (& CB IB)) MB
 L -> B							- MB
 
 #Stationary spinjump into chained walljumps gets you out of the hole

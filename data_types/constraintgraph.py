@@ -379,6 +379,7 @@ class ConstraintGraph(object):
         else:
             return bfs_backtrack(start_state, end_state, bfs_offers)
 
+    # Ford-Fulkerson algorithm for given edge weights
     def network_flow(self, edge_weights, source, sink, items=ItemSet()):
         assert source in self.name_node
         assert sink in self.name_node
