@@ -1,7 +1,7 @@
 # visualizes a concrete map of the form laid out in concrete_map.py
 import collections #defaultdict
 from PIL import Image
-from sm_rando.world_rando.concrete_map import *
+from world_rando.concrete_map import *
 
 #TODO: use path to find the files?
 def load_map_tiles(map_dir):

@@ -4,9 +4,9 @@ import collections
 import itertools
 import operator
 
-from sm_rando.data_types import basicgraph, item_set
-from sm_rando.encoding import item_order, sm_global
-from sm_rando.world_rando.util import pairwise
+from data_types import basicgraph, item_set
+from encoding import item_order, sm_global
+from world_rando.util import pairwise
 
 #TODO: every item needs to keep a unique ID
 # so that it can know its PLM index when it

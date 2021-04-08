@@ -15,9 +15,9 @@
 
 import collections
 
-from sm_rando.encoding.constraints import *
-from sm_rando.data_types.constraintgraph import *
-from sm_rando.encoding import sm_global
+from encoding.constraints import *
+from data_types.constraintgraph import *
+from encoding import sm_global
 
 door_hookups = {
     "L": "R",

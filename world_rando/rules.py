@@ -3,9 +3,9 @@ import numpy as np
 import cv2
 from enum import IntEnum
 from pathlib import Path
-from sm_rando.world_rando.coord import Coord, Rect
-from sm_rando.world_rando.util import pairwise
-from sm_rando.data_types.item_set import ItemSet
+from world_rando.coord import Coord, Rect
+from world_rando.util import pairwise
+from data_types.item_set import ItemSet
 
 Infinity = float("inf")
 TERMINAL_VELOCITY = 1

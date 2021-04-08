@@ -1,10 +1,10 @@
-from sm_rando.world_rando import concrete_map
-from sm_rando.world_rando import item_order_graph
-from sm_rando.world_rando import map_gen
-from sm_rando.world_rando import map_viz
-from sm_rando.world_rando import room_gen
-from sm_rando.world_rando import settings
-from sm_rando.world_rando import pattern
+from world_rando import concrete_map
+from world_rando import item_order_graph
+from world_rando import map_gen
+from world_rando import map_viz
+from world_rando import room_gen
+from world_rando import settings
+from world_rando import pattern
 
 from rom_tools import rom_manager
 from encoding import sm_global

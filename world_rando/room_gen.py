@@ -3,19 +3,20 @@ import random
 import collections
 from collections import OrderedDict
 from functools import reduce
+import numpy as np
 
-from sm_rando.data_types import basicgraph
-from sm_rando.world_rando.room_dtypes import Room, Level, Tile, Texture, Type
-from sm_rando.world_rando.room_utils import mk_default_rect, mk_air_rect
-from sm_rando.world_rando.coord import Coord, Rect
-from sm_rando.world_rando.util import weighted_random_order
+from data_types import basicgraph
+from world_rando.room_dtypes import Room, Level, Tile, Texture, Type
+from world_rando.room_utils import mk_default_rect, mk_air_rect
+from world_rando.coord import Coord, Rect
+from world_rando.util import weighted_random_order
 
-from sm_rando.world_rando.room_dtypes import *
-from sm_rando.world_rando.room_utils import *
-from sm_rando.world_rando.coord import *
-from sm_rando.world_rando.util import *
+from world_rando.room_dtypes import *
+from world_rando.room_utils import *
+from world_rando.coord import *
+from world_rando.util import *
 
-from sm_rando.world_rando.concrete_map import bfs, bfs_partition
+from world_rando.concrete_map import bfs, bfs_partition
 
 # Room Generation:
 
@@ -943,4 +944,84 @@ def level_from_bytes(levelbytes, dimensions):
             tiletype = Type(ttype, bts)
             level[Coord(x,y)] = Tile(texture, tiletype)
     return level
+
+def bits(x, size):
+    return [(x & 2**i) >> i for i in range(size)]
+
+def reverse_bits(bits):
+    x = 0
+    for i,b in enumerate(bits):
+        x = x | ((2**i) * b)
+    return x
+
+def bit_array_from_bytes(levelbytes, dimensions):
+    # First two bytes are the amount of level1 data
+    levelsize = int.from_bytes(levelbytes[0:2], byteorder='little')
+    # Cut off the size
+    levelbytes = levelbytes[2:]
+    # Make sure everything matches
+    assert levelsize % 2 == 0, "Purported level size {} is not even!".format(levelsize)
+    assert levelsize == dimensions.x * dimensions.y * 2, "Level data length {} does not match specified room dimensions {}".format(levelsize, dimensions.x * dimensions.y * 2)
+    # The level might not include level2 data
+    if len(levelbytes) == int(2.5 * levelsize):
+        has_level2 = True
+    elif len(levelbytes) == int(1.5 * levelsize):
+        has_level2 = False
+    else:
+        assert False, "Purported level size does not match actual level size"
+    levelarray = np.zeros((dimensions.x, dimensions.y, 40), dtype=np.uint8)
+    for y in range(dimensions.y):
+        for x in range(dimensions.x):
+            # Level 1 data
+            index = y * dimensions.x + x
+            level1index = index * 2
+            level1 = int.from_bytes(levelbytes[level1index:level1index+2], byteorder='little')
+            for i, b in enumerate(bits(level1, 16)):
+                levelarray[(x, y, i)] = b
+            # BTS data
+            btsindex = index + levelsize
+            bts = int.from_bytes(levelbytes[btsindex:btsindex+1], byteorder='little')
+            bts_offset = 16
+            for i, b in enumerate(bits(bts, 8)):
+                levelarray[(x, y, i+bts_offset)] = b
+            # Level 2 (background) data
+            level2_offset = 24
+            if has_level2:
+                level2index = index + (3*levelsize/2)
+                level2 = int.from_bytes(levelbytes[level2index:level2index+2], byteorder='little')
+                for i,b in enumerate(bits(level2, 16)):
+                    levelarray[(x, y, i+level2_offset)] = b
+    return levelarray
+
+def bytes_from_bit_array(level_array):
+    xdim, ydim, bits = level_array.shape
+    assert bits == 40
+    # Store in (mutable) bytearray instead of immutable bytes
+    # for much faster time
+    all_level1_bytes = bytearray(b"")
+    all_bts_bytes = bytearray(b"")
+    all_level2_bytes = bytearray(b"")
+    for y in range(ydim):
+        for x in range(xdim):
+            # Level 1
+            l1_bits = level_bytes[x,y,0:16]
+            l1_int = reverse_bits(l1_bits)
+            l1_bytes = l1_int.to_bytes(2, byteorder='little')
+            # Have to use a for-loop because we get 2 bytes
+            for b in l1_bytes:
+                all_level1_bytes.append(b)
+            # BTS
+            bts_bits = level_bytes[x,y,16:24]
+            bts_int = reverse_bits(bts_bits)
+            bts_bytes = bts_int.to_bytes(1, byteorder='little')
+            all_bts_bytes.append(bts_bytes)
+            # Level 2
+            l2_bits = level_bytes[x,y,24:40]
+            l2_int = reverse_bits(l2_bits)
+            l2_bytes = l2_int.to_bytes(2, byteorder='little')
+            for b in l2_bytes:
+                all_level2_bytes.append(b)
+    all_bytes = al_level1_bytes + all_bts_bytes + all_level2_bytes
+    # Convert back to bytes
+    return bytes(all_bytes)
 

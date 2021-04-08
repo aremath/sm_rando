@@ -1,3 +1,7 @@
+# Pretend to be in top-level directory to get the imports to play nice
+import sys
+sys.path.append("..")
+
 from pyModelChecking import *
 from pyModelChecking.CTL import *
 from itertools import product, chain, combinations

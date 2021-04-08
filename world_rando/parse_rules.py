@@ -2,9 +2,9 @@ from pathlib import Path
 from PIL import Image
 import numpy as np
 import yaml
-from sm_rando.world_rando.rules import *
-from sm_rando.world_rando.coord import Coord, Rect
-from sm_rando.data_types.item_set import ItemSet
+from world_rando.rules import *
+from world_rando.coord import Coord, Rect
+from data_types.item_set import ItemSet
 
 def reverse_dict(d):
     return {v:k for k,v in d.items()}

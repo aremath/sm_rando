@@ -1,8 +1,8 @@
-from sm_rando.world_rando.coord import *
-from sm_rando.world_rando.concrete_map import *
-from sm_rando.world_rando.map_viz import *
-from sm_rando.world_rando.room_viz import *
-from sm_rando.data_types import basicgraph
+from world_rando.coord import *
+from world_rando.concrete_map import *
+from world_rando.map_viz import *
+from world_rando.room_viz import *
+from data_types import basicgraph
 
 class Room(object):
 

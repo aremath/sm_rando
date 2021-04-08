@@ -4,7 +4,7 @@ import heapq
 import random
 from enum import Enum
 
-from sm_rando.world_rando.coord import Coord, Rect
+from world_rando.coord import Coord, Rect
 
 # Enum for what things a tile can be
 class TileType(Enum):

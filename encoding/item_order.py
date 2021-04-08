@@ -1,6 +1,6 @@
 import itertools
 import random
-from sm_rando.encoding import sm_global
+from encoding import sm_global
 
 def parse_preds(pred_file):
     f = open(pred_file, "r")

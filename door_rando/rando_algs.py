@@ -2,9 +2,9 @@ import random
 import itertools
 from functools import reduce
 
-from sm_rando.misc.progress_bar import print_progress_bar
-from sm_rando.door_rando.alg_support import *
-from sm_rando.data_types.constraintgraph import BFSItemsState, bfs_items_backtrack
+from misc.progress_bar import print_progress_bar
+from door_rando.alg_support import *
+from data_types.constraintgraph import BFSItemsState, bfs_items_backtrack
 
 #TODO: Room Orientation randomization???? (far future)
 #TODO: This doesn't always take the "right" path-through. For example,

@@ -1,7 +1,7 @@
 import os
 
-from sm_rando.world_rando.room_dtypes import *
-from sm_rando.world_rando.coord import Coord, Rect
+from world_rando.room_dtypes import *
+from world_rando.coord import Coord, Rect
 
 #TODO: more advanced DSL that can handle things like input for door id and size...
 

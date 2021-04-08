@@ -1,5 +1,5 @@
 # Default generation settings for the world generator.
-from sm_rando.world_rando import concrete_map
+from world_rando import concrete_map
 import random
 
 def rand_m(p1, p2):

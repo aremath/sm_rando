@@ -31,9 +31,9 @@
 import collections
 import random
 
-from sm_rando.data_types.minsetset import MinSetSet
-from sm_rando.data_types.item_set import ItemSet
-from sm_rando.data_types.orderedset import OrderedSet
+from data_types.minsetset import MinSetSet
+from data_types.item_set import ItemSet
+from data_types.orderedset import OrderedSet
 
 infinity = float("inf")
 

@@ -1,8 +1,8 @@
 import collections
-from sm_rando.encoding import sm_global
-from sm_rando.encoding.parse_rooms import door_hookups
-from sm_rando.data_types.item_set import ItemSet
-#from sm_rando.encoding.parse_rooms import *
+from encoding import sm_global
+from encoding.parse_rooms import door_hookups
+from data_types.item_set import ItemSet
+#from encoding.parse_rooms import *
 
 def make_door(door1, direction1, door2, direction2, new_room, graph, exits_to_place, door_changes, item_changes, items_to_place):
     """Connects door1 and door2, and updates all the accessories. Door1 is an already-placed door, and door2 is a door in new_room."""
