@@ -9,6 +9,7 @@ from shutil import copy2 as copy_file
 from hashlib import md5
 from os import stat, remove, rename
 from collections import defaultdict
+from pathlib import Path
 
 # Addresses of the maps for the different regions
 region_map_locs = { # hidden |  tiles
@@ -112,15 +113,16 @@ class RomManager(object):
         # Fix screw attack selection
         self.write_to_new(Address(0x134c5), b"\x0c")
         # Apply other IPSs #TODO: make sure this works!
-        self.apply_ips("patches/g4_skip.ips")
-        self.apply_ips("patches/max_ammo_display.ips")
-        self.apply_ips("patches/wake_zebes.ips")
-        self.apply_ips("patches/mother_brain_no_drain.ips")
+        patches_path = Path(__file__).parent.parent / "patches"
+        self.apply_ips(patches_path / "g4_skip.ips")
+        self.apply_ips(patches_path / "max_ammo_display.ips")
+        self.apply_ips(patches_path / "wake_zebes.ips")
+        self.apply_ips(patches_path / "mother_brain_no_drain.ips")
         # Applied based on settings
-        #self.apply_ips("patches/teleport.ips")
+        #self.apply_ips(patches_path / "teleport.ips")
         # Fix sand rooms so that you can't get stuck
         #TODO: find out what is wrong with this
-        #self.apply_ips("patches/no_sand_bs.ips")
+        #self.apply_ips(patches_path / "no_sand_bs.ips")
 
     def set_escape_timer(self, time):
         # Change escape timer
