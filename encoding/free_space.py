@@ -1,4 +1,5 @@
 # parses the free_space.txt file from dsl. The format is very simple.
+from pathlib import Path
 
 def get_frees(filename):
     f = open(filename, "r")
@@ -18,4 +19,4 @@ def get_frees(filename):
     return extents
 
 def find_free_space():
-    return get_frees("encoding/dsl/free_space.txt")
+    return get_frees(Path(__file__).parent / "dsl/free_space.txt")
