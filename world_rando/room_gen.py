@@ -931,7 +931,7 @@ def level_from_bytes(levelbytes, dimensions):
             btsindex = index + levelsize
             bts = int.from_bytes(levelbytes[btsindex:btsindex+1], byteorder='little')
             if has_level2:
-                level2index = index + (3*levelsize/2)
+                level2index = index + (3 * levelsize//2)
                 level2 = int.from_bytes(levelbytes[level2index:level2index+2], byteorder='little')
             else:
                 level2 = 0
@@ -993,6 +993,20 @@ def bit_array_from_bytes(levelbytes, dimensions):
                     levelarray[(x, y, i+level2_offset)] = b
     return levelarray
 
+def codebook_from_bit_array(a):
+    library = set([])
+    for v in a.reshape((-1, a.shape[-1])):
+        library.add(tuple(v))
+    return np.array(list(library), dtype=int)
+
+def quantize(a, codebook):
+    out = np.zeros(a.shape, dtype=codebook.dtype)
+    for (x, y), _ in np.ndenumerate(out[:,:,0]):
+        ds = np.sum((a[x,y,:] - codebook) ** 2, axis=1)
+        closest_index = np.argmin(ds)
+        out[x,y,:] = codebook[closest_index]
+    return out
+
 def bytes_from_bit_array(level_array):
     xdim, ydim, bits = level_array.shape
     assert bits == 40
@@ -1004,24 +1018,25 @@ def bytes_from_bit_array(level_array):
     for y in range(ydim):
         for x in range(xdim):
             # Level 1
-            l1_bits = level_bytes[x,y,0:16]
-            l1_int = reverse_bits(l1_bits)
+            l1_bits = level_array[x,y,0:16]
+            l1_int = int(reverse_bits(l1_bits))
             l1_bytes = l1_int.to_bytes(2, byteorder='little')
             # Have to use a for-loop because we get 2 bytes
             for b in l1_bytes:
                 all_level1_bytes.append(b)
             # BTS
-            bts_bits = level_bytes[x,y,16:24]
-            bts_int = reverse_bits(bts_bits)
+            bts_bits = level_array[x,y,16:24]
+            bts_int = int(reverse_bits(bts_bits))
             bts_bytes = bts_int.to_bytes(1, byteorder='little')
-            all_bts_bytes.append(bts_bytes)
+            for b in bts_bytes:
+                all_bts_bytes.append(b)
             # Level 2
-            l2_bits = level_bytes[x,y,24:40]
-            l2_int = reverse_bits(l2_bits)
+            l2_bits = level_array[x,y,24:40]
+            l2_int = int(reverse_bits(l2_bits))
             l2_bytes = l2_int.to_bytes(2, byteorder='little')
             for b in l2_bytes:
                 all_level2_bytes.append(b)
-    all_bytes = al_level1_bytes + all_bts_bytes + all_level2_bytes
+    all_bytes = all_level1_bytes + all_bts_bytes + all_level2_bytes
     # Convert back to bytes
     return bytes(all_bytes)
 
