@@ -46,6 +46,7 @@ class Extent(object):
     def get_addr(self):
         return self.start
 
+    @property
     def end(self):
         return self.start + Address(self.size-1)
 
@@ -63,7 +64,7 @@ class Bank(object):
     def add_extent(self, extent):
         assert(isinstance(extent, Extent))
         assert extent.start.bank == self.bank
-        bank2 = extent.end().bank
+        bank2 = extent.end.bank
         assert bank2 == self.bank, "{} does not match {}".format(bank, bank2)
         self.extent_list.append(extent)
 
@@ -72,6 +73,9 @@ class Bank(object):
 
     #TODO: can use a fancier algorithm to decide where to find the space...
     def get_place(self, size):
+        """
+        Use first fit to find a place for the data
+        """
         assert(size > 0)
         assert(len(self.extent_list) != 0)
         addr = None
@@ -109,6 +113,23 @@ class Memory(object):
         for place, size in frees:
             addr = Address(place)
             self.mark_free(addr, size)
+
+    def allocate(self, size, banks):
+        """Try to allocate space for <data> in one of the given <banks>."""
+        address = None
+        assert len(banks) > 0
+        for bank in banks:
+            bank = self.banks[bank]
+            try:
+                address = bank.get_place(size)
+            except AllocationError:
+                continue
+        # No place in any of the banks was found
+        if address is None:
+            raise AllocationError
+        else:
+            self.rom.write_to_new(address, data)
+            return address
 
     def allocate_and_write(self, data, banks):
         """Try to allocate <data> in one of the <banks>, then

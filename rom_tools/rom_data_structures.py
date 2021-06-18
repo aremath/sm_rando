@@ -4,6 +4,22 @@ from . import byte_ops
 from .address import *
 from .compress import compress
 
+# https://stackoverflow.com/questions/1389180/automatically-initialize-instance-variables
+def auto_init(func):
+        """
+        Automatically assigns the parameters.
+        """
+        names, varargs, keywords, defaults = inspect.getargspec(func)
+        @wraps(func)
+        def wrapper(self, *args, **kargs):
+            for name, arg in list(zip(names[1:], args)) + list(kargs.items()):
+            setattr(self, name, arg)
+            for name, default in zip(reversed(names), reversed(defaults)):
+                if not hasattr(self, name):
+                    setattr(self, name, default)
+            func(self, *args, **kargs)
+        return wrapper
+
 def convert_event(event_value, event_arg):
     events = [(0xe5e6, 0), (0xe5eb, 2), (0xe5ff, 0), (0xe612, 1), (0xe629, 1),
             (0xe640, 0), (0xe652, 0), (0xe669, 0), (0xe678, 0)]
@@ -16,7 +32,7 @@ def convert_event(event_value, event_arg):
 
 def get_future_ptr(ptr_arg, name, head_ptr):
     # I do not like using isinstance, but it is useful here to identify whether we are using a
-    # pre-allocated pointer, or something that's room-specific (or a nullptr)
+    # pre-allocated pointer_def, or something that's room-specific (or a nullptr)
     if ptr_arg is None:
         return None
     # Some of the room data are pre-allocated. I don't want to have a "snes-assembly"
@@ -34,6 +50,581 @@ def get_future_ptr(ptr_arg, name, head_ptr):
         return FutureAddress(head_ptr + name + "_{}".format(ptr_arg))
     else:
         assert False, "Bad type for futureaddr"
+
+# June 2021 stuff:
+# Engine
+
+def parse_engine(obj_def, address, obj_names, rom):
+    # Unzip to list of parsers
+    parsers = zip(*obj_def)[0]
+    objs = []
+    for parser in parsers:
+        obj, size = parser(address, obj_names, rom)
+        objs.append(obj)
+        address += Address(size)
+    return objs
+
+def compile_engine(obj_def, objs, obj_names, obj_addrs, obj_bytes, rom):
+    # Unzip to list of compilers
+    compilers = zip(*obj_def)[1]
+    all_bytes = []
+    for compiler, obj in zip(compilers, objs):
+        b = compiler(obj, obj_names, obj_addrs, obj_bytes, rom)
+        all_bytes.append(b)
+    return all_bytes
+
+def list_def(fns, terminal):
+    parser, compiler = fns
+
+    def new_parser(address, obj_names, rom):
+        out_list = []
+        out_size = 0
+        while rom.read_from_clean(address, len(terminal)) != terminal:
+            obj, size = parser(address)
+            out_list.append(obj)
+            out_size += size
+            address += Address(size)
+        size += len(terminal)
+        return out_list, size
+
+    def new_compiler(obj, obj_names, addr_objs, obj_bytes, rom, bank):
+        assert isinstance(obj, list)
+        all_bytes = []
+        for o in obj:
+            obj_bytes = compiler(obj, obj_names, addr_objs, obj_bytes, rom, bank)
+            all_bytes.extend(obj_bytes)
+        all_bytes.append(terminal)
+        return all_bytes
+
+    return new_parser, new_compiler
+
+def pointer_def(fns, size, bank=None):
+    parser, compiler = fns
+
+    def new_parser(address, obj_names, rom):
+        address_bytes = rom.read_from_clean(address, size)
+        address = Address(int.from_bytes(address_bytes, byteorder="little"))
+        if bank is None:
+            assert size == 3
+        else:
+            assert size == 2
+            address = address + Address(bank << 16)
+        parser(address, obj_names, rom)
+        return address, size
+
+    def new_compiler(obj, obj_names, addr_objs, obj_bytes, rom, bank):
+        compiler(obj, obj_names, addr_objs, obj_bytes, rom, bank)
+        return FutureBytes(obj.name, 2, bank)
+
+    return new_parser, new_compiler
+
+# Actual parsers
+#def parse_engine(obj_def, address, obj_names, rom):
+#def compile_engine(obj_def, obj, obj_names, obj_addrs, obj_bytes, rom):
+
+def mk_default_fns(obj_def, constructor):
+    obj_def = constructor.parse_definition()
+    def parser(address, obj_names, rom):
+        # Use the address as the name for parsing
+        # Already being parsed
+        if address in obj_names:
+            return
+        # Register it first so that it won't be processed twice
+        obj_names[address] = None
+        s_objs = parse_engine(obj_def, address, obj_names, rom)
+        # Address is the name, the last argument
+        s = constructor(*s_objs, address)
+        # Return the real value
+        obj_names[address] = s
+
+    def compiler(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
+        # Already being parsed
+        if obj.name in obj_addrs:
+            return
+        # Register so that it won't be processed twice.
+        obj_addrs[obj.name] = None
+        obj_bytes = compile_engine(obj_def, obj.list, obj_names, obj_addrs, obj_bytes, rom)
+        length = bytes_len(obj_bytes)
+        addr = rom.memory.allocate(length, bank)
+        obj_addrs[obj.name] = addr
+        obj_bytes[obj.name] = obj_bytes
+    return parser, compiler
+
+def parse_int(address, obj_names, rom):
+    int_b = rom.read_from_clean(address, 1)
+    i = int.from_bytes(int_b, byteorder="little")
+    return i, 1
+
+def compile_int(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
+    int_b = obj.to_bytes(1, byteorder="little")
+    return int_b
+
+int_fns = (parse_int, compile_int)
+
+def parse_int2(address, obj_names, rom):
+    int_b = rom.read_from_clean(address, 2)
+    i = int.from_bytes(int_b, byteorder="little")
+    return i, 2
+
+def compile_int2(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
+    int_b = obj.to_bytes(2, byteorder="little")
+    return int_b
+
+int2_fns = (parse_int2, compile_int2)
+
+def parse_condition(addres, obj_names, rom):
+    assert False
+
+def compile_condition(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
+    assert False
+
+condition_fns = (parse_condition, compile_condition)
+
+# Currently parsing asm does nothing - too hard to know which parts of the code are
+# relevant + how to repoint. This is certainly an interesting concept though
+def parse_asm(address, obj_names, rom):
+    return None
+
+def compile_asm(obj obj_names, obj_addrs, obj_bytes, rom, bank):
+    return None
+
+asm_fns = (parse_asm, compile_asm)
+
+# Classes
+
+class RomObject(object):
+
+    def __init__(self):
+        assert False
+
+    @property
+    def list(self):
+        assert False
+    
+    @staticmethod
+    def parse_definition():
+        assert False
+
+class SaveStation(RomObject):
+    """
+    Save Stations. The roots of the parsing / compilation process.
+    """
+
+    @auto_init
+    def __init__(self, name):
+        self.name = name
+
+    @property
+    def list(self):
+        pass
+
+    # Definitions
+    # These are functions to avoid circular dependency because the parsers are
+    # mutually recursive
+    # They will by evaluated dynamically
+    #TODO: I'm certain there is a better way to do this, but I can't think of what it is
+    @staticmethod
+    def parse_definition():
+        return [
+        pointer_def(RoomHeader.fns, 2, bank=0x8F),
+        pointer_def(Door.fns, 2, bank=0x83),
+        int2_fns, # Save X position, pixels
+        int2_fns, # Save Y position, pixels
+        int2_fns, # Samus X position, pixels
+        int2_fns, # Samus Y position, pixels
+        ]
+SaveStation.fns = mk_default_fns(SaveStation)
+
+class RoomHeader(RomObject):
+
+    @auto_init
+    def __init__(self):
+        pass
+
+    @property
+    def list(self):
+        pass
+
+    @staticmethod
+    def parse_definition():
+        return [
+        int_fns,   # Room Index
+        (parse_area_index, compile_area_index),   # Area Index
+        int_fns,   # X position on map
+        int_fns,   # Y position on map
+        int_fns,   # Room width in screens
+        int_fns,   # Room height in screens
+        int_fns,   # Up scroll (when does the camera move up?)
+        int_fns,   # Down scroll (when does the camera move down?)
+        int_fns,   # CRE Bitset
+        #(parse_cre_bitset, compile_cre_bitset),   # CRE Bitset
+        DoorList.fns,
+        StateConditionList.fns,
+        ]
+
+RoomHeader.fns = mk_default_fns(RoomHeader)
+
+class StateCondition(RomObject):
+
+    @auto_init
+    def __init__(self):
+        assert False
+
+    @property
+    def list(self):
+        assert False
+    
+    @staticmethod
+    def parse_definition():
+        return [
+        condition_fns,
+        pointer_def(RoomState.fns, 2, bank=0x8F),
+        ]
+
+StateCondition.fns = mk_default_fns(StateCondition)
+
+#TODO: can get away without some of these objects that just store lists
+class StateConditionList(RomObject):
+
+    @auto_init
+    def __init__(self, conditions, default):
+        #TODO: merge into one list?
+        self.conditions = conditions
+        self.default = default
+
+    @property
+    def list(self):
+        return [
+            self.conditions,
+            self.default,
+        ]
+    
+    @staticmethod
+    def parse_definition():
+        return [
+        list_def(StateCondition.fns, b"\xe5\xe6"),
+        # Default roomstate is immediately after the end of the others
+        RoomState.fns,
+        ]
+
+StateConditionList.fns = mk_default_fns(StateConditionsList)
+
+class RoomState(RomObject):
+
+    @auto_init
+    def __init__(self):
+        pass
+
+    @property
+    def list(self):
+        pass
+
+    @staticmethod
+    def parse_definition():
+        return [
+        pointer_def(parse_level_data, compile_level_data, 3),
+        int_fns,   # Tileset
+        int_fns,   # Music data index
+        int_fns,   # Music track index
+        pointer_def(FX.fns, 2, bank=0x83),    # FX Data
+        pointer_def(EnemyList.fns, 2, bank=0xA1),  # The enemies in the room
+        pointer_def(EnemyTypes.fns, 2, bank=0xB4),  # The enemy types available in the room
+        int_fns,   # Layer 2 scroll X
+        int_fns,   # Layer 2 scroll Y
+        pointer_def(Scrolls.fns, 2, bank=0x8F), # Scrolls
+        pointer_def(XRAY.fns, 2, bank=0x8F), # Special x-ray blocks
+        #TODO: 8F is just a guess
+        pointer_def(asm_fns, 2, bank=0x8F),  # Main ASM
+        pointer_def(PLMList.fns, 2, bank=0x8F),    # PLMs
+        #TODO: 8F is just a guess
+        pointer_def(Background.fns, 2, bank=0x8F),  # Library background for Layer 2 data
+        #TODO: 8F is just a guess
+        pointer_def(asm_fns, 2, bank=0x8F),  # Setup ASM
+        ]
+
+RoomState.fns = mk_default_fns(RoomState)
+
+class Door(RomObject):
+
+    @auto_init
+    def __init__(self, to_room, elevator_properties, orientation,
+            x_pos_low, y_pos_low, x_pos_high, y_pos_high, spawn_distance, asm_pointer):
+        self.room_pointer = to_room
+        self.elevator_properties = elevator_properties
+        self.orientation = orientation
+        self.x_pos_low = x_pos_low
+        self.y_pos_low = y_pos_low
+        self.x_pos_high = x_pos_high
+        self.y_pos_high = y_pos_high
+        self.spawn_distance = spawn_distance
+        self.asm_pointer = asm_pointer
+
+    @property
+    def list(self):
+        return [
+        self.room_pointer,
+        self.elevator_properties,
+        self.orientation,
+        #TODO: instead of low / high, is this door cap position and screen position?
+        self.x_pos_low,
+        self.y_pos_low,
+        self.x_pos_high,
+        self.y_pos_high,
+        self.spawn_distance,
+        self.asm_pointer,
+        ]
+
+    @staticmethod
+    def parse_definition():
+        return [
+        pointer_def(RoomHeader.fns, 2, bank=0x8F),
+        #TODO special parsers for elevator + orientation
+        int_fns,   # Elevator properties
+        int_fns,   # Orientation
+        int_fns,   # X position low byte
+        int_fns,   # Y position low byte
+        int_fns,   # X position high byte
+        int_fns,   # Y position high byte
+        int2_fns, # Distance from door to spawn Samus
+        pointer_def(asm_fns, 2, bank=0x8F),   # Door ASM
+        ]
+
+Door.fns = mk_default_fns(Door)
+
+class DoorList(RomObject):
+
+    @auto_init
+    def __init__(self, l):
+        self.l = l
+
+    @property
+    def list(self):
+        return [self.l]
+    
+    #TODO: door list might not actually be delimited by \xffs
+    @staticmethod
+    def parse_definition():
+        return [
+        list_def(pointer_def(Door.fns, 2, bank=0x83), b"\xff\xff")
+        ]
+
+DoorList.fns = mk_default_fns(DoorList)
+
+class FXEntry(RomObject):
+
+    @auto_init
+    def __init__(self):
+        pass
+
+    @property
+    def list(self):
+        pass
+
+    @staticmethod
+    def parse_definition():
+        return [
+        pointer_def(Door.fns, 2, bank=0x83),
+        int2_fns, # Base Y position
+        int2_fns, # Target Y position
+        int2_fns, # Y Velocity
+        int_fns,   # Timer
+        int_fns,   # Layer 3 Type #TODO enum
+        int_fns,   # Default Layer Blend #TODO enum
+        int_fns,   # Layer 3 Layer Blend
+        int_fns,   # Liquid options #TODO
+        int_fns,   # Palette FX Bitset
+        int_fns,   # Animated Tiles Bitset
+        int_fns,   # Palette Blend
+        ]
+
+    def parse_zero(address, ...):
+        # Parse the \x00\x00 delimiter
+        address = address - Address(2)
+        self.fns[0](addres, ...)
+
+    def compile_zero(...)
+        # Remove the \x00\x00 since it will already
+        # be added by the list def
+        c_bytes = self.fns[1](...)
+        return c_bytes[1:]
+
+FXEntry.fns = mk_default_fns(FXEntry)
+FXEntry.default_fns = (parse_zero, compile_zero)
+
+class FX(RomObject):
+
+    @auto_init
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def list(self):
+        pass
+    
+    #TODO: how to do \xff\xff "No FX"?
+    #TODO: how to do default FX?
+    @staticmethod
+    def parse_definition():
+        return [
+        list_def(FXEntry.fns, b"\x00\x00"),
+        FXEntry.default_fns
+        ]
+
+FX.fns = mk_default_fns(FX)
+
+class EnemyList(RomObject):
+
+    # kill_count: Number of enemy deaths needed to clear the current room
+    @auto_init
+    def __init__(self, enemies, kill_count):
+        pass
+
+    @property
+    def list(self):
+        return [
+            self.enemies,
+            self.kill_count
+        ]
+    
+    @staticmethod
+    def parse_definition():
+        return [
+        list_def(Enemy.fns, b"\xff\xff"),
+        int2_fns
+        ]
+
+EnemyList.fns = mk_default_fns(EnemyList)
+
+class Enemy(RomObject):
+
+    @auto_init
+    def __init__(self):
+        pass
+
+    @property
+    def list(self):
+        pass
+
+    @staticmethod
+    def parse_definition():
+        return [
+        int2_fns, # Enemy ID #TODO: really is a pointer
+        int2_fns, # X Position
+        int2_fns, # Y Position
+        int2_fns, # Initialization Parameter
+        int2_fns, # Properties #TODO enum
+        int2_fns, # Properties 2 #TODO enum
+        int2_fns, # Parameter 1
+        int2_fns, # Parameter 2
+        ]
+
+Enemy.fns = mk_default_fns(Enemy)
+
+class EnemyTypes(RomObject):
+
+    @auto_init
+    def __init__(self, l):
+        pass
+
+    @property
+    def list(self):
+        return [self.l]
+    
+    @staticmethod
+    def parse_definition():
+        return [
+        list_def(EnemyType.fns, b"\xff\xff")
+        ]
+
+EnemyTypes.fns = mk_default_fns(EnemyTypes)
+
+class EnemyType(RomObject):
+
+    @auto_init
+    def __init__(self):
+        assert False
+
+    @property
+    def list(self):
+        assert False
+    
+    @staticmethod
+    def parse_definition():
+        return [
+        int2_fns, # Enemy ID #TODO: really is a pointer
+        int2_fns, # Palette Index
+        ]
+
+EnemyType.fns = mk_default_fns(EnemyType)
+
+class LevelData(RomObject):
+
+    @auto_init
+    def __init__(self):
+        assert False
+
+    def list(self):
+        assert False
+
+    # Level Data does NOT use default fns
+    @staticmethod
+    def parse_definition():
+        assert False
+
+    def parser(self):
+        pass
+
+    def compiler(self):
+        pass
+
+LevelData.fns = (LevelData.parser, LevelData.compiler)
+
+class PLMList(RomObject):
+
+    @auto_init
+    def __init__(self):
+        assert False
+
+    def list(self):
+        assert False
+
+    @staticmethod
+    def parse_definition():
+        assert False
+
+PLMList.fns = mk_default_fns(PLMList)
+
+class PLM(RomObject):
+
+    @auto_init
+    def __init__(self):
+        assert False
+
+    def list(self):
+        assert False
+
+    @staticmethod
+    def parse_definition():
+        assert False
+
+PLM.fns = mk_default_fns(PLM)
+
+class Scrolls(RomObject):
+
+    @auto_init
+    def __init__(self):
+        assert False
+
+    def list(self):
+        assert False
+
+    @staticmethod
+    def parse_definition():
+        assert False
+
+Scrolls.fns = mk_default_fns(Scrolls)
+
+########################### OLD CLASSES ################################
 
 class RoomState(object):
     """A roomstate is a configuration for a room. Corresponds to 'event' in the SMILE guide.
@@ -54,19 +645,19 @@ class RoomState(object):
         self.background_scrolls = background_scroll_xy[0].to_bytes(1, byteorder='little')
         self.background_scrolls += background_scroll_xy[1].to_bytes(1, byteorder='little')
        
-        # Data members that will be allocated then become pointers
+        # Data members that will be allocated then become pointer_defs
         sym_ptr = "room_{}_".format(room_id)
         self.sym_ptr = sym_ptr
-        # Future pointer to the room header that holds this state
+        # Future pointer_def to the room header that holds this state
         self.room_head = FutureAddress(sym_ptr + "head")
-        # This is a future pointer to where the event's state will be within the room header
+        # This is a future pointer_def to where the event's state will be within the room header
         self.state_ptr = get_future_ptr(state_id, "state", sym_ptr)
         self.level_data_ptr = get_future_ptr(level, "level", sym_ptr)
         self.fx_ptr = get_future_ptr(fx, "fx", sym_ptr)
         # A note on enemies vs. enemy set: enemies refers to the actual enemies that
         # are present in the room. Enemy set refers to the types of enemies that can be
         # present. Confusingly, these correspond respectively to the "enemy set" and
-        # "enemy gfx" pointers that are referred to in the SMILE guide. My naming scheme
+        # "enemy gfx" pointer_defs that are referred to in the SMILE guide. My naming scheme
         # corresponds to the metconst wiki page, and I think these names are better anyway.
         self.enemies_ptr = get_future_ptr(enemies, "enemies", sym_ptr) 
         self.enemy_set_ptr = get_future_ptr(enemy_set, "enemy_set", sym_ptr) 
@@ -80,7 +671,7 @@ class RoomState(object):
         futures = []
         if self.default_event == True:
             head = self.event_head
-        # The extra two bytes will be used to store a pointer to the rest of the event data
+        # The extra two bytes will be used to store a pointer_def to the rest of the event data
         else:
             head = self.event_head + b"\x00\x00"
             futures.append(FutureAddressWrite(self.state_ptr, self.room_head + mk_future(pos), 2))
@@ -132,7 +723,7 @@ def alloc_and_collect(a_list, memory, env):
 # down_scroll = 0xa0
 # special graphics = 0
 #TODO: some way for door data to be shared
-# (for a door to be a symbolic pointer string instead of a Door)
+# (for a door to be a symbolic pointer_def string instead of a Door)
 class RoomHeader(object):
     """Represents a room header (including any data that the header relies on)"""
 
@@ -163,7 +754,7 @@ class RoomHeader(object):
         self.setup_asms = setup_asms    # bank 8f
         self.doors = doors              # bank 83
 
-        # Important (future) pointers
+        # Important (future) pointer_defs
         sym_ptr = "room_{}_".format(room_id)
         self.sym_ptr = sym_ptr
         self.header_ptr = FutureAddress(sym_ptr + "head")
@@ -184,7 +775,7 @@ class RoomHeader(object):
         head += self.down_scroll        # 8
         head += self.special_graphics   # 9
         head += b"\x00\x00"             # 11
-        # Write at the end of the header a future pointer to where the doors are placed
+        # Write at the end of the header a future pointer_def to where the doors are placed
         futures.append(FutureAddressWrite(self.doors_ptr, self.header_ptr + mk_future(0x9), 2, bank=0x8f))
         assert len(head) == 11
         return head, futures
@@ -260,7 +851,7 @@ class LevelData(object):
         return compress.compress(self.dataToHex())
 
     def allocate(self, memory, env):
-        to_write = get_compressed(self)
+        to_write = self.get_compressed()
         #TODO: don't hardcode this - need a file here to keep
         # rom-specific global-type things
         addr = memory.allocate_and_write(self, range(0xc3,0xce))
@@ -281,46 +872,6 @@ def direction_convert(close, s):
     else:
         assert False, "Bad direction string!"
     return 4*close + d
-
-#TODO - doors should be able to allocate their own asm if necessary
-class Door(object):
-
-    def __init__(self, door_id, from_room_id, to_room_id, bitflag, direction,
-            door_cap_xy, screen_xy, spawn_distance, asm_ptr):
-        self.from_sym = "room_{}_door_{}".format(from_room_id, door_id)
-        self.from_sym_ptr = FutureAddress(self.from_sym) 
-        self.to_sym = "room_{}_head".format(to_room_id)
-        self.to_sym_ptr = FutureAddress(self.to_sym)
-        self.bitflag = bitflag.to_bytes(1, byteorder='little')
-        self.direction = direction_convert(direction[0], direction[1]).to_bytes(1, byteorder='little')
-        self.door_cap_x = door_cap_xy[0].to_bytes(1, byteorder='little')
-        self.door_cap_y = door_cap_xy[1].to_bytes(1, byteorder='little')
-        self.screen_x = screen_xy[0].to_bytes(1, byteorder='little')
-        self.screen_y = screen_xy[1].to_bytes(1, byteorder='little')
-        self.spawn_distance = spawn_distance.to_bytes(2, byteorder='little')
-        self.asm_ptr = asm_ptr.to_bytes(2, byteorder='little')
-
-    def to_bytes(self):
-        futures = []
-        out = b""
-        out += b"\x00\x00"
-        futures.append(FutureAddressWrite(self.to_sym_ptr, self.from_sym_ptr, 2, bank=0x8f))
-        out += self.bitflag
-        out += self.direction
-        out += self.door_cap_x
-        out += self.door_cap_y
-        out += self.screen_x
-        out += self.screen_y
-        out += self.spawn_distance
-        out += self.asm_ptr
-        assert len(out) == 12
-        return out, futures
-
-    def allocate(self, memory, env):
-        to_write, fs = self.to_bytes()
-        addr = memory.allocate_and_write(to_write, [0x83])
-        env[self.from_sym] = addr
-        return fs
 
 #TODO: a "classier" data structure for this
 class FX(object):

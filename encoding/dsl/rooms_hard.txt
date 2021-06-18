@@ -645,7 +645,7 @@ L
 E
 Crocomire
 ALL -> E					- & (| G SJ E) Crocomire
-T -> L						- Crocomire
+T <-> L						- Crocomire
 L -> Crocomire				- X
 ALL -> Crocomire			- CB
 
