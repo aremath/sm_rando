@@ -1,5 +1,6 @@
-from functools import reduce
+from functools import reduce, wraps
 import os
+import inspect
 from . import byte_ops
 from .address import *
 from .compress import compress
@@ -13,7 +14,7 @@ def auto_init(func):
         @wraps(func)
         def wrapper(self, *args, **kargs):
             for name, arg in list(zip(names[1:], args)) + list(kargs.items()):
-            setattr(self, name, arg)
+                setattr(self, name, arg)
             for name, default in zip(reversed(names), reversed(defaults)):
                 if not hasattr(self, name):
                     setattr(self, name, default)
@@ -73,8 +74,8 @@ def compile_engine(obj_def, objs, obj_names, obj_addrs, obj_bytes, rom):
         all_bytes.append(b)
     return all_bytes
 
-def list_def(fns, terminal):
-    parser, compiler = fns
+def list_def(constructor, terminal):
+    parser, compiler = constructor.fns
 
     def new_parser(address, obj_names, rom):
         out_list = []
@@ -98,19 +99,20 @@ def list_def(fns, terminal):
 
     return new_parser, new_compiler
 
-def pointer_def(fns, size, bank=None):
-    parser, compiler = fns
+def pointer_def(constructor, size, bank=None):
+    parser, compiler = constructor.fns
 
     def new_parser(address, obj_names, rom):
         address_bytes = rom.read_from_clean(address, size)
         address = Address(int.from_bytes(address_bytes, byteorder="little"))
+        name = constructor.name_def.format(address)
         if bank is None:
             assert size == 3
         else:
             assert size == 2
             address = address + Address(bank << 16)
         parser(address, obj_names, rom)
-        return address, size
+        return name, size
 
     def new_compiler(obj, obj_names, addr_objs, obj_bytes, rom, bank):
         compiler(obj, obj_names, addr_objs, obj_bytes, rom, bank)
@@ -122,20 +124,25 @@ def pointer_def(fns, size, bank=None):
 #def parse_engine(obj_def, address, obj_names, rom):
 #def compile_engine(obj_def, obj, obj_names, obj_addrs, obj_bytes, rom):
 
-def mk_default_fns(obj_def, constructor):
-    obj_def = constructor.parse_definition()
+def mk_default_fns(constructor, obj_def=None):
+    # By default, use the default definition
+    if obj_def is None:
+        obj_def = constructor.parse_definition()
+
     def parser(address, obj_names, rom):
+        name = constructor.name_def.format(address)
         # Use the address as the name for parsing
         # Already being parsed
-        if address in obj_names:
+        if name in obj_names:
             return
         # Register it first so that it won't be processed twice
-        obj_names[address] = None
+        obj_names[name] = None
+        # Run the parse engine
         s_objs = parse_engine(obj_def, address, obj_names, rom)
         # Address is the name, the last argument
         s = constructor(*s_objs, address)
         # Return the real value
-        obj_names[address] = s
+        obj_names[name] = s
 
     def compiler(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
         # Already being parsed
@@ -146,9 +153,19 @@ def mk_default_fns(obj_def, constructor):
         obj_bytes = compile_engine(obj_def, obj.list, obj_names, obj_addrs, obj_bytes, rom)
         length = bytes_len(obj_bytes)
         addr = rom.memory.allocate(length, bank)
+        # Register the real value
         obj_addrs[obj.name] = addr
         obj_bytes[obj.name] = obj_bytes
     return parser, compiler
+
+# Useful for an optional argument
+def parse_nothing(address, obj_names, rom):
+    return None, 0
+
+def compile_nothing(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
+    return b""
+
+nothing_fns = (parse_nothing, compile_nothing)
 
 def parse_int(address, obj_names, rom):
     int_b = rom.read_from_clean(address, 1)
@@ -185,7 +202,7 @@ condition_fns = (parse_condition, compile_condition)
 def parse_asm(address, obj_names, rom):
     return None
 
-def compile_asm(obj obj_names, obj_addrs, obj_bytes, rom, bank):
+def compile_asm(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
     return None
 
 asm_fns = (parse_asm, compile_asm)
@@ -193,6 +210,7 @@ asm_fns = (parse_asm, compile_asm)
 # Classes
 
 class RomObject(object):
+    name_def = None
 
     def __init__(self):
         assert False
@@ -205,10 +223,15 @@ class RomObject(object):
     def parse_definition():
         assert False
 
+    def __repr__(self):
+        return "{}:{}".format(self.name, self.list)
+
+#TODO: how to force allocation in the pre-defined savestation tables?
 class SaveStation(RomObject):
     """
     Save Stations. The roots of the parsing / compilation process.
     """
+    name = "save_station_{}"
 
     @auto_init
     def __init__(self, name):
@@ -226,8 +249,8 @@ class SaveStation(RomObject):
     @staticmethod
     def parse_definition():
         return [
-        pointer_def(RoomHeader.fns, 2, bank=0x8F),
-        pointer_def(Door.fns, 2, bank=0x83),
+        pointer_def(RoomHeader, 2, bank=0x8F),
+        pointer_def(Door, 2, bank=0x83),
         int2_fns, # Save X position, pixels
         int2_fns, # Save Y position, pixels
         int2_fns, # Samus X position, pixels
@@ -236,6 +259,9 @@ class SaveStation(RomObject):
 SaveStation.fns = mk_default_fns(SaveStation)
 
 class RoomHeader(RomObject):
+    # Need names because two objects can start at the same address
+    # e.g. a DoorList and its first Door entry.
+    name = "room_header_{}"
 
     @auto_init
     def __init__(self):
@@ -258,13 +284,14 @@ class RoomHeader(RomObject):
         int_fns,   # Down scroll (when does the camera move down?)
         int_fns,   # CRE Bitset
         #(parse_cre_bitset, compile_cre_bitset),   # CRE Bitset
-        DoorList.fns,
-        StateConditionList.fns,
+        pointer_def(DoorList, bank=0x8F), # Door List Pointer
+        StateConditionList.fns, # State Conditions to decide which RoomState to load
         ]
 
 RoomHeader.fns = mk_default_fns(RoomHeader)
 
 class StateCondition(RomObject):
+    name = "state_condition_{}"
 
     @auto_init
     def __init__(self):
@@ -285,6 +312,7 @@ StateCondition.fns = mk_default_fns(StateCondition)
 
 #TODO: can get away without some of these objects that just store lists
 class StateConditionList(RomObject):
+    name = "state_condition_list_{}"
 
     @auto_init
     def __init__(self, conditions, default):
@@ -310,6 +338,7 @@ class StateConditionList(RomObject):
 StateConditionList.fns = mk_default_fns(StateConditionsList)
 
 class RoomState(RomObject):
+    name = "room_state_{}"
 
     @auto_init
     def __init__(self):
@@ -345,6 +374,7 @@ class RoomState(RomObject):
 RoomState.fns = mk_default_fns(RoomState)
 
 class Door(RomObject):
+    name = "door_{}"
 
     @auto_init
     def __init__(self, to_room, elevator_properties, orientation,
@@ -392,6 +422,7 @@ class Door(RomObject):
 Door.fns = mk_default_fns(Door)
 
 class DoorList(RomObject):
+    name = "door_list_{}"
 
     @auto_init
     def __init__(self, l):
@@ -411,6 +442,7 @@ class DoorList(RomObject):
 DoorList.fns = mk_default_fns(DoorList)
 
 class FXEntry(RomObject):
+    name = "fx_entry_{}"
 
     @auto_init
     def __init__(self):
@@ -437,21 +469,14 @@ class FXEntry(RomObject):
         int_fns,   # Palette Blend
         ]
 
-    def parse_zero(address, ...):
-        # Parse the \x00\x00 delimiter
-        address = address - Address(2)
-        self.fns[0](addres, ...)
-
-    def compile_zero(...)
-        # Remove the \x00\x00 since it will already
-        # be added by the list def
-        c_bytes = self.fns[1](...)
-        return c_bytes[1:]
-
 FXEntry.fns = mk_default_fns(FXEntry)
-FXEntry.default_fns = (parse_zero, compile_zero)
+# Parse nothing instead of the first pointer
+# The \x00\x00 delimiter on the FX list takes the place of this pointer
+# in both parsing and compiling
+FXEntry.default_fns = mk_default_fns(FXEntry, [nothing_fns] + FXEntry.parse_definition()[1:])
 
 class FX(RomObject):
+    name = "fx_{}"
 
     @auto_init
     def __init__(self):
@@ -473,6 +498,7 @@ class FX(RomObject):
 FX.fns = mk_default_fns(FX)
 
 class EnemyList(RomObject):
+    name = "enemy_list_{}"
 
     # kill_count: Number of enemy deaths needed to clear the current room
     @auto_init
@@ -496,6 +522,7 @@ class EnemyList(RomObject):
 EnemyList.fns = mk_default_fns(EnemyList)
 
 class Enemy(RomObject):
+    name = "enemy_{}"
 
     @auto_init
     def __init__(self):
@@ -521,6 +548,7 @@ class Enemy(RomObject):
 Enemy.fns = mk_default_fns(Enemy)
 
 class EnemyTypes(RomObject):
+    name = "enemy_types_{}"
 
     @auto_init
     def __init__(self, l):
@@ -539,6 +567,7 @@ class EnemyTypes(RomObject):
 EnemyTypes.fns = mk_default_fns(EnemyTypes)
 
 class EnemyType(RomObject):
+    name = "enemy_type_{}"
 
     @auto_init
     def __init__(self):
@@ -558,6 +587,7 @@ class EnemyType(RomObject):
 EnemyType.fns = mk_default_fns(EnemyType)
 
 class LevelData(RomObject):
+    name = "level_data_{}"
 
     @auto_init
     def __init__(self):
@@ -580,36 +610,52 @@ class LevelData(RomObject):
 LevelData.fns = (LevelData.parser, LevelData.compiler)
 
 class PLMList(RomObject):
+    name = "PLM_list_{}"
 
     @auto_init
-    def __init__(self):
-        assert False
+    def __init__(self, l):
+        pass
 
     def list(self):
-        assert False
+        return [self.l]
 
     @staticmethod
     def parse_definition():
-        assert False
+        return [
+            list_def(PLM.fns, b"\x00\x00")
+        ]
 
 PLMList.fns = mk_default_fns(PLMList)
 
 class PLM(RomObject):
+    name = "PLM_{}"
 
     @auto_init
-    def __init__(self):
-        assert False
+    def __init__(self, plm_id, xpos, ypos, parameter, name):
+        pass
 
     def list(self):
-        assert False
+        return [
+            self.plm_id,
+            self.xpos,
+            self.ypos,
+            self.parameter
+        ]
 
     @staticmethod
     def parse_definition():
+        return [
+            int2_fns,   # PLM ID
+            int_fns,    # X Position
+            int_fns,    # Y Position
+            int2_fns    # PLM Parameter
+        ]
         assert False
 
 PLM.fns = mk_default_fns(PLM)
 
 class Scrolls(RomObject):
+    name = "scrolls_{}"
 
     @auto_init
     def __init__(self):
