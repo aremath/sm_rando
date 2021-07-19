@@ -8,6 +8,7 @@ from . import byte_ops
 from . import areamap
 from .memory import *
 from .address import Address
+#TODO: register the methods as part of importing compress
 from .compress import decompress
 from .compress import compress
 from . import rom_data_structures
@@ -272,39 +273,37 @@ class RomManager(object):
         for address, data in patches:
             self.write_to_new(address, data)
 
-    def save_table_entries(address):
+    def save_table_entries(self, address):
         save_station_size = Address(14)
         addrs = []
-        while self.read_from_clean(address, 2) != "\x00\x00":
-            addr.append(address)
+        while self.read_from_clean(address, 2) != b"\x00\x00":
+            addrs.append(address)
             address += save_station_size
         return addrs
 
     def parse(self):
         # Vanilla Savestations
-        crateria_save_table = Address(0x8044c5, mode="snes")
+        crateria_save_table = Address(0x0044c5, mode="pc")
         crateria_savestations = self.save_table_entries(crateria_save_table)
         assert len(crateria_savestations) == 2
-        brinstar_save_table = Address(0x8045cf, mode="snes")
+        brinstar_save_table = Address(0x0045cf, mode="pc")
         brinstar_savestations = self.save_table_entries(brinstar_save_table)
         assert len(brinstar_savestations) == 5
-        norfair_save_table = Address(0x8046d9, mode="snes")
+        norfair_save_table = Address(0x0046d9, mode="pc")
         norfair_savestations = self.save_table_entries(norfair_save_table)
         assert len(norfair_savestations) == 6
-        wrecked_ship_save_table = Address(0x80481b, mode="snes")
+        wrecked_ship_save_table = Address(0x00481b, mode="pc")
         wrecked_ship_savestations = self.save_table_entries(wrecked_ship_save_table)
         assert len(wrecked_ship_savestations) == 1
-        maridia_save_table = Address(0x804917, mode="snes")
+        maridia_save_table = Address(0x004917, mode="pc")
         maridia_savestations = self.save_table_entries(maridia_save_table)
         assert len(maridia_savestations) == 4
-        tourian_save_table = Address(0x804a2f, mode="snes")
+        tourian_save_table = Address(0x004a2f, mode="pc")
         tourian_savestations = self.save_table_entries(tourian_save_table)
         assert len(tourian_savestations) == 2
         #TODO: what about Ceres?
         all_saves = crateria_savestations + brinstar_savestations + norfair_savestations + \
                 wrecked_ship_savestations + maridia_savestations + tourian_savestations
-        obj_names = {}
-        for save in all_saves:
-            rom_data_structures.SaveStation.fns[0](root, obj_names, self)
+        obj_names = rom_data_structures.parse_from_savestations(all_saves, self)
         return obj_names
 

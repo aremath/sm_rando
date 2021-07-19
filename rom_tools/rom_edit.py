@@ -1,5 +1,5 @@
 # Author - Aremath
-# methods for actually writing to / reading from the ROM
+# methods for writing to / reading from the ROM used by door randomizer
 # based on the hexMethods.py file from the other sm door randomizer
 #TODO: eventually most of this should be folded into rom_tools
 

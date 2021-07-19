@@ -4,7 +4,7 @@ class Address(object):
     """Address Class that handles conversions
        this way we don't have to remember which 'kind' of address we have
        just which kind we want to use"""
-    def __init__(self, addr, mode="pc"):
+    def __init__(self, addr, mode="pc", bank=None):
         if mode == "pc":
             self.from_pc(addr)
         elif mode == "snes":

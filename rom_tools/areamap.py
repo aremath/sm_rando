@@ -72,6 +72,7 @@ class AreaMap(object):
         if not self.__right_size():
             assert False, "Wrong map size"
 
+    #TODO: needs to also create two 32x32 arrays
     def map_to_bytes(self):
         self.__is_right_size()
         x = bytes()
