@@ -8,7 +8,7 @@ def get_n_bits(i, n, p):
     mask = (2**n - 1) << end
     return (i & mask) >> end
 
-def decompress(src, debug=False):
+def decompress_with_size(src, debug=False):
     dst = b""
     index = 0
     while True:
@@ -16,6 +16,7 @@ def decompress(src, debug=False):
             print(index)
         next_cmd = src[index]
         if next_cmd == 0xff:
+            index += 1
             break
         # The command code is the top 3 bits
         cmd_code = get_n_bits(next_cmd, 3, 0)
@@ -55,6 +56,10 @@ def decompress(src, debug=False):
         new, index = cmd(adj_n, index, src, dst, debug)
         # Add the decoded bytes to the dst
         dst += new
+    return dst, index
+
+def decompress(src, debug=False):
+    dst, index = decompress_with_size(src, debug=debug)
     return dst
 
 def direct_copy(n, index, src, dst, debug):
@@ -101,12 +106,12 @@ def sigmafill(n, index, src, dst, debug):
 def addr_copy(n, index, src, dst, debug):
     arg_bytes = src[index:index+2]
     arg = int.from_bytes(arg_bytes, byteorder='little')
-    to_copy = get_copy_bytes(arg, arg+n, dst)
-    to_copy = dst[arg:arg+n]
+    to_copy = get_copy_bytes(arg, arg + n, dst)
+    to_copy = dst[arg:arg + n]
     if debug:
         print("ADDRCPY", arg, len(dst), len(dst) + n)
         print(to_copy)
-    assert len(to_copy) == n #TODO
+    #assert len(to_copy) == n #TODO
     return to_copy, index+2
 
 def map_bytes(op, byte):

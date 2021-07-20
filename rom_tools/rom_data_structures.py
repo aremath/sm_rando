@@ -66,7 +66,7 @@ class Condition(IntEnum):
     Event = 0xE612      # 1 byte event argument, used if that event is set (See Event)
     BossDefeated = 0xE629   # 1-byte argument, used if ANY of the boss bits for the room area are set.
     MorphBall = 0xE640
-    MorphBallMissies = 0xE652
+    MorphBallMissiles = 0xE652
     PowerBombs = 0xE669
     SpeedBooster = 0xE678
 
@@ -245,6 +245,7 @@ def compile_wrapper(func):
         # Skip addrs if it's preallocated
         #TODO: for each object, if it has a "name",
         # just allocate it where it was before
+        #TODO: Check the size against the old size!
         if obj not in obj_addrs:
             addr = rom.memory.allocate(length, bank)
             obj_addrs[obj.name] = addr
@@ -415,6 +416,9 @@ class RomObject(object):
     def parse_definition():
         assert False
 
+    #TODO: __getattr__
+    # Give each object a reference to obj_names
+
     def __repr__(self):
         return "{}:{}".format(self.name, self.list)
 
@@ -434,9 +438,6 @@ class Placeholder(RomObject):
     @staticmethod
     def parse_definition():
         return []
-
-    def __repr__(self):
-        return "{}:{}".format(self.name, self.list)
 
 Placeholder.fns = mk_default_fns(Placeholder)
 
@@ -596,7 +597,7 @@ class RoomState(RomObject):
         #TODO: 8F is just a guess
         pointer_def(Placeholder, 2, bank=0x8F, invalid_bytes=b"\x00\x00"),  # Library background for Layer 2 data
         #TODO: 8F is just a guess
-        pointer_def(Placeholder, 2, bank=0x8F), # Setup ASM
+        pointer_def(Placeholder, 2, bank=0x8F, invalid_bytes=b"\x00\x00"), # Setup ASM
         ]
 
 RoomState.fns = mk_default_fns(RoomState)
@@ -639,7 +640,24 @@ class Door(RomObject):
         pointer_def(Placeholder, 2, bank=0x8F, invalid_bytes=b"\x00\x00"),   # Door ASM
         ]
 
-Door.fns = mk_default_fns(Door)
+# Special case: Door of \x00\x00 is used for elevators
+@parse_wrapper(Door)
+def door_parser(address, obj_names, rom, data):
+    if rom.read_from_clean(address, 2) == b"\x00\x00":
+        return [None] * 9, 2
+    else:
+        return parse_engine(Door.parse_definition(), address, obj_names, rom, data)
+
+#TODO: can combine these pointers!
+@compile_wrapper
+def door_compiler(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
+    # Only need to check the to_room, since you can't normally have a blank to_room.
+    if obj.to_room is None:
+        return b"\x00\x00"
+    else:
+        return compile_engine(Door.parse_definition(), obj.list, obj_names, obj_addrs, obj_bytes, rom)
+
+Door.fns = (door_parser, door_compiler)
 
 # A door list doesn't have a terminal
 # Instead, it's over when we run out of valid addresses
@@ -715,7 +733,7 @@ class FX(RomObject):
     def __init__(self, fx_l, default_fx, name):
         pass
 
-    @staticmethod
+    @property
     def list(self):
         return [self.fx_l, self.default_fx]
     
@@ -826,7 +844,7 @@ class EnemyType(RomObject):
 
     @property
     def list(self):
-        return [self.enemy_id, self.palette_index, name]
+        return [self.enemy_id, self.palette_index]
     
     @staticmethod
     def parse_definition():
@@ -845,6 +863,7 @@ class LevelData(RomObject):
     def __init__(self, level_bytes, name):
         pass
 
+    @property
     def list(self):
         return [self.level_bytes]
 
@@ -861,8 +880,9 @@ def level_data_parser(address, obj_names, rom, data):
     #TODO: the total amount of level data could theoretically exceed this with bad compression
     max_data = 5 * room_width * 16 * room_height * 16
     max_bytes = rom.read_from_clean(address, max_data)
-    level_bytes = decompress.decompress(max_bytes)
-    return [level_bytes], len(level_bytes)
+    # Return the size of the COMPRESSED data (for allocation purposes)
+    level_bytes, size = decompress.decompress_with_size(max_bytes)
+    return [level_bytes], size
 
 @compile_wrapper
 def level_data_compiler(obj, obj_names, obj_Addrs, obj_bytes, rom, bank):
@@ -878,6 +898,7 @@ class PLMList(RomObject):
     def __init__(self, l, name):
         pass
 
+    @property
     def list(self):
         return [self.l]
 
@@ -896,6 +917,7 @@ class PLM(RomObject):
     def __init__(self, plm_id, xpos, ypos, parameter, name):
         pass
 
+    @property
     def list(self):
         return [
             self.plm_id,
@@ -922,6 +944,7 @@ class Scrolls(RomObject):
     def __init__(self, array, name):
         pass
 
+    @property
     def list(self):
         return [self.array]
 
@@ -940,22 +963,25 @@ def scrolls_parser(address, obj_names, rom, data):
         address = Address(address, mode="snes")
         scroll_bytes = rom.read_from_clean(address, n_scrolls)
     except IndexError:
+        # An invalid scroll pointer has special behavior
+        # The bottom row of scrolls is set to the low byte + 1
+        # The rest of the scrolls are green
         # 0x0000 -> All blue
-        if address == 0x8f0000:
-            scroll_bytes = b"\x01" * n_scrolls
-        # 0x0001 -> All green
-        elif address == 0x8f0001:
-            scroll_bytes = b"\x02" * n_scrolls
-        else:
-            assert False, "Bad scrolls address: {}".format(hex(address))
+        low_byte = address & 0xff
+        greens = b"\x02" * room_width * (room_height - 1)
+        others = int.to_bytes(low_byte + 1, 1, byteorder="little") * room_width
+        scroll_bytes = greens + others
+        assert len(scroll_bytes) == n_scrolls
     # Iterating through bytestring gives int
     for i, b in enumerate(scroll_bytes):
         x = i % room_width
         y = i // room_width
         if b in list(ScrollValue):
             scroll_array[x][y] = b
+        # Things that are not 00 or 01 (Red or Blue) are treated as green
+        # We will change the data here to be more consistent
         else:
-            assert False, "Bad scroll: {}".format(b)
+            scroll_array[x][y] = ScrollValue.GreenScroll
     return [scroll_array], len(scroll_bytes)
 
 @compile_wrapper
