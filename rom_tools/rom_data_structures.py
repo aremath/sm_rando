@@ -218,8 +218,9 @@ def parse_wrapper(constructor):
             print(constructor)
             print(s_objs)
             print("Done Parsing: {}".format(name))
-            # Address is the name, the last argument
-            s = constructor(*s_objs, address)
+            # Give the object information about where it came from, and
+            # the ability to use obj_names for indexing
+            s = constructor(address, size, obj_names, *s_objs)
             # Register the real value
             obj_names[name] = s
             return name, size
@@ -404,17 +405,33 @@ state_condition_fns = (parse_state_condition, compile_state_condition)
 
 class RomObject(object):
     name_def = None
+    fields = []
 
-    def __init__(self):
-        assert False
+    def __init__(self, old_address, old_size, obj_names, *args):
+        self.old_address = old_address
+        self.old_size = old_size
+        self.obj_names = obj_names
+        fields = type(self).fields
+        assert len(fields) == len(args)
+        for field, arg in zip(fields, args):
+            setattr(self, field, arg)
 
     @property
     def list(self):
-        assert False
+        return [getattr(self, field) for field in type(self).fields]
     
     @staticmethod
     def parse_definition():
         assert False
+
+    # Override getattribute to allow implicit indexing
+    def __getattribute__(self, name):
+        default_attr = object.__getattribute__(self, name)
+        # If it's a string, dereference via obj_names
+        if type(default_attr) is str:
+            return self.obj_names[default_attr]
+        else:
+            return default_attr
 
     #TODO: __getattr__
     # Give each object a reference to obj_names
@@ -427,13 +444,7 @@ class RomObject(object):
 # relevant + how to repoint. This is certainly an interesting concept though
 class Placeholder(RomObject):
     name_def = "placeholder_{}"
-
-    def __init__(self, name):
-        self.name = name
-
-    @property
-    def list(self):
-        return []
+    fields = []
     
     @staticmethod
     def parse_definition():
@@ -447,14 +458,7 @@ class SaveStation(RomObject):
     Save Stations. The roots of the parsing / compilation process.
     """
     name_def = "save_station_{}"
-
-    @auto_init
-    def __init__(self, room, door, save_x, save_y, samus_x, samus_y, name):
-        self.name = name
-
-    @property
-    def list(self):
-        return [self.name, self.room, self.door, self.save_x, self.save_y, self.samus_x, self.samus_y]
+    fields = ["room", "door", "save_x", "save_y", "samus_x", "samus_y"]
 
     # Definitions
     # These are functions to avoid circular dependency because the parsers are
@@ -484,15 +488,8 @@ class RoomHeader(RomObject):
     # Need names because two objects can start at the same address
     # e.g. a DoorList and its first Door entry.
     name_def = "room_header_{}"
-
-    @auto_init
-    def __init__(self, room_index, area_index, map_x, map_y, width, height, scroll_up, scroll_down, CRE_bitset, door_list, state_chooser, name):
-        pass
-
-    @property
-    def list(self):
-        return [self.room_index, self.area_index, self.map_x, self.map_y, self.width, self.height,
-                self.scroll_up, self.scroll_down, self.CRE_bitset, self.door_list, self.state_chooser]
+    fields = ["room_index", "area_index", "map_x", "map_y", "width", "height", "scroll_up",
+                "scroll_down", "CRE_bitset", "door_list", "state_chooser"]
 
     @staticmethod
     def parse_definition():
@@ -514,15 +511,8 @@ RoomHeader.fns = mk_default_fns(RoomHeader)
 
 class StateChoice(RomObject):
     name_def = "state_condition_{}"
+    fields = ["state_condition", "state"]
 
-    @auto_init
-    def __init__(self, state_condition, state, name):
-        pass
-
-    @property
-    def list(self):
-        return [self.state_condition, self.state]
-    
     @staticmethod
     def parse_definition():
         return [
@@ -535,19 +525,9 @@ StateChoice.fns = mk_default_fns(StateChoice)
 #TODO: can get away without some of these objects that just store lists
 class StateChooser(RomObject):
     name_def = "state_chooser_{}"
+    #TODO: merge into one list?
+    fields = ["conditions", "default"]
 
-    @auto_init
-    def __init__(self, conditions, default, name):
-        #TODO: merge into one list?
-        pass
-
-    @property
-    def list(self):
-        return [
-            self.conditions,
-            self.default,
-        ]
-    
     @staticmethod
     def parse_definition():
         return [
@@ -562,18 +542,9 @@ StateChooser.fns = mk_default_fns(StateChooser)
 
 class RoomState(RomObject):
     name_def = "room_state_{}"
-
-    @auto_init
-    def __init__(self, level_data, tileset, music_data, music_track, fx, enemy_list, enemy_types,
-            layer2_scroll_x, layer2_scroll_y, scrolls, special_xray, main_asm, plms, background_index, setup_asm,
-            name):
-        pass
-
-    @property
-    def list(self):
-        return [self.level_data, self.tileset, self.music_data, self.music_track, self.fx,
-                self.enemy_list, self.enemy_types, self.layer2_scroll_x, self.layer2_scroll_y,
-                self.scrolls, self.special_xray, self.main_asm, self.plms, self.background_index, self.setup_asm]
+    fields = ["level_data", "tileset", "music_data", "music_track", "fx", "enemy_list",
+                "enemy_types", "layer2_scroll_x", "layer2_scroll_y", "scrolls",
+                "special_xray", "main_asm", "plms", "background_index", "setup_asm"]
 
     @staticmethod
     def parse_definition():
@@ -604,26 +575,10 @@ RoomState.fns = mk_default_fns(RoomState)
 
 class Door(RomObject):
     name_def = "door_{}"
-
-    @auto_init
-    def __init__(self, to_room, elevator_properties, orientation,
-            x_pos_low, y_pos_low, x_pos_high, y_pos_high, spawn_distance, asm_pointer, name):
-        pass
-
-    @property
-    def list(self):
-        return [
-        self.to_room,
-        self.elevator_properties,
-        self.orientation,
-        #TODO: instead of low / high, is this door cap position and screen position?
-        self.x_pos_low,
-        self.y_pos_low,
-        self.x_pos_high,
-        self.y_pos_high,
-        self.spawn_distance,
-        self.asm_pointer,
-        ]
+    #TODO: instead of low / high, is this door cap position and screen position?
+    fields = ["to_room", "elevator_properties", "orientation",
+                "x_pos_low", "y_pos_low", "x_pos_high", "y_pos_high",
+                "spawn_distance", "asm_pointer"]
 
     @staticmethod
     def parse_definition():
@@ -669,16 +624,8 @@ def door_list_check(address, rom):
 #TODO: Elevators
 class DoorList(RomObject):
     name_def = "door_list_{}"
+    fields = ["l"]
 
-    @auto_init
-    def __init__(self, l, name):
-        pass
-
-    @property
-    def list(self):
-        return [self.l]
-    
-    #TODO: door list might not actually be delimited by \xffs
     @staticmethod
     def parse_definition():
         return [
@@ -689,18 +636,9 @@ DoorList.fns = mk_default_fns(DoorList)
 
 class FXEntry(RomObject):
     name_def = "fx_entry_{}"
-
-    @auto_init
-    def __init__(self, door, liquid_y, liquid_target_y, liquid_speed, liquid_timer,
-            layer3_type, default_layer_blend, layer3_blend, liquid_options, palette_fx_bits,
-            animated_tiles_bits, palette_blend, name):
-        pass
-
-    @property
-    def list(self):
-        return [self.door, self.liquid_y, self.liquid_target_y, self.liquid_speed,
-                self.liquid_timer, self.layer3_type, self.default_layer_blend, self.layer3_blend,
-                self.liquid_options, self.palette_fx_bits, self.animated_tiles_bits, self.palette_blend]
+    fields = ["door", "liquid_y", "liquid_target_y", "liquid_speed", "liquid_timer",
+                "layer3_type", "default_layer_blend", "layer3_blend", "liquid_options",
+                "palette_fx_bits", "animated_tiles_bits", "palette_blend"]
 
     @staticmethod
     def parse_definition():
@@ -728,16 +666,8 @@ FXEntry.default_fns = mk_default_fns(FXEntry, lambda: [nothing_fns] + FXEntry.pa
 
 class FX(RomObject):
     name_def = "fx_{}"
+    fields = ["fx_l", "default_fx"]
 
-    @auto_init
-    def __init__(self, fx_l, default_fx, name):
-        pass
-
-    @property
-    def list(self):
-        return [self.fx_l, self.default_fx]
-    
-    #TODO: how to do \xff\xff "No FX"?
     @staticmethod
     def parse_definition():
         return [
@@ -765,19 +695,9 @@ FX.fns = (fx_parser, fx_compiler)
 
 class EnemyList(RomObject):
     name_def = "enemy_list_{}"
-
     # kill_count: Number of enemy deaths needed to clear the current room
-    @auto_init
-    def __init__(self, enemies, kill_count, name):
-        pass
+    fields = ["enemies", "kill_count"]
 
-    @property
-    def list(self):
-        return [
-            self.enemies,
-            self.kill_count
-        ]
-    
     @staticmethod
     def parse_definition():
         return [
@@ -789,17 +709,8 @@ EnemyList.fns = mk_default_fns(EnemyList)
 
 class Enemy(RomObject):
     name_def = "enemy_{}"
-
-    @auto_init
-    def __init__(self, enemy_id, x_pos, y_pos, init_param, properties1, properties2, parameter1, parameter2, name):
-        pass
-
-    @property
-    def list(self):
-        return [self.enemy_id,
-                self.x_pos, self.y_pos,
-                self.init_param, self.properties1, self.properties2,
-                self.parameter1, self.parameter2]
+    fields = ["enemy_id", "x_pos", "y_pos", "init_param", "properties1", "properties2",
+                "parameter1", "parameter2"]
 
     @staticmethod
     def parse_definition():
@@ -818,15 +729,8 @@ Enemy.fns = mk_default_fns(Enemy)
 
 class EnemyTypes(RomObject):
     name_def = "enemy_types_{}"
+    fields = ["l"]
 
-    @auto_init
-    def __init__(self, l, name):
-        pass
-
-    @property
-    def list(self):
-        return [self.l]
-    
     @staticmethod
     def parse_definition():
         return [
@@ -837,15 +741,8 @@ EnemyTypes.fns = mk_default_fns(EnemyTypes)
 
 class EnemyType(RomObject):
     name_def = "enemy_type_{}"
+    fields = ["enemy_id", "palette_index"]
 
-    @auto_init
-    def __init__(self, enemy_id, palette_index, name):
-        pass
-
-    @property
-    def list(self):
-        return [self.enemy_id, self.palette_index]
-    
     @staticmethod
     def parse_definition():
         return [
@@ -857,15 +754,8 @@ EnemyType.fns = mk_default_fns(EnemyType)
 
 class LevelData(RomObject):
     name_def = "level_data_{}"
-
     #TODO: level1, level2, bts as arrays of bytes
-    @auto_init
-    def __init__(self, level_bytes, name):
-        pass
-
-    @property
-    def list(self):
-        return [self.level_bytes]
+    fields = ["level_bytes"]
 
     # Level Data does NOT use default fns
     @staticmethod
@@ -893,14 +783,7 @@ LevelData.fns = (level_data_parser, level_data_compiler)
 
 class PLMList(RomObject):
     name_def = "PLM_list_{}"
-
-    @auto_init
-    def __init__(self, l, name):
-        pass
-
-    @property
-    def list(self):
-        return [self.l]
+    fields = ["l"]
 
     @staticmethod
     def parse_definition():
@@ -912,19 +795,7 @@ PLMList.fns = mk_default_fns(PLMList)
 
 class PLM(RomObject):
     name_def = "PLM_{}"
-
-    @auto_init
-    def __init__(self, plm_id, xpos, ypos, parameter, name):
-        pass
-
-    @property
-    def list(self):
-        return [
-            self.plm_id,
-            self.xpos,
-            self.ypos,
-            self.parameter
-        ]
+    fields = ["plm_id", "xpos", "ypos", "parameter"]
 
     @staticmethod
     def parse_definition():
@@ -939,14 +810,7 @@ PLM.fns = mk_default_fns(PLM)
 
 class Scrolls(RomObject):
     name_def = "scrolls_{}"
-
-    @auto_init
-    def __init__(self, array, name):
-        pass
-
-    @property
-    def list(self):
-        return [self.array]
+    fields = ["array"]
 
     @staticmethod
     def parse_definition():
@@ -988,6 +852,7 @@ def scrolls_parser(address, obj_names, rom, data):
 def scrolls_compiler(obj, obj_names, obj_Addrs, obj_bytes, rom, bank):
     # If all blue / green, don't need to allocate
     #TODO: Fix in pointer-replacement stage
+    #TODO: this needs to actually invert the previous process (bottom row)
     if np.all(obj.array == ScrollValue.BlueScroll):
         return b""
     elif np.all(obj.array == ScrollValue.GreenScroll):
