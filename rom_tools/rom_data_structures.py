@@ -7,6 +7,7 @@ from . import byte_ops
 from .address import *
 from .compress import compress
 from .compress import decompress
+from . import leveldata_utils
 
 # https://stackoverflow.com/questions/1389180/automatically-initialize-instance-variables
 def auto_init(func):
@@ -25,6 +26,32 @@ def auto_init(func):
                         setattr(self, name, default)
             func(self, *args, **kargs)
         return wrapper
+
+class FutureBytes(object):
+    
+    def __init__(self, obj, size, banks):
+        self.obj = obj
+        self.size = size
+        self.banks = banks
+
+    def resolve(self):
+        assert hasattr(self.obj, "address")
+        assert self.obj.address is not None
+        # Make sure that the pointer we got actually goes to the banks we expect
+        assert self.obj.address.bank in self.banks
+        return self.obj.address.as_snes_bytes(self.size)
+
+def byte_size(byte_obj):
+    if type(byte_obj) is bytes:
+        return len(byte_obj)
+    elif type(byte_obj) is FutureBytes:
+        return byte_obj.size
+    else:
+        raise TypeError
+
+def bytes_size(b_list):
+    print(b_list)
+    return sum([byte_size(obj) for obj in b_list])
 
 class Event(IntEnum):
     ZebesAwake = 0
@@ -114,7 +141,7 @@ def parse_engine(obj_def, address, obj_names, rom, data):
         total_size += size
     return objs, total_size
 
-def compile_engine(obj_def, objs, obj_names, obj_addrs, obj_bytes, rom):
+def compile_engine(obj_def, objs, rom, banks):
     # Unzip to list of compilers
     if len(obj_def) == 0:
         compilers = []
@@ -122,8 +149,12 @@ def compile_engine(obj_def, objs, obj_names, obj_addrs, obj_bytes, rom):
         compilers = list(zip(*obj_def))[1]
     all_bytes = []
     for compiler, obj in zip(compilers, objs):
-        b = compiler(obj, obj_names, obj_addrs, obj_bytes, rom)
-        all_bytes.append(b)
+        b = compiler(obj, rom, banks)
+        # Want to get a flat list of bytes / FutureBytes
+        if type(b) is list:
+            all_bytes.extend(b)
+        else:
+            all_bytes.append(b)
     return all_bytes
 
 def list_def(fns, terminal, terminal_cond=None):
@@ -146,19 +177,28 @@ def list_def(fns, terminal, terminal_cond=None):
             out_size += len(terminal)
         return out_list, out_size
 
-    def list_compiler(obj, obj_names, addr_objs, obj_bytes, rom, bank):
-        assert isinstance(obj, list)
+    def list_compiler(obj_list, rom, banks):
+        assert isinstance(obj_list, list)
         all_bytes = []
-        for o in obj:
-            obj_bytes = compiler(obj, obj_names, addr_objs, obj_bytes, rom, bank)
-            all_bytes.extend(obj_bytes)
+        for obj in obj_list:
+            obj_bytes = compiler(obj, rom, banks)
+            if type(obj_bytes) is list:
+                all_bytes.extend(obj_bytes)
+            else:
+                all_bytes.append(obj_bytes)
         all_bytes.append(terminal)
         return all_bytes
 
     return list_parser, list_compiler
 
-def pointer_def(constructor, size, bank=None, invalid_bytes=None, invalid_ok=False):
+def pointer_def(constructor, size, banks, invalid_bytes=None, invalid_ok=False):
     parser, compiler = constructor.fns
+    # If you want all banks, do a range!
+    assert len(banks) > 0
+    if len(banks) > 1:
+        bank = None
+    else:
+        bank = banks[0]
 
     def pointer_parser(address, obj_names, rom, data):
         address_bytes = rom.read_from_clean(address, size)
@@ -186,17 +226,23 @@ def pointer_def(constructor, size, bank=None, invalid_bytes=None, invalid_ok=Fal
         parser(address, obj_names, rom, data)
         return name, size
 
-    def pointer_compiler(obj, obj_names, addr_objs, obj_bytes, rom, bank):
+    def pointer_compiler(obj, rom, ptr_banks):
+        # ptr_banks is the bank that the pointer will appear in
+        # It's thrown on the floor because the pointer is allocated as part of
+        # a larger object
         if invalid_bytes is not None and obj is None:
             return invalid_bytes
-        compiler(obj, obj_names, addr_objs, obj_bytes, rom, bank)
-        return FutureBytes(obj.name, 2, bank)
+        # Run the compiler for the sub-object, which will result in the
+        # object being assigned an address and bytes
+        # Compile the sub-object in the requested bank
+        compiler(obj, rom, banks)
+        return FutureBytes(obj, size, banks)
 
     return pointer_parser, pointer_compiler
 
 # Actual parsers
 #def parse_engine(obj_def, address, obj_names, rom):
-#def compile_engine(obj_def, obj, obj_names, obj_addrs, obj_bytes, rom):
+#def compile_engine(obj_def, obj, rom):
 
 def parse_wrapper(constructor):
     """
@@ -220,7 +266,7 @@ def parse_wrapper(constructor):
             print("Done Parsing: {}".format(name))
             # Give the object information about where it came from, and
             # the ability to use obj_names for indexing
-            s = constructor(address, size, obj_names, *s_objs)
+            s = constructor(name, address, size, obj_names, *s_objs)
             # Register the real value
             obj_names[name] = s
             return name, size
@@ -233,26 +279,29 @@ def compile_wrapper(func):
     The inner function should only return the object bytes (while recursively calling other compilers)
     """
     @wraps(func)
-    def wrapper(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
+    def wrapper(obj, rom, banks):
         # Already being compiled
-        if obj.name in obj_bytes:
+        if hasattr(obj, "bytes"):
             return
         # Register so that it won't be processed twice.
-        obj_bytes[obj.name] = None
         print("Compiling: {}".format(obj.name))
-        this_obj_bytes = func(obj, obj_names, obj_addrs, obj_bytes, rom, bank)
-        length = bytes_len(this_obj_bytes)
+        obj.bytes = None
+        obj.address = None
+        obj.bytes = func(obj, rom, banks)
+        size = bytes_size(obj.bytes)
         # Register the real value
         # Skip addrs if it's preallocated
-        #TODO: for each object, if it has a "name",
-        # just allocate it where it was before
-        #TODO: Check the size against the old size!
-        if obj not in obj_addrs:
-            addr = rom.memory.allocate(length, bank)
-            obj_addrs[obj.name] = addr
+        # If the object already has a place on the rom, allocate it there
+        #TODO: the new size can be larger as long as it extends into free space
+        if obj.old_address is not None and size <= obj.old_size:
+            if size < obj.old_size:
+                print("Compiled object is smaller")
+            assert obj.old_address.bank in banks
+            obj.address = obj.old_address
         else:
-            assert obj_addrs[obj.name].bank == bank
-        obj_bytes[obj.name] = this_obj_bytes
+            print("Allocating compiled object")
+            addr = rom.memory.allocate(length, banks)
+            obj.address = addr
     return wrapper
 
 def mk_default_fns(constructor, obj_def=None):
@@ -265,8 +314,8 @@ def mk_default_fns(constructor, obj_def=None):
         return parse_engine(obj_def(), address, obj_names, rom, data)
 
     @compile_wrapper
-    def compiler(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
-        return compile_engine(obj_def(), obj.list, obj_names, obj_addrs, obj_bytes, rom)
+    def compiler(obj, rom, banks):
+        return compile_engine(obj_def(), obj.list, rom, banks)
 
     return parser, compiler
 
@@ -274,7 +323,7 @@ def mk_default_fns(constructor, obj_def=None):
 def parse_nothing(address, obj_names, rom, data):
     return None, 0
 
-def compile_nothing(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
+def compile_nothing(obj, rom, banks):
     return b""
 
 nothing_fns = (parse_nothing, compile_nothing)
@@ -284,7 +333,7 @@ def parse_int(address, obj_names, rom, data):
     i = int.from_bytes(int_b, byteorder="little")
     return i, 1
 
-def compile_int(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
+def compile_int(obj, rom, banks):
     int_b = obj.to_bytes(1, byteorder="little")
     return int_b
 
@@ -295,7 +344,7 @@ def parse_int2(address, obj_names, rom, data):
     i = int.from_bytes(int_b, byteorder="little")
     return i, 2
 
-def compile_int2(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
+def compile_int2(obj, rom, banks):
     int_b = obj.to_bytes(2, byteorder="little")
     return int_b
 
@@ -305,7 +354,7 @@ int2_fns = (parse_int2, compile_int2)
 def parse_condition(address, obj_names, rom, data):
     assert False
 
-def compile_condition(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
+def compile_condition(obj, rom, banks):
     assert False
 
 condition_fns = (parse_condition, compile_condition)
@@ -318,9 +367,9 @@ def mk_enum_fns(under_fns, enum):
             if e == p:
                 return e, n
         assert False, "No Matching Enum Entry"
-    def enum_compiler(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
+    def enum_compiler(obj, rom, banks):
         # Can simply call the under-parser for an IntEnum
-        under_compiler(obj, obj_names, obj_addrs, obj_bytes, rom, bank)
+        under_compiler(obj, rom, banks)
     return enum_parser, enum_compiler
 
 area_index_fns = mk_enum_fns(int_fns, Area)
@@ -337,11 +386,11 @@ def mk_bitset_fns(under_fns, enum):
                 s.add(e)
         # Size is the number of bytes grabbed by the under parser
         return s, n
-    def enum_compiler(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
+    def enum_compiler(obj, rom, banks):
         i = 0
         for e in enum:
             i &= e
-        under_compiler(i, obj_names, obj_addrs, obj_bytes, rom, bank)
+        under_compiler(i, rom, banks)
     return enum_parser, enum_compiler
 
 cre_set_fns = mk_bitset_fns(int_fns, CRESettings)
@@ -352,7 +401,7 @@ def get_cond_arg_fns(condition):
     if condition is Condition.Default:
         return nothing_fns
     elif condition is Condition.DoorCheck:
-        return pointer_def(Door, 2, bank=0x83),
+        return pointer_def(Door, 2, banks=[0x83]),
     elif condition is Condition.AreaBossDefeated:
         return nothing_fns
     elif condition is Condition.Event:
@@ -378,12 +427,12 @@ def parse_state_condition(address, obj_names, rom, data):
     arg, arg_size = arg_parser(arg_address, obj_names, rom, data)
     return (cond, arg), (size + arg_size)
 
-def compile_state_condition(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
+def compile_state_condition(obj, rom, banks):
     cond, arg = obj
-    cond_bytes = compile_condition(cond, obj_names, obj_addrs, obj_bytes, rom, bank)
+    cond_bytes = compile_condition(cond, rom, banks)
     arg_fns = get_cond_arg_fns(cond)
     arg_compiler = arg_fns[1]
-    arg_bytes = arg_compiler(arg, obj_names, obj_addrs, obj_bytes, rom, bank)
+    arg_bytes = arg_compiler(arg, rom, banks)
     return cond_bytes + arg_bytes
 
 state_condition_fns = (parse_state_condition, compile_state_condition)
@@ -407,7 +456,8 @@ class RomObject(object):
     name_def = None
     fields = []
 
-    def __init__(self, old_address, old_size, obj_names, *args):
+    def __init__(self, name, old_address, old_size, obj_names, *args):
+        self.name = name
         self.old_address = old_address
         self.old_size = old_size
         self.obj_names = obj_names
@@ -428,13 +478,11 @@ class RomObject(object):
     def __getattribute__(self, name):
         default_attr = object.__getattribute__(self, name)
         # If it's a string, dereference via obj_names
-        if type(default_attr) is str:
+        # Allow self.name as a self-reference that will return a string
+        if type(default_attr) is str and self.obj_names[default_attr] is not self:
             return self.obj_names[default_attr]
         else:
             return default_attr
-
-    #TODO: __getattr__
-    # Give each object a reference to obj_names
 
     def __repr__(self):
         return "{}:{}".format(self.name, self.list)
@@ -468,8 +516,8 @@ class SaveStation(RomObject):
     @staticmethod
     def parse_definition():
         return [
-        pointer_def(RoomHeader, 2, bank=0x8F),
-        pointer_def(Door, 2, bank=0x83),
+        pointer_def(RoomHeader, 2, banks=[0x8F]),
+        pointer_def(Door, 2, banks=[0x83]),
         int2_fns, # Save X position, pixels
         int2_fns, # Save Y position, pixels
         int2_fns, # Samus X position, pixels
@@ -503,7 +551,7 @@ class RoomHeader(RomObject):
         int_fns,   # Up scroll (when does the camera move up?)
         int_fns,   # Down scroll (when does the camera move down?)
         cre_set_fns,   # CRE Bitset
-        pointer_def(DoorList, 2, bank=0x8F), # Door List Pointer
+        pointer_def(DoorList, 2, banks=[0x8F]), # Door List Pointer
         (*StateChooser.fns, get_room_dims), # State Conditions to decide which RoomState to load
         ]
 
@@ -517,12 +565,12 @@ class StateChoice(RomObject):
     def parse_definition():
         return [
         state_condition_fns,
-        (*pointer_def(RoomState, 2, bank=0x8F), data_pass),
+        (*pointer_def(RoomState, 2, banks=[0x8F]), data_pass),
         ]
 
 StateChoice.fns = mk_default_fns(StateChoice)
 
-#TODO: can get away without some of these objects that just store lists
+#TODO: can we get away without some of these objects that just store lists?
 class StateChooser(RomObject):
     name_def = "state_chooser_{}"
     #TODO: merge into one list?
@@ -549,26 +597,24 @@ class RoomState(RomObject):
     @staticmethod
     def parse_definition():
         return [
-        (*pointer_def(LevelData, 3), data_pass),# Level Data
+        (*pointer_def(LevelData, 3, banks=range(0xc3, 0xce)), data_pass),# Level Data
         int_fns,                                # Tileset
         int_fns,                                # Music data index
         int_fns,                                # Music track index
-        pointer_def(FX, 2, bank=0x83),          # FX Data
-        pointer_def(EnemyList, 2, bank=0xA1),   # The enemies in the room
-        pointer_def(EnemyTypes, 2, bank=0xB4),  # The enemy types available in the room
+        pointer_def(FX, 2, banks=[0x83]),          # FX Data
+        pointer_def(EnemyList, 2, banks=[0xA1]),   # The enemies in the room
+        pointer_def(EnemyTypes, 2, banks=[0xB4]),  # The enemy types available in the room
         int_fns,                                # Layer 2 scroll X
         int_fns,                                # Layer 2 scroll Y
-        #TODO: if this pointer is 0000 it means all blue scrolls
-        #TODO: if this pointer is 0001 it means all green scrolls
-        (*pointer_def(Scrolls, 2, bank=0x8F, invalid_ok=True), data_pass), # Scrolls
-        pointer_def(Placeholder, 2, bank=0x8F, invalid_bytes=b"\x00\x00"), # Special x-ray blocks
+        (*pointer_def(Scrolls, 2, banks=[0x8F], invalid_ok=True), data_pass), # Scrolls
+        pointer_def(Placeholder, 2, banks=[0x8F], invalid_bytes=b"\x00\x00"), # Special x-ray blocks
         #TODO: 8F is just a guess
-        pointer_def(Placeholder, 2, bank=0x8F, invalid_bytes=b"\x00\x00"), # Main ASM
-        pointer_def(PLMList, 2, bank=0x8F),     # PLMs
+        pointer_def(Placeholder, 2, banks=[0x8F], invalid_bytes=b"\x00\x00"), # Main ASM
+        pointer_def(PLMList, 2, banks=[0x8F]),     # PLMs
         #TODO: 8F is just a guess
-        pointer_def(Placeholder, 2, bank=0x8F, invalid_bytes=b"\x00\x00"),  # Library background for Layer 2 data
+        pointer_def(Placeholder, 2, banks=[0x8F], invalid_bytes=b"\x00\x00"),  # Library background for Layer 2 data
         #TODO: 8F is just a guess
-        pointer_def(Placeholder, 2, bank=0x8F, invalid_bytes=b"\x00\x00"), # Setup ASM
+        pointer_def(Placeholder, 2, banks=[0x8F], invalid_bytes=b"\x00\x00"), # Setup ASM
         ]
 
 RoomState.fns = mk_default_fns(RoomState)
@@ -583,7 +629,7 @@ class Door(RomObject):
     @staticmethod
     def parse_definition():
         return [
-        pointer_def(RoomHeader, 2, bank=0x8F),
+        pointer_def(RoomHeader, 2, banks=[0x8F]),
         #TODO special parsers for elevator + orientation
         int_fns,   # Elevator properties
         int_fns,   # Orientation
@@ -592,7 +638,7 @@ class Door(RomObject):
         int_fns,   # X position high byte
         int_fns,   # Y position high byte
         int2_fns, # Distance from door to spawn Samus
-        pointer_def(Placeholder, 2, bank=0x8F, invalid_bytes=b"\x00\x00"),   # Door ASM
+        pointer_def(Placeholder, 2, banks=[0x8F], invalid_bytes=b"\x00\x00"),   # Door ASM
         ]
 
 # Special case: Door of \x00\x00 is used for elevators
@@ -605,12 +651,12 @@ def door_parser(address, obj_names, rom, data):
 
 #TODO: can combine these pointers!
 @compile_wrapper
-def door_compiler(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
+def door_compiler(obj, rom, banks):
     # Only need to check the to_room, since you can't normally have a blank to_room.
     if obj.to_room is None:
         return b"\x00\x00"
     else:
-        return compile_engine(Door.parse_definition(), obj.list, obj_names, obj_addrs, obj_bytes, rom)
+        return compile_engine(Door.parse_definition(), obj.list, rom, banks)
 
 Door.fns = (door_parser, door_compiler)
 
@@ -626,10 +672,15 @@ class DoorList(RomObject):
     name_def = "door_list_{}"
     fields = ["l"]
 
+    # Need to do this specially since we're not using special __getattr__ dereferencing logic
+    @property
+    def list(self):
+        return [[self.obj_names[d] for d in self.l]]
+
     @staticmethod
     def parse_definition():
         return [
-        list_def(pointer_def(Door, 2, bank=0x83), None, door_list_check)
+        list_def(pointer_def(Door, 2, banks=[0x83]), None, door_list_check)
         ]
 
 DoorList.fns = mk_default_fns(DoorList)
@@ -643,7 +694,7 @@ class FXEntry(RomObject):
     @staticmethod
     def parse_definition():
         return [
-        pointer_def(Door, 2, bank=0x83),
+        pointer_def(Door, 2, banks=[0x83]),
         int2_fns, # Liquid Base Y position
         int2_fns, # Liquid Target Y position
         int2_fns, # Liquid Y Velocity (speed)
@@ -685,11 +736,11 @@ def fx_parser(address, obj_names, rom, data):
 
 #TODO: can combine these pointers!
 @compile_wrapper
-def fx_compiler(obj, obj_names, obj_addrs, obj_bytes, rom, bank):
+def fx_compiler(obj, rom, banks):
     if len(obj.fx_l) == 0 and obj.default_fx is None:
         return b"\xff\xff"
     else:
-        return compile_engine(FX.parse_definition(), obj.list, obj_names, obj_addrs, obj_bytes, rom)
+        return compile_engine(FX.parse_definition(), obj.list, rom, banks)
 
 FX.fns = (fx_parser, fx_compiler)
 
@@ -754,8 +805,8 @@ EnemyType.fns = mk_default_fns(EnemyType)
 
 class LevelData(RomObject):
     name_def = "level_data_{}"
-    #TODO: level1, level2, bts as arrays of bytes
-    fields = ["level_bytes"]
+    # Storing as an array as well as in custom data structure with fields
+    fields = ["level_bytes", "level_array"]
 
     # Level Data does NOT use default fns
     @staticmethod
@@ -771,11 +822,14 @@ def level_data_parser(address, obj_names, rom, data):
     max_data = 5 * room_width * 16 * room_height * 16
     max_bytes = rom.read_from_clean(address, max_data)
     # Return the size of the COMPRESSED data (for allocation purposes)
+    # The new room could fit at the location where it originally existed
     level_bytes, size = decompress.decompress_with_size(max_bytes)
-    return [level_bytes], size
+    level_dimensions = leveldata_utils.Coord(room_width * 16, room_height * 16)
+    level_array = leveldata_utils.level_array_from_bytes(level_bytes, level_dimensions)
+    return [level_bytes, level_array], size
 
 @compile_wrapper
-def level_data_compiler(obj, obj_names, obj_Addrs, obj_bytes, rom, bank):
+def level_data_compiler(obj, rom, banks):
     compressed_bytes = compress.greedy_compress(obj.level_bytes)
     return compressed_bytes
 
@@ -830,7 +884,6 @@ def scrolls_parser(address, obj_names, rom, data):
         # An invalid scroll pointer has special behavior
         # The bottom row of scrolls is set to the low byte + 1
         # The rest of the scrolls are green
-        # 0x0000 -> All blue
         low_byte = address & 0xff
         greens = b"\x02" * room_width * (room_height - 1)
         others = int.to_bytes(low_byte + 1, 1, byteorder="little") * room_width
@@ -849,21 +902,24 @@ def scrolls_parser(address, obj_names, rom, data):
     return [scroll_array], len(scroll_bytes)
 
 @compile_wrapper
-def scrolls_compiler(obj, obj_names, obj_Addrs, obj_bytes, rom, bank):
+def scrolls_compiler(obj, rom, banks):
     # If all blue / green, don't need to allocate
     #TODO: Fix in pointer-replacement stage
-    #TODO: this needs to actually invert the previous process (bottom row)
-    if np.all(obj.array == ScrollValue.BlueScroll):
+    bot_value = obj.array[-1][0]
+    bot_row = obj.array[-1:]
+    non_bot_row = obj.array[:-1]
+    if np.all(bot_row == bot_value) and np.all(non_bot_row == ScrollValue.Green):
+        obj.bot_value = bot_value
         return b""
-    elif np.all(obj.array == ScrollValue.GreenScroll):
-        return b""
+    else:
+        obj.bot_value = None
     # Convert from numpy array to bytes in row major order
     # Use mutable bytearray rather than bytestring
     obj_bytes = bytearray()
     x_dim, y_dim = obj.array.shape
     for x in range(x_dim):
         for y in range(y_dim):
-            b = int.to_bytes(obj.array[x][y], 1)
+            b = int.to_bytes(obj.array[x][y], 1, byteorder="little")
             scroll_bytes.append(b)
     # Convert back to bytestring
     return bytes(scroll_bytes)
@@ -876,4 +932,39 @@ def parse_from_savestations(savestation_addrs, rom):
     for addr in savestation_addrs:
         SaveStation.fns[0](addr, obj_names, rom, None)
     return obj_names
+
+# Compiling
+def compile_from_savestations(savestation_objs, obj_names, rom):
+    # Allocation
+    # Adds "address" and "bytes" fields to each object
+    #TODO: Use a dictionary from bank -> bytes -> address (hash FutureAddress by name, size)
+    # to avoid repetition (each compiler can check before allocation)
+    for obj in savestation_objs:
+        # Do not allow Save Stations to be allocated outside of their normal location
+        # Levels built from scratch should include old_address for savesation objects
+        # and for other preallocated objects like default setup ASM
+        SaveStation.fns[1](obj, rom, [])
+    # Pointer resolution
+    for name, obj in obj_names.items():
+        # Use mutable bytearray for speed
+        obj_bytes = bytearray()
+        for i,b in enumerate(obj.bytes):
+            if type(b) is bytes:
+                obj_bytes += b
+            elif type(b) is FutureBytes:
+                # Handle scrolls specially
+                # (Other things are handled by pointer def is_invalid)
+                if type(obj) is RoomState and obj.scrolls.bytes == b"":
+                    val = obj.scrolls.bot_value
+                    assert val is not None
+                    assert val & 0xff == val
+                    obj_bytes += int.to_bytes(val - 1, 2, byteorder="little")
+                else:
+                    obj_bytes += b.resolve()
+            else:
+                raise TypeError
+    print("Got to writing!")
+    # Write bytes out
+    #for obj in obj_names.values():
+    #    rom.write_to_new(obj.address, obj.bytes)
 

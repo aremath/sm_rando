@@ -313,7 +313,7 @@ class Type(object):
         self.is_any = is_any
         if is_any:
             self.index = None
-            self.flips = None
+            self.bts = None
         else:
             self.index = index
             self.bts = bts

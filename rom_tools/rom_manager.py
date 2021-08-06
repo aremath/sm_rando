@@ -54,7 +54,7 @@ class RomManager(object):
         self.memory = Memory(self)
         self.memory.setup()
 
-    def load_rom(self, clean_name, new_name):
+    def load_rom(self, clean_name, new_name, mod=True):
         """Opens the files associated with the clean rom and the modded rom"""
 
         pure_rom_sum = '21f3e98df4780ee1c667b84e57d88675'
@@ -79,22 +79,15 @@ class RomManager(object):
         self.clean_rom = open(clean_name, "r+b")
         
         # Mod the rom if necessary
-        if checksum == pure_rom_sum:
-            #print("Looks like a valid pure rom, we'll mod it first")
-            self.new_rom = open(new_name, "r+b")
-            self.mod_rom()
-        # Load it if it already has the right mods
-        # TODO: do we want this?
-        elif checksum == modded_rom_sum:
-            #print("This is already modded, we can just load it")
-            self.new_rom = open(new_name, "r+b")
-        else: #TODO: restrict once we know what the checksums are supposed to be.
-            #print("Something is wrong with this rom")
-            self.new_rom = open(new_name, "r+b")
+        self.new_rom = open(new_name, "r+b")
+        #TODO: Restrict based on checksum
+        if mod:
             self.mod_rom()
 
     def mod_rom(self):
-        """Modifies a pure rom to have the mods we need"""
+        """
+        Mod the ROM with various patches (see comments)
+        """
         # Skip Ceres
         self.write_to_new(Address(0x16ebb), b"\x05")
         # Make sand easier to jump out of without gravity
@@ -306,4 +299,9 @@ class RomManager(object):
                 wrecked_ship_savestations + maridia_savestations + tourian_savestations
         obj_names = rom_data_structures.parse_from_savestations(all_saves, self)
         return obj_names
+
+    def compile(self, obj_names):
+        # Kind of hacky
+        all_saves = [obj for name, obj in obj_names.items() if name.startswith("save_station")]
+        rom_data_structures.compile_from_savestations(all_saves, obj_names, self)
 

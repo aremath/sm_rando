@@ -13,7 +13,7 @@ def decompress_with_size(src, debug=False):
     index = 0
     while True:
         if debug:
-            print(index)
+            print("Current Index: {}".format(index))
         next_cmd = src[index]
         if next_cmd == 0xff:
             index += 1
@@ -65,15 +65,14 @@ def decompress(src, debug=False):
 def direct_copy(n, index, src, dst, debug):
     arg = src[index:index+n]
     if debug:
-        print("DIRECTCOPY", len(dst), len(dst) + n)
-        print(arg)
+        print("DIRECTCOPY({}) from {} to {} of size {}".format(arg, len(dst), len(dst) + n, hex(n)))
     assert len(arg) == n, (len(arg), n)
     return arg, index + n
 
 def bytefill(n, index, src, dst, debug):
     arg = src[index:index+1]
     if debug:
-        print("BYTEFILL", len(dst), len(dst) + n)
+        print("BYTEFILL from {} to {} of size {}".format(len(dst), len(dst) + n, hex(n)))
     out = n * arg
     assert len(out) == n
     return out, index+1
@@ -87,7 +86,7 @@ def n_bytes_of_word(n, word):
 def wordfill(n, index, src, dst, debug):
     arg = src[index:index+2]
     if debug:
-        print("WORDFILL", len(dst), len(dst) + n)
+        print("WORDFILL from {} to {} of size {}".format(len(dst), len(dst) + n, hex(n)))
     out = n_bytes_of_word(n, arg)
     assert len(out) == n
     return out, index+2
@@ -99,7 +98,7 @@ def sigmafill(n, index, src, dst, debug):
         argi = (arg + i) % 256
         out += argi.to_bytes(1, byteorder='little')
     if debug:
-        print("SIGMAFILL", len(dst), len(dst) + n)
+        print("SIGMAFILL from {} to {} of size {}".format(len(dst), len(dst) + n, hex(n)))
     assert len(out) == n
     return out, index+1
 
@@ -107,11 +106,10 @@ def addr_copy(n, index, src, dst, debug):
     arg_bytes = src[index:index+2]
     arg = int.from_bytes(arg_bytes, byteorder='little')
     to_copy = get_copy_bytes(arg, arg + n, dst)
-    to_copy = dst[arg:arg + n]
     if debug:
-        print("ADDRCPY", arg, len(dst), len(dst) + n)
+        print("ADDRCPY({}) from {} to {} of size {}".format(arg, len(dst), len(dst) + n, hex(n)))
         print(to_copy)
-    #assert len(to_copy) == n #TODO
+    assert len(to_copy) == n #TODO
     return to_copy, index+2
 
 def map_bytes(op, byte):
@@ -125,7 +123,7 @@ def addr_xor_copy(n, index, src, dst, debug):
     arg = int.from_bytes(arg_bytes, byteorder='little')
     to_copy = get_copy_bytes(arg, arg+n, dst, lambda x: x^0xff)
     if debug:
-        print("ADDRXORCPY", arg, len(dst), len(dst) + n)
+        print("ADDRXORCPY({}) from {} to {} of size {}".format(arg, len(dst), len(dst) + n, hex(n)))
         print(to_copy)
     assert len(to_copy) == n, (len(to_copy), n)
     return to_copy, index+2
@@ -155,7 +153,7 @@ def rel_addr_copy(n, index, src, dst, debug):
     index1 = len(dst) + n - arg
     to_copy = get_copy_bytes(index0, index1, dst)
     if debug:
-        print("ADDRRELCPY", arg, len(dst), len(dst) + n)
+        print("ADDRRELCPY({}) from {} to {} of size {}".format(arg, len(dst), len(dst) + n, hex(n)))
         print(to_copy)
     assert len(to_copy) == n, (len(to_copy), n)
     return to_copy, index+1
