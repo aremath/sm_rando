@@ -9,6 +9,7 @@ from rom_tools.rom_edit import make_items, make_saves, make_doors, fix_skyscroll
 from rom_tools.rom_manager import RomManager
 from door_rando import settings
 from door_rando.rando_algs import item_quota_rando
+from door_rando.alg_support import get_fixed_items
 from data_types.item_set import ItemSet
 from data_types.constraintgraph import BFSState
 from misc import rng, settings_parse
@@ -72,8 +73,24 @@ def prepare_for_escape(graph):
     remove_external_edges(graph, "Climb_Room_R3")
     remove_external_edges(graph, "Climb_Room_L")
 
+# Node Name -> Node Item
+boss_items = {
+    "Kraid_Kraid": "Kraid",
+    "Phantoon_Phantoon": "Phantoon",
+    "Draygon_Draygon": "Draygon",
+    "Ridley_Ridley": "Ridley",
+    "Botwoon_Botwoon": "Botwoon",
+    "Spore_Spawn_Spore_Spawn": "Spore_Spawn",
+    "Golden_Torizo_Golden_Torizo": "Golden_Torizo",
+    "Bomb_Torizo_Bomb_Torizo": "Bomb_Torizo",
+    "Mother_Brain_Mother_Brain": "Mother_Brain",
+    "Crocomire_Crocomire": "Crocomire",
+}
+
 # Item nodes is Node Name -> Node Item
 def remove_loops(path, starting_items, item_nodes):
+    # Add bosses to item_nodes
+    item_nodes.update(boss_items)
     # Node name -> node neighbors
     nodes = defaultdict(list)
     item_set = starting_items
@@ -89,6 +106,8 @@ def remove_loops(path, starting_items, item_nodes):
             next_item_set = item_set
         next_state = (next_node, next_item_set)
         nodes[state].append(next_state)
+    print(item_set)
+    print([n for n in nodes if n[0] == path[-1]])
     # Now BFS
     start = (path[0], starting_items)
     end = (path[-1], item_set)
@@ -197,6 +216,7 @@ def main(arg_list):
         if completable:
             final_path = path + path_to_statues
             final_path = remove_loops(final_path, starting_items, {k:v for k,v in item_changes})
+            print(final_path[-1])
             # Check completability - can escape?
             items = all_items | ItemSet(["Kraid", "Phantoon", "Draygon", "Ridley"])
             prepare_for_escape(graph)
