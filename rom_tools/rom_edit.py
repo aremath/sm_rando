@@ -340,7 +340,7 @@ def make_morph_room_work(offset, rom):
     a_asleep = Address(0x8f867e, mode="snes")
     asleep_ptr = Address(0x79ec5)
     mb_offset = Address(96)
-    # Read form new in case the item type was changed
+    # Read from new in case the item type was changed
     base_plms = rom.read_from_new(a_awake, 108)
     mb_plm = rom.read_from_new(a_asleep + mb_offset, 6)
     new_plms = base_plms + mb_plm + b"\x00\x00"
@@ -427,8 +427,11 @@ draygon_info = (Address(0x7da60), ["Draygon_R", "Draygon_L"], ["Draygon2_R", "Dr
 ridley_info = (Address(0x7b32e), ["Ridley_L", "Ridley_R"], ["Ridley2_L", "Ridley2_R"], 44)
 all_info = [kraid_info, phantoon_info, draygon_info, ridley_info]
 
-# Catchall to apply small changes to the ROM that have to do with making the various logical changes work
 def logic_improvements(rom, g4, doubleboss):
+    """
+    Catchall to apply small changes to the ROM that have to do with making the various logical changes work.
+    Must happen after make_items
+    """
     # Free space in bank 8f
     free_8f = Address(0x7e99a)
     max_8f = Address(0x80000)

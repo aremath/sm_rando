@@ -1,6 +1,7 @@
 # Python Imports
 import argparse
 import sys
+from collections import defaultdict, deque
 
 # Internal imports
 from encoding import parse_rooms, sm_global
@@ -70,6 +71,60 @@ def prepare_for_escape(graph):
     remove_external_edges(graph, "Climb_Room_R2")
     remove_external_edges(graph, "Climb_Room_R3")
     remove_external_edges(graph, "Climb_Room_L")
+
+# Item nodes is Node Name -> Node Item
+def remove_loops(path, starting_items, item_nodes):
+    # Node name -> node neighbors
+    nodes = defaultdict(list)
+    item_set = starting_items
+    # Build a mini-graph of states
+    for i, node in enumerate(path[:-1]):
+        if node in item_nodes:
+            item_set |= ItemSet([item_nodes[node]])
+        state = (node, item_set)
+        next_node = path[i+1]
+        if next_node in item_nodes:
+            next_item_set = item_set | ItemSet([item_nodes[next_node]])
+        else:
+            next_item_set = item_set
+        next_state = (next_node, next_item_set)
+        nodes[state].append(next_state)
+    # Now BFS
+    start = (path[0], starting_items)
+    end = (path[-1], item_set)
+    offers = {start: start}
+    # Use a dict to avoid set hashing RNG (now that dicts order is determinisitic)
+    finished = {start: None}
+    queue = deque([start])
+    while len(queue) > 0:
+        node = queue.popleft()
+        if node == end:
+            break
+        for neighbor in nodes[node]:
+            if neighbor not in finished:
+                queue.append(neighbor)
+                finished[neighbor] = None
+                offers[neighbor] = node
+    # Now decode offers to get the path
+    assert end in finished
+    out_path = []
+    current_node = end
+    while current_node != start:
+        out_path.append(current_node)
+        current_node = offers[current_node]
+    out_path.append(current_node)
+    return out_path[::-1]
+
+def pretty_print_out_path(f, out_path):
+    current_item_set = out_path[0][1]
+    for node, item_set in out_path:
+        f.write(node)
+        f.write(" -> ")
+        if item_set != current_item_set:
+            f.write("\n")
+            f.write("Pick up item: {}\n".format(item_set - current_item_set))
+            current_item_set = item_set
+    return
 
 def get_args(arg_list):
     #print(arg_list)
@@ -141,6 +196,7 @@ def main(arg_list):
         completable = path_to_statues is not None
         if completable:
             final_path = path + path_to_statues
+            final_path = remove_loops(final_path, starting_items, {k:v for k,v in item_changes})
             # Check completability - can escape?
             items = all_items | ItemSet(["Kraid", "Phantoon", "Draygon", "Ridley"])
             prepare_for_escape(graph)
@@ -180,7 +236,8 @@ def main(arg_list):
 
     # Write the path to the statues (including every boss)
     spoiler_file.write("Path to Statues:\n")
-    spoiler_file.write(str(final_path))
+    pretty_print_out_path(spoiler_file, final_path)
+    #spoiler_file.write(str(final_path))
     spoiler_file.write("\n")
 
     # Write the items, doors etc.
@@ -211,9 +268,9 @@ def main(arg_list):
     else:
         rom.apply_ips("patches/teleport.ips")
 
-    extra_from, extra_to = logic_improvements(rom, args.g8, args.doubleboss)
     # Then make the necessary changes
     make_items(item_changes, rom)
+    extra_from, extra_to = logic_improvements(rom, args.g8, args.doubleboss)
     make_doors(door_changes, rom, extra_from, extra_to)
     make_saves(door_changes, rom, extra_from)
     fix_skyscroll(door_changes, rom, extra_from)

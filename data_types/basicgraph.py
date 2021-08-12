@@ -149,16 +149,16 @@ class BasicGraph(object):
     # mess around with lambdas.
     def DFS(self, start, end=None):
         offers = {start: start}
-        finished = {}
+        finished = {start: None}
         stack = [start]
         node = ""
         while len(stack) > 0:
             node = stack.pop()
             if end is not None and node == end:
                 break
-            finished[node] = None
             for neighbor in self.nodes[node].edges:
                 if neighbor.terminal not in finished:
+                    finished[neighbor.terminal] = None
                     stack.append(neighbor.terminal)
                     offers[neighbor.terminal] = node
         return finished, offers
