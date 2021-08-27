@@ -39,7 +39,11 @@ teleport:
     ; This check is only enabled in the noescape version.
     LDA $7E0943
     CMP #$0000
+	; If escape activated, refill player ammo instead (so they can make it through the escape)
     BNE refill
+	; Refill player energy
+	LDA $7E0C4
+	STA $7E0C2
     LDA #$0000
     ; Set the area index to 0 (Crateria)
     STA $7E079F

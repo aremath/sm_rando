@@ -88,7 +88,11 @@ boss_items = {
 }
 
 # Item nodes is Node Name -> Node Item
+#TODO: remove "_int_" nodes that were created when computing backtracks
 def remove_loops(path, starting_items, item_nodes):
+    """
+    Simplify a path with cycles to create a minimal spoiler path
+    """
     # Add bosses to item_nodes
     item_nodes.update(boss_items)
     # Node name -> node neighbors

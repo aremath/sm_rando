@@ -1372,8 +1372,10 @@ ALL -> (M RT)				- & SPB GS (| HJ B)
 East_Sand_Hole - 7D51E
 TS							- X
 BS
-M							- GS
-PB							- & MB GS
+M
+PB
+ALL -> M					- GS
+ALL -> PB					- & MB GS
 
 West_Sand_Pit - 7D54D
 TS							- X

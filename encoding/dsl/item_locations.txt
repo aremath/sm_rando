@@ -100,10 +100,10 @@ Watering_Hole_S				0x7c4af				N
 Watering_Hole_M				0x7c4b5				N
 Pseudo_Plasma_Spark_M		0x7c533				N
 Plasma_PLB					0x7c559				C
-East_Sand_Hole_M			0x7c5dd				N
+East_Sand_Hole_M			0x7c5eb				N
 East_Sand_Hole_PB			0x7c5f1				N
 West_Sand_Hole_RT			0x7c5e3				C
-West_Sand_Hole_M			0x7c5eb				N
+West_Sand_Hole_M			0x7c5dd				N
 Aqueduct_M					0x7c603				N
 Aqueduct_S					0x7c609				N
 Spring_Ball_SPB				0x7c6e5				C
