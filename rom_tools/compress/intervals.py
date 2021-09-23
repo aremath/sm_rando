@@ -1,4 +1,3 @@
-
 def assert_bits(i, n):
     """Asserts that i has only n bits"""
     assert (i >= 0) and (i < (1 << n)), "i too large!"
@@ -348,9 +347,9 @@ def find_sigmafills(src, min_size):
 def match_length(src, i1, i2, operation, max_n):
     n = 0
     # While the bytes match and the indices are in bounds...
-    while i1 + n < len(src) and operation(src[i2 + n]) == src[i1 + n] and i2 + n < i1 and n <= max_n:
+    # We don't require that i2 + n < i1 because copies can copy data that doesn't exist yet
+    while i1 + n < len(src) and operation(src[i2 + n]) == src[i1 + n] and i2 + n < i1 and n < max_n:
         n += 1
-    # Subtract 1 because the above adds 1 during the last iteration when the condition is false.
     return n - 1
 
 # All match lengths over the given range
@@ -384,6 +383,37 @@ def find_copy(src, cpy_range, constructor, min_size, operation=lambda x: x):
         intervals.extend(interval)
     return intervals
 
+def find_prefix_copy(src, location, copy_range, constructor, prefix_dict, prefix_length, min_size, operation=lambda x: x, max_size=1023):
+    lower, upper = copy_range(location)
+    # Nothing to map
+    if lower == upper:
+        return []
+    if location + prefix_length > len(src):
+        return []
+    prefix = src[location:location + prefix_length]
+    if prefix not in prefix_dict:
+        return []
+    locs = prefix_dict[prefix]
+    # Best length so far and where it was achieved
+    current_length = -1
+    current_loc = None
+    # Find the best copy from among the locs
+    for copy_from in locs:
+        if copy_from >= lower and copy_from < upper:
+            length = match_length(src, location, copy_from, operation, max_size)
+            if length > current_length:
+                current_loc = copy_from
+                current_length = length
+    # All the locs were too far away to copy from
+    if current_loc is None:
+        return []
+    if (current_length > 1) and (current_length >= min_size):
+        # Add one because the "end" of an interval is one past the actual last byte
+        interval = [constructor(src, current_loc, location, location + current_length + 1)]
+    else:
+        interval = []
+    return interval
+
 # Address Copy
 def address_range(i1):
     return (0, min(i1, (1 << 16) - 1))
@@ -393,6 +423,10 @@ def address_constructor(src, loc, i1, i2):
 
 def find_address_copy_at(src, i1, min_size):
     return find_copy_at(src, i1, address_range, address_constructor, min_size)
+
+def find_address_copy_prefix(src, location, min_size, prefix_dict, prefix_length):
+    return find_prefix_copy(src, location, address_range, address_constructor, prefix_dict, prefix_length, min_size)
+
 
 def find_address_copies(src, min_size):
     return find_copy(src, address_range, address_constructor, min_size)
@@ -408,6 +442,9 @@ def find_address_xor_copy_at(src, i1, min_size):
     return find_copy_at(src, i1, address_xor_range, address_xor_constructor, min_size,
         operation=lambda x: x ^ 0xff)
 
+def find_address_xor_copy_prefix(src, location, min_size, prefix_dict, prefix_length):
+    return find_prefix_copy(src, location, address_xor_range, address_xor_constructor, prefix_dict, prefix_length, min_size, operation=lambda x: x^0xff)
+
 def find_address_xor_copies(src, min_size):
     return find_copy(src, address_xor_range, address_xor_constructor, min_size,
         operation=lambda x: x ^ 0xff)
@@ -421,6 +458,9 @@ def rel_address_constructor(src, loc, i1, i2):
 
 def find_rel_address_copy_at(src, i1, min_size):
     return find_copy_at(src, i1, rel_address_range, rel_address_constructor, min_size)
+
+def find_rel_address_copy_prefix(src, location, min_size, prefix_dict, prefix_length):
+    return find_prefix_copy(src, location, rel_address_range, rel_address_constructor, prefix_dict, prefix_length, min_size)
 
 def find_rel_address_copies(src, min_size):
     return find_copy(src, rel_address_range, rel_address_constructor, min_size)
