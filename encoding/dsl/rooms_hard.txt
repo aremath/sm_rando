@@ -79,6 +79,7 @@ ALL -> M3								- MB
 (R1 R2 R3 M1) -> (L2 R6 M2 M3)			- & S MB
 ALL <-> R3								- | B PB SPB
 (L2 R5 R6 M3) -> (R1 R2 R3 M1 M2) 		- X
+ALL -> R5								- X
 
 Bowling_Path - 79461
 L
@@ -1420,7 +1421,7 @@ L1
 L2
 R1
 R2
-(L1 L2 R2) -> R1			- | XR (& IB SPB HJ E V) (& GS CB IB (| MB SPB)) (& G GS (| B SPB HJ)) 
+(L1 L2 R2) -> R1			- | XR (& IB SPB HJ E V) (& GS CB IB (| MB SPB)) (& G GS (| B SPB HJ))
 
 Pants_Right - 7D69A
 L

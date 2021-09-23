@@ -81,6 +81,7 @@ R3 -> ALL								- | B PB SPB
 ALL -> R3								- | B PB SPB
 (L2 R5 R6 M3) -> (R1 R2 R3 M1 M2) 		- X
 ALL -> M1								- HJ
+ALL -> R5								- X
 
 Bowling_Path - 79461
 L
@@ -782,8 +783,11 @@ L2
 R
 M
 L2 -> (L1 M R)					- | HJ SJ
-(R M) -> L2						- MB
-(R M) -> L1						- & MB (| HJ SJ)
+R -> L2							- MB
+M -> L2							- | MB WB
+R -> L1							- X
+M -> L1							- & WB
+R -> M							- | SJ G
 ALL <-> ALL						- V
 
 # no varia required - it's a very short DEAD END
