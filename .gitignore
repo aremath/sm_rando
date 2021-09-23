@@ -3,6 +3,7 @@ __pycache__/
 *.smc
 *.smc*
 *.swp
+*.swo
 output
 testing
 .ipynb_checkpoints
