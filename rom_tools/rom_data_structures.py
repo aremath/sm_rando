@@ -2,12 +2,16 @@ from functools import reduce, wraps
 import inspect
 from enum import IntEnum
 import numpy as np
+from collections.abc import MutableMapping
 
 from . import byte_ops
 from .address import *
 from .compress import compress
 from .compress import decompress
 from . import leveldata_utils
+
+#TODO: A way to save the original bytes and decide whether an object has changed...
+#TODO: A way to use an ObjNames where some objects already have bytes
 
 # https://stackoverflow.com/questions/1389180/automatically-initialize-instance-variables
 def auto_init(func):
@@ -39,7 +43,12 @@ class FutureBytes(object):
         assert self.obj.address is not None
         # Make sure that the pointer we got actually goes to the banks we expect
         assert self.obj.address.bank in self.banks
-        return self.obj.address.as_snes_bytes(self.size)
+        # Handle scrolls separately
+        # (Other things are handled by pointer def is_invalid)
+        if hasattr(self.obj, "ptr_bytes"):
+            return self.obj.ptr_bytes
+        else:
+            return self.obj.address.as_snes_bytes(self.size)
 
 def byte_size(byte_obj):
     if type(byte_obj) is bytes:
@@ -50,9 +59,9 @@ def byte_size(byte_obj):
         raise TypeError
 
 def bytes_size(b_list):
-    print("Getting size of: {}".format(b_list))
+    #print("Getting size of: {}".format(b_list))
     s = sum([byte_size(obj) for obj in b_list])
-    print("Size is: {}".format(s))
+    #print("Size is: {}".format(s))
     return s
 
 class Event(IntEnum):
@@ -135,9 +144,9 @@ def parse_engine(obj_def, address, obj_names, rom, data):
             new_data = data_fun(data, objs)
         else:
             new_data = None
-        print("Using {} at {}".format(parser.__name__, address))
+        #print("Using {} at {}".format(parser.__name__, address))
         obj, size = parser(address, obj_names, rom, new_data)
-        print("Got: {}, Size: {} using {} at {}\n".format(obj, size, parser.__name__, address))
+        #print("Got: {}, Size: {} using {} at {}\n".format(obj, size, parser.__name__, address))
         objs.append(obj)
         address += Address(size)
         total_size += size
@@ -209,7 +218,7 @@ def pointer_def(constructor, ptr_size, banks, invalid_bytes=None, invalid_ok=Fal
         if invalid_bytes is not None and address_bytes == invalid_bytes:
             return None, ptr_size
         #print(address_bytes)
-        print(hex(address_int))
+        #print(hex(address_int))
         # If invalid pointers are ok, call the parser on the raw integer
         # We will trust the parser to handle things properly
         if invalid_ok:
@@ -230,9 +239,6 @@ def pointer_def(constructor, ptr_size, banks, invalid_bytes=None, invalid_ok=Fal
         return name, ptr_size
 
     def pointer_compiler(obj, rom):
-        # ptr_banks is the bank that the pointer will appear in
-        # It's thrown on the floor because the pointer is allocated as part of
-        # a larger object
         if invalid_bytes is not None and obj is None:
             return invalid_bytes
         # Run the compiler for the sub-object, which will result in the
@@ -241,9 +247,15 @@ def pointer_def(constructor, ptr_size, banks, invalid_bytes=None, invalid_ok=Fal
         obj_bytes = compiler(obj, rom)
         # If an invalid pointer means something, it was treated as an int
         # and translated by the parser
-        # The compiler should do reverse translation and set this field when appropriate
-        if invalid_ok and hasattr(obj, "ptr_bytes"):
-            return obj.ptr_bytes
+        if invalid_ok:
+            # The sub-compiler should do reverse translation and set this field when appropriate
+            if hasattr(obj, "ptr_bytes"):
+                return obj.ptr_bytes
+            # Otherwise, it was actually valid and we can convert to an Address
+            else:
+                old_address = Address(obj.old_address, mode="snes")
+        else:
+            old_address = obj.old_address
         # If it's None, then we're still inside the compile for that object
         # in a different iteration -> object will be allocated later
         if obj_bytes is not None:
@@ -254,14 +266,15 @@ def pointer_def(constructor, ptr_size, banks, invalid_bytes=None, invalid_ok=Fal
             # If the object already has a place on the rom, allocate it there
             #TODO: the new size can be larger as long as it extends into free space
             #TODO: allocation should be the responsibility of pointer_def?
-            if obj.old_address is not None and obj_size <= obj.old_size:
-                if obj_size < obj.old_size:
-                    print("Compiled object is smaller")
-                assert obj.old_address.bank in banks
-                obj.address = obj.old_address
+            if old_address is not None and obj_size <= obj.old_size:
+                #if obj_size < obj.old_size:
+                #    print("Compiled object {} is smaller".format(obj.name))
+                assert old_address.bank in banks
+                obj.address = old_address
             else:
-                print("Allocating compiled object")
-                addr = rom.memory.allocate(length, banks)
+                #print("Allocating compiled object {} of size {}. Old size: {}".format(obj.name, obj_size, obj.old_size))
+                #print(banks)
+                addr = rom.memory.allocate(obj_size, banks)
                 obj.address = addr
         return FutureBytes(obj, ptr_size, banks)
 
@@ -286,11 +299,11 @@ def parse_wrapper(constructor):
                 return
             # Register it first so that it won't be processed twice
             obj_names[name] = None
-            print("Parsing: {}".format(name))
+            #print("Parsing: {}".format(name))
             s_objs, size = func(address, obj_names, rom, data)
-            print(constructor)
-            print(s_objs)
-            print("Done Parsing: {}".format(name))
+            #print(constructor)
+            #print(s_objs)
+            #print("Done Parsing: {}".format(name))
             # Give the object information about where it came from, and
             # the ability to use obj_names for indexing
             s = constructor(name, address, size, obj_names, *s_objs)
@@ -311,11 +324,10 @@ def compile_wrapper(func):
         if hasattr(obj, "bytes"):
             return
         # Register so that it won't be processed twice.
-        #print("Compiling: {}".format(obj))
-        print("Compiling: {}".format(obj.name))
+        #print("Compiling: {}".format(obj.name))
         obj.bytes = None
         obj.bytes = func(obj, rom)
-        print("From {} Got: {}".format(obj.name, obj.bytes))
+        #print("From {} Got: {}".format(obj.name, obj.bytes))
         return obj.bytes
     return wrapper
 
@@ -413,26 +425,26 @@ boss_set_fns = mk_bitset_fns(int_fns, BossSettings)
 
 # This is a function instead of a dictionary because Door hasn't been defined yet
 def get_cond_arg_fns(condition):
-    if condition is Condition.Default:
+    if condition == Condition.Default:
         return nothing_fns
-    elif condition is Condition.DoorCheck:
+    elif condition == Condition.DoorCheck:
         return pointer_def(Door, 2, banks=[0x83]),
-    elif condition is Condition.AreaBossDefeated:
+    elif condition == Condition.AreaBossDefeated:
         return nothing_fns
-    elif condition is Condition.Event:
+    elif condition == Condition.Event:
         return event_fns
-    elif condition is Condition.BossDefeated:
+    elif condition == Condition.BossDefeated:
         return boss_set_fns
-    elif condition is Condition.MorphBall:
+    elif condition == Condition.MorphBall:
         return nothing_fns
-    elif condition is Condition.MorphBallMissiles:
+    elif condition == Condition.MorphBallMissiles:
         return nothing_fns
-    elif condition is Condition.PowerBombs:
+    elif condition == Condition.PowerBombs:
         return nothing_fns
-    elif condition is Condition.SpeedBooster:
+    elif condition == Condition.SpeedBooster:
         return nothing_fns
     else:
-        assert False, "Bad Condition Type: {}".format(condition)
+        assert False, "Bad Condition Type: {}".format(hex(condition))
 
 def parse_state_condition(address, obj_names, rom, data):
     cond, size = parse_condition(address, obj_names, rom, data)
@@ -465,6 +477,37 @@ state_condition_fns = (parse_state_condition, compile_state_condition)
 # Scroll    enum
 # Special X-Ray blocks
 
+class ObjNames(MutableMapping):
+    """ Glorified dict that keeps track of IDs to
+    allow for the creation of new objects with unique names. """
+
+    def __init__(self):
+        self.d = {}
+        self.new_obj_id = 0
+
+    def __getitem__(self, k):
+        return self.d[k]
+
+    def __setitem__(self, k, v):
+        self.d[k] = v
+
+    def __iter__(self):
+        return self.d.__iter__()
+    
+    def __len__(self):
+        return self.d.__len__()
+
+    def __delitem__(self, k):
+        return self.d.__delitem__(k)
+
+    def create(self, constructor, *args):
+        obj_name = constructor.name_def.format(self.new_obj_id)
+        self.new_obj_id += 1
+        obj = constructor(obj_name, None, None, self, *args)
+        # Register the new object
+        self[obj_name] = obj
+        return obj
+
 # Classes
 
 class RomObject(object):
@@ -496,8 +539,13 @@ class RomObject(object):
         # Allow self.name as a self-reference that will return a string
         if type(default_attr) is str and self.obj_names[default_attr] is not self:
             return self.obj_names[default_attr]
-        else:
-            return default_attr
+        if type(default_attr) is list:
+            if len(default_attr) == 0:
+                return []
+            elif type(default_attr[0]) is str:
+                return [self.obj_names[i] for i in default_attr]
+        # As a fallback, return the requested object
+        return default_attr
 
     def __repr__(self):
         return "{}".format(object.__getattribute__(self, "name"))
@@ -591,10 +639,6 @@ class StateChooser(RomObject):
     #TODO: merge into one list?
     fields = ["conditions", "default"]
 
-    @property
-    def list(self):
-        return [[self.obj_names[c] for c in self.conditions], self.default]
-
     @staticmethod
     def parse_definition():
         return [
@@ -616,7 +660,7 @@ class RoomState(RomObject):
     @staticmethod
     def parse_definition():
         return [
-        (*pointer_def(LevelData, 3, banks=range(0xc3, 0xcf)), data_pass),# Level Data in banks C3-CE inclusive
+        (*pointer_def(LevelData, 3, banks=range(0xc2, 0xcf)), data_pass),# Level Data in banks C2-CE inclusive
         int_fns,                                # Tileset
         int_fns,                                # Music data index
         int_fns,                                # Music track index
@@ -691,11 +735,6 @@ class DoorList(RomObject):
     name_def = "door_list_{}"
     fields = ["l"]
 
-    # Need to do this specially since we're not using special __getattr__ dereferencing logic
-    @property
-    def list(self):
-        return [[self.obj_names[d] for d in self.l]]
-
     @staticmethod
     def parse_definition():
         return [
@@ -768,10 +807,6 @@ class EnemyList(RomObject):
     # kill_count: Number of enemy deaths needed to clear the current room
     fields = ["enemies", "kill_count"]
 
-    @property
-    def list(self):
-        return [[self.obj_names[e] for e in self.enemies], self.kill_count]
-
     @staticmethod
     def parse_definition():
         return [
@@ -804,10 +839,6 @@ Enemy.fns = mk_default_fns(Enemy)
 class EnemyTypes(RomObject):
     name_def = "enemy_types_{}"
     fields = ["l"]
-
-    @property
-    def list(self):
-        return [self.obj_names[t] for t in self.l]
 
     @staticmethod
     def parse_definition():
@@ -866,10 +897,6 @@ class PLMList(RomObject):
     name_def = "PLM_list_{}"
     fields = ["l"]
 
-    @property
-    def list(self):
-        return [[self.obj_names[p] for p in self.l]]
-
     @staticmethod
     def parse_definition():
         return [
@@ -880,7 +907,7 @@ PLMList.fns = mk_default_fns(PLMList)
 
 class PLM(RomObject):
     name_def = "PLM_{}"
-    fields = ["plm_id", "xpos", "ypos", "parameter"]
+    fields = ["plm_id", "x_pos", "y_pos", "parameter"]
 
     @staticmethod
     def parse_definition():
@@ -945,16 +972,15 @@ def scrolls_compiler(obj, rom):
         # Little endian, so \x00 goes later
         obj.ptr_bytes = int.to_bytes(ptr_val, 1, byteorder="little") + b"\x00"
         return b""
-    else:
-        obj.bot_value = None
     # Convert from numpy array to bytes in row major order
     # Use mutable bytearray rather than bytestring
-    obj_bytes = bytearray()
+    scroll_bytes = bytearray()
     x_dim, y_dim = obj.array.shape
-    for x in range(x_dim):
-        for y in range(y_dim):
-            b = int.to_bytes(obj.array[x][y], 1, byteorder="little")
-            scroll_bytes.append(b)
+    for y in range(y_dim):
+        for x in range(x_dim):
+            # Convert from numpy int64 to python int
+            b = int.to_bytes(int(obj.array[x][y]), 1, byteorder="little")
+            scroll_bytes.extend(b)
     # Convert back to bytestring
     return [bytes(scroll_bytes)]
 
@@ -962,7 +988,7 @@ Scrolls.fns = (scrolls_parser, scrolls_compiler)
 
 # Parsing
 def parse_from_savestations(savestation_addrs, rom):
-    obj_names = {}
+    obj_names = ObjNames()
     for addr in savestation_addrs:
         SaveStation.fns[0](addr, obj_names, rom, None)
     return obj_names
@@ -970,6 +996,7 @@ def parse_from_savestations(savestation_addrs, rom):
 # Compiling
 def compile_from_savestations(savestation_objs, obj_names, rom):
     # Allocation
+    print("ALLOCATION")
     # Adds "address" and "bytes" fields to each object
     #TODO: Use a dictionary from bank -> bytes -> address (hash FutureAddress by name, size)
     # to avoid repetition (each compiler can check before allocation)
@@ -977,31 +1004,32 @@ def compile_from_savestations(savestation_objs, obj_names, rom):
         # Do not allow Save Stations to be allocated outside of their normal location
         # Levels built from scratch should include old_address for savesation objects
         # and for other preallocated objects like default setup ASM
+        #print("Starting {}".format(obj.name))
         SaveStation.fns[1](obj, rom)
         obj.address = obj.old_address
+        #print("Done with {}".format(obj.name))
+    print("POINTER RESOLUTION")
     # Pointer resolution
     for name, obj in obj_names.items():
         # Use mutable bytearray for speed
         obj_bytes = bytearray()
-        print(name)
-        print(obj.bytes)
-        for i,b in enumerate(obj.bytes):
-            if type(b) is bytes:
-                obj_bytes += b
-            elif type(b) is FutureBytes:
-                # Handle scrolls specially
-                # (Other things are handled by pointer def is_invalid)
-                if type(obj) is RoomState and obj.scrolls.bytes == b"":
-                    val = obj.scrolls.bot_value
-                    assert val is not None
-                    assert val & 0xff == val
-                    obj_bytes += int.to_bytes(val - 1, 2, byteorder="little")
-                else:
+        #print(name)
+        #print(obj.name)
+        #print(obj.bytes)
+        # Objects no longer pointed to are not compiled
+        if hasattr(obj, "bytes"):
+            for i,b in enumerate(obj.bytes):
+                if type(b) is bytes:
+                    obj_bytes += b
+                elif type(b) is FutureBytes:
                     obj_bytes += b.resolve()
-            else:
-                raise TypeError
-    print("Got to writing!")
+                else:
+                    raise TypeError
+            # Set it
+            obj.true_bytes = bytes(obj_bytes)
+    print("WRITING")
     # Write bytes out
-    #for obj in obj_names.values():
-    #    rom.write_to_new(obj.address, obj.bytes)
+    for obj in obj_names.values():
+        if hasattr(obj, "address"):
+            rom.write_to_new(obj.address, obj.true_bytes)
 

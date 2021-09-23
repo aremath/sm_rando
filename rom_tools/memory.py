@@ -77,7 +77,8 @@ class Bank(object):
         Use first fit to find a place for the data
         """
         assert(size > 0)
-        assert(len(self.extent_list) != 0)
+        if len(self.extent_list) == 0:
+            raise AllocationError
         addr = None
         remove = None
         for (i, extent) in enumerate(self.extent_list):
@@ -128,26 +129,15 @@ class Memory(object):
         if address is None:
             raise AllocationError
         else:
-            self.rom.write_to_new(address, data)
             return address
 
     def allocate_and_write(self, data, banks):
         """Try to allocate <data> in one of the <banks>, then
-        write that data to the <rom>."""
+        write that data to the ROM."""
         size = len(data)
-        address = None
-        assert len(banks) > 0
-        for bank in banks:
-            bank = self.banks[bank]
-            try:
-                address = bank.get_place(size)
-            except AllocationError:
-                continue
-        if address is None:
-            raise AllocationError
-        else:
-            self.rom.write_to_new(address, data)
-            return address
+        address = self.allocate(size, banks)
+        self.rom.write_to_new(address, data)
+        return address
 
     def mark_free(self, address, size):
         """Marks a part of the rom as unallocated free space"""

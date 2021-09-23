@@ -251,16 +251,19 @@ def main(arg_list):
 
     # Write the seed
     spoiler_file.write("RNG Seed: {}\n".format(str(seed)))
+    spoiler_file.write("Items Placed: {}\n".format(str(items_to_place)))
 
     # Write the escape path
-    spoiler_file.write("Path to Escape:\n")
-    spoiler_file.write(str(escape_path))
-    spoiler_file.write("\n")
-    spoiler_file.write("Esape Timer: {} seconds\n".format(escape_timer))
+    if escape_path is not None:
+        spoiler_file.write("Path to Escape:\n")
+        spoiler_file.write(str(escape_path))
+        spoiler_file.write("\n")
+        spoiler_file.write("Esape Timer: {} seconds\n".format(escape_timer))
 
     # Write the path to the statues (including every boss)
     spoiler_file.write("Path to Statues:\n")
-    pretty_print_out_path(spoiler_file, final_path)
+    if final_path is not None:
+        pretty_print_out_path(spoiler_file, final_path)
     #spoiler_file.write(str(final_path))
     spoiler_file.write("\n")
 
