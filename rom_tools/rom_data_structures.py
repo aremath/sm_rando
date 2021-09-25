@@ -272,9 +272,9 @@ def pointer_def(constructor, ptr_size, banks, invalid_bytes=None, invalid_ok=Fal
                 assert old_address.bank in banks
                 obj.address = old_address
             else:
-                #print("Allocating compiled object {} of size {}. Old size: {}".format(obj.name, obj_size, obj.old_size))
                 #print(banks)
                 addr = rom.memory.allocate(obj_size, banks)
+                print("Allocating compiled object {} of size {} at {}. Old size: {}".format(obj.name, obj_size, addr, obj.old_size))
                 obj.address = addr
         return FutureBytes(obj, ptr_size, banks)
 
@@ -500,10 +500,19 @@ class ObjNames(MutableMapping):
     def __delitem__(self, k):
         return self.d.__delitem__(k)
 
-    def create(self, constructor, *args):
+    def create(self, constructor, *args, replace=None):
+        """ Register a new object of the given type by instantiating it
+        with *args """
         obj_name = constructor.name_def.format(self.new_obj_id)
         self.new_obj_id += 1
-        obj = constructor(obj_name, None, None, self, *args)
+        # Use replace to allocate the new object on top of an existing object
+        if replace is not None:
+            old_address = replace.old_address
+            old_size = replace.old_size
+        else:
+            old_address = None
+            old_size = None
+        obj = constructor(obj_name, old_address, old_size, self, *args)
         # Register the new object
         self[obj_name] = obj
         return obj
@@ -617,6 +626,9 @@ class RoomHeader(RomObject):
         pointer_def(DoorList, 2, banks=[0x8F]), # Door List Pointer
         (*StateChooser.fns, get_room_dims), # State Conditions to decide which RoomState to load
         ]
+
+    def all_states(self):
+        return [s.state for s in self.state_chooser.conditions] + [self.state_chooser.default]
 
 RoomHeader.fns = mk_default_fns(RoomHeader)
 
@@ -864,7 +876,7 @@ EnemyType.fns = mk_default_fns(EnemyType)
 class LevelData(RomObject):
     name_def = "level_data_{}"
     # Storing as an array as well as in custom data structure with fields
-    fields = ["level_bytes", "level_array"]
+    fields = ["level_bytes", "level_array", "compressed_data"]
 
     # Level Data does NOT use default fns
     @staticmethod
@@ -881,15 +893,22 @@ def level_data_parser(address, obj_names, rom, data):
     max_bytes = rom.read_from_clean(address, max_data)
     # Return the size of the COMPRESSED data (for allocation purposes)
     # The new room could fit at the location where it originally existed
+    #print(address)
     level_bytes, size = decompress.decompress_with_size(max_bytes)
+    compressed_data = rom.read_from_clean(address, size)
     level_dimensions = leveldata_utils.Coord(room_width * 16, room_height * 16)
     level_array = leveldata_utils.level_array_from_bytes(level_bytes, level_dimensions)
-    return [level_bytes, level_array], size
+    return [level_bytes, level_array, compressed_data], size
 
 @compile_wrapper
 def level_data_compiler(obj, rom):
-    compressed_bytes = compress.greedy_compress(obj.level_bytes)
-    return [compressed_bytes]
+    # If the object was parsed, we already know the compressed data
+    # Can set this field to None in order to force recompression on compile
+    if obj.compressed_data is not None:
+        return [obj.compressed_data]
+    else:
+        compressed_bytes = compress.greedy_compress(obj.level_bytes)
+        return [compressed_bytes]
 
 LevelData.fns = (level_data_parser, level_data_compiler)
 

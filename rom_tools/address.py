@@ -21,6 +21,15 @@ class Address(object):
     def __eq__(self, other):
         return self.as_pc == other.as_pc
 
+    def __le__(self, other):
+        return self.as_pc <= other.as_pc
+
+    def __lt__(self, other):
+        return self.as_pc < other.as_pc
+
+    def __ge__(self, other):
+        return self.as_pc >= other.as_pc
+
     def __add__(self, other):
         return Address(self.as_pc + other.as_pc)
 
@@ -59,6 +68,9 @@ class Address(object):
     def copy_increment(self,inc):
         ad = self.as_pc + inc
         return Address(ad)
+
+    def __int__(self):
+        return self.pc_addr
 
 def mk_future(i):
     return FutureAddress(real_addr=Address(i))

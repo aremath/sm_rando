@@ -60,7 +60,8 @@ class Bank(object):
         self.bank = bank_n
         self.extent_list = []
 
-    # TODO: assert no overlapping extents
+    #TODO: assert no overlapping extents
+    #TODO: merge adjacent extents
     def add_extent(self, extent):
         assert(isinstance(extent, Extent))
         assert extent.start.bank == self.bank
@@ -97,6 +98,26 @@ class Bank(object):
             raise AllocationError
         else:
             return addr
+
+    def mark_filled(self, address, size):
+        new_extents = []
+        for extent in self.extent_list:
+            address_end = address + Address(size)
+            extent_end = extent.start + Address(extent.size)
+            # If it starts after or ends before, there's no intersection
+            overlap_start = max(extent.start, address)
+            overlap_end = min(extent_end, address_end)
+            # No overlap
+            if overlap_end <= overlap_start:
+                new_extents.append(extent)
+            else:
+                if overlap_start > extent.start:
+                    before = Extent(extent.start, int(address) - int(extent.start))
+                    new_extents.append(before)
+                if overlap_end < extent_end:
+                    after = Extent(address_end, int(extent_end) - int(address_end))
+                    new_extents.append(after)
+        self.extent_list = new_extents
 
 class Memory(object):
 
@@ -148,21 +169,8 @@ class Memory(object):
         extent = Extent(address, size)
         self.banks[bank].add_extent(extent)
 
-    def fixup_futures(self, futures, env):
-        for f in futures:
-            #print(f)
-            f.fill(self.rom, env)
-
-    def alloc_rooms(self, rooms, env=None):
-        if env is None:
-            env = {}
-        futures = []
-        addrs = []
-        for room in rooms:
-            addr, fs = room.allocate(self, env)
-            addrs.append(addr)
-            futures.extend(fs)
-        #print(env)
-        self.fixup_futures(futures, env)
-        return addrs
+    def mark_filled(self, address, size):
+        """Marks a part of the rom as allocated"""
+        bank = address.bank
+        self.banks[bank].mark_filled(address, size)
 

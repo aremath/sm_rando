@@ -155,7 +155,7 @@ def rel_addr_copy(n, index, src, dst, debug):
     if debug:
         print("ADDRRELCPY({}) from {} to {} of size {}".format(arg, len(dst), len(dst) + n, hex(n)))
         print(to_copy)
-    assert len(to_copy) == n, (len(to_copy), n)
+    assert len(to_copy) == n, (len(to_copy), n, index0, index1)
     return to_copy, index+1
 
 #TODO rel_addr_xor_copy: an extended command with cmd-code 7 is a relative address xor copy!
