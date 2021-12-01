@@ -500,6 +500,7 @@ class ObjNames(MutableMapping):
     def __delitem__(self, k):
         return self.d.__delitem__(k)
 
+    # TODO: delete which auto unallocates from rom.memory
     def create(self, constructor, *args, replace=None):
         """ Register a new object of the given type by instantiating it
         with *args """

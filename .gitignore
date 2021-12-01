@@ -8,3 +8,4 @@ output
 testing
 .ipynb_checkpoints
 *.png
+*.pickle

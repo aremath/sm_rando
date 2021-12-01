@@ -8,20 +8,18 @@ sys.path.append("../wfc_2019f")
 from wfc import wfc_patterns, wfc_tiles, wfc_adjacency
 from rom_tools.rom_data_structures import LevelData
 from rom_tools.leveldata_utils import *
-from world_rando.coord import Coord
+from world_rando.coord import Coord, Rect
+from world_rando.room_gen import wfc_rectangularize
 
 def get_cross(p):
     """ Cross-shaped group of coords centered on p """
-    out = [p]
-    directions = [(1,0), (-1,0), (0,1), (0,-1)]
-    for d in directions:
-        new_pos = (p[0] + d[0], p[1] + d[1])
-        out.append(new_pos)
-    return out
+    directions = [Coord(0,0), Coord(1,0), Coord(-1,0), Coord(0,1), Coord(0,-1)]
+    return [p + d for d in directions]
 
-def get_fixed_tiles(room_header, extra_similarity):
+def get_fixed_tiles(room_header):
     """Compute the set of tiles that should be fixed for WFC for a given room header"""
     fixed_tiles = set()
+    screen_map = set()
     all_states = room_header.all_states()
     #all_states = [s.state for s in room_header.state_chooser.conditions] + [room_header.state_chooser.default]
     shapes = [state.level_data.level_array.layer1.shape for state in all_states]
@@ -40,19 +38,19 @@ def get_fixed_tiles(room_header, extra_similarity):
         for tile in it:
             tile = tile.item()
             if tile.tile_type == 9:
-                fixed_tiles.add(it.multi_index)
+                fixed_tiles.add(Coord(*it.multi_index))
         # Add all enemy positions
         #TODO: Some enemies may take up more than one tile...
         #TODO: PLMs may want to have more than one tile allocated too
         for enemy in state.enemy_list.enemies:
-            e_pos = (enemy.x_pos//16, enemy.y_pos//16)
+            e_pos = Coord(enemy.x_pos//16, enemy.y_pos//16)
             enemy_locale = get_cross(e_pos)
             for p in enemy_locale:
                 if inbounds(p):
                     fixed_tiles.add(p)
         # Add PLM positions
         for plm in state.plms.l:
-            plm_pos = (plm.x_pos, plm.y_pos)
+            plm_pos = Coord(plm.x_pos, plm.y_pos)
             plm_locale = get_cross(plm_pos)
             for p in plm_locale:
                 if inbounds(p):
@@ -71,26 +69,44 @@ def get_fixed_tiles(room_header, extra_similarity):
                         for y_sub in range(-1, 17):
                             c = (screen_x + x_sub, screen_y + y_sub)
                             if inbounds(c):
-                                fixed_tiles.add(c)
+                                fixed_tiles.add(Coord(*c))
+                # Add all "valid" screens to the screen map
+                else:
+                   screen_map.add(Coord(x, y)) 
         # Add level borders
         for x in range(layer1.shape[0]):
-            fixed_tiles.add((x, 0))
-            fixed_tiles.add((x, layer1.shape[1]-1))
+            fixed_tiles.add(Coord(x, 0))
+            fixed_tiles.add(Coord(x, layer1.shape[1]-1))
         for y in range(layer1.shape[1]):
-            fixed_tiles.add((0, y))
-            fixed_tiles.add((layer1.shape[0]-1, y))
+            fixed_tiles.add(Coord(0, y))
+            fixed_tiles.add(Coord(layer1.shape[0]-1, y))
         #TODO: constrain scroll boundaries?
-    # Add random extra_similarity fixed tiles: some percentage of tiles are fixed
-    default_layer1 = room_header.state_chooser.default.level_data.level_array.layer1
+    return fixed_tiles, screen_map
+
+# Add random extra_similarity fixed tiles: some percentage of tiles are fixed
+def get_extra_fixed_tiles(rect, fixed_tiles, extra_similarity):
     assert extra_similarity >= 0
     assert extra_similarity <= 1
-    free_tiles = set(product(range(default_layer1.shape[0]), range(default_layer1.shape[1]))) - fixed_tiles
+    border_tiles = set()
+    for x in range(rect.start.x, rect.end.x):
+        border_tiles.add(Coord(x, rect.start.y))
+        border_tiles.add(Coord(x, rect.end.y - 1))
+    for y in range(rect.start.y, rect.end.y):
+        border_tiles.add(Coord(rect.start.x, y))
+        border_tiles.add(Coord(rect.end.x - 1, y))
+    free_tiles = rect.as_set() - (fixed_tiles | border_tiles)
     n_fixed = int(len(free_tiles) * extra_similarity)
-    #print(n_fixed)
-    for c in random.sample(free_tiles, n_fixed):
-        #print(c)
-        fixed_tiles.add(c)
-    return fixed_tiles
+    extra_fixed_tiles = set(random.sample(free_tiles, n_fixed))
+    return extra_fixed_tiles | border_tiles
+
+def rel_fixed_tiles(rect, fixed_tiles):
+    rect_set = rect.as_set()
+    new_tiles = set()
+    # Add the original fixed tiles (relative to the offset of the rect)
+    for t in fixed_tiles:
+        if t in rect_set:
+            new_tiles.add(t - rect.start)
+    return new_tiles
 
 def get_mapping(level_from, level_to):
     """ Compute a mapping from one array to another """
@@ -148,21 +164,18 @@ def transform_level_data(fn_entry, default_level_bits):
     state.level_data = new_leveldata.name
 
 #TODO: auto-splitting and offset / size
-def bit_default_wfc(room_header, extra_similarity):
+def bit_wfc(level_bits, fixed_tiles):
     """ Perform WFC to create a new tile grid based on default """
     #TODO: move this stuff into Context.__init__?
-    default_level_data = room_header.state_chooser.default.level_data
-    level_shape = Coord(*default_level_data.level_array.layer1.shape)
-    width = level_shape.x
-    height = level_shape.y
-    level_bits = bit_array_from_bytes(default_level_data.level_bytes, level_shape)
+    width = level_bits.shape[0]
+    height = level_bits.shape[1]
     tile_size = 1
     pattern_size = 2
     # Get the tile grid
     # Tile catalog maps from the hash to a 1x1x40 vector, reversing the hashing process
     print("\tGetting tile grid")
     tile_catalog, level_data_tiles, _code_list, _unique_tiles = wfc_tiles.make_tile_catalog(level_bits, tile_size)
-    print("\tLevel size: {}".format(level_data_tiles.shape))
+    print("\tRect size: {}".format(level_data_tiles.shape))
     adj_rules = None
 
     # Get the patterns
@@ -195,8 +208,7 @@ def bit_default_wfc(room_header, extra_similarity):
     pattern_id_grid = decode_patterns(pattern_grid)
 
     # ASP
-    print("\tSolving ASP instance")
-    fixed_tiles = get_fixed_tiles(room_header, extra_similarity)
+    print("\tStarting ASP instance")
     ctl = clingo.Control([], logger=print)
     # WFC constraints
     ctl.add("wfc", ["h","w","p"], """
@@ -216,6 +228,9 @@ def bit_default_wfc(room_header, extra_similarity):
     print("\tGrounding ASP Model")
     ctl.ground([("wfc", list(map(clingo.Number,[height, width, number_of_patterns])))], context=ctx)
     print("\tSolving ASP Model")
+    #TODO: --restart_on_model, Config object?
+    #TODO: Specify seed to ASP config?
+    #TODO: Constrain the amount of plagiarism?
     ctl.solve(on_model=ctx.on_model)
     solution = ctx.solution
     # Convert to pattern array
@@ -234,18 +249,49 @@ def bit_default_wfc(room_header, extra_similarity):
     output = output.astype("int64")
     return output
 
-def wfc_and_create(room_header, extra_similarity=0):
+#TODO: If there is a level 2, add an option for considering it independently
+# generating layer 1 without respect to layer 2
+def wfc_and_create(room_header, auto_rect=False, rects=None, extra_similarity=0):
     # Get fns before messing with the level data
     fns = get_state_functions(room_header)
-    wfc_bits = bit_default_wfc(room_header, extra_similarity)
+    fixed_tiles, screen_map = get_fixed_tiles(room_header)
+    default_level_data = room_header.state_chooser.default.level_data
+    level_shape = Coord(*default_level_data.level_array.layer1.shape)
+    level_bits = bit_array_from_bytes(default_level_data.level_bytes, level_shape)
+    # Get the rectangularization either automatically, by input, or just the whole level at once
+    if auto_rect:
+        assert rects is None
+        # Scale them back up to size 16x16 (rects found are rects of screens)
+        #TODO: choose tiles based on ratio of tiles / pattern (higher is better)
+        rects = [rect.scale(16) for rect in wfc_rectangularize(screen_map, max_area=9)]
+        print("Found rectangles: {}".format(rects))
+    # Use one big rect if none is satisfied
+    elif rects is None:
+        offset = Coord(0,0)
+        size = Coord(*level_shape)
+        rects = [Rect(offset, size)]
+    # Use WFC to reconstruct each rect using tiles from within that rect
+    #TODO: how to use tiles from the entire room?
+    for rect in rects:
+        print("For rectangle {}:".format(rect))
+        # Add borders etc.
+        extra_fixed_tiles = get_extra_fixed_tiles(rect, fixed_tiles, extra_similarity)
+        all_fixed_tiles = fixed_tiles | extra_fixed_tiles
+        rect_bits = level_bits[rect.start[0]:rect.end[0],rect.start[1]:rect.end[1]]
+        rect_fixed_tiles = rel_fixed_tiles(rect, all_fixed_tiles)
+        #print(rect_fixed_tiles)
+        print("Fixed tile ratio: {}".format(len(rect_fixed_tiles) / rect.area))
+        wfc_bits = bit_wfc(rect_bits, rect_fixed_tiles)
+        # Overwrite level_bits with the new data
+        level_bits[rect.start[0]:rect.end[0],rect.start[1]:rect.end[1]] = wfc_bits
     #TODO: instead of create, assign to the existing level data
     old_level_data = room_header.state_chooser.default.level_data
-    wfc_level_data = room_header.obj_names.create(LevelData, *level_from_bits(wfc_bits), None, replace=old_level_data)
+    wfc_level_data = room_header.obj_names.create(LevelData, *level_from_bits(level_bits), None, replace=old_level_data)
     # Fix up default pointer
     room_header.state_chooser.default.level_data = wfc_level_data.name
     # Use the fns to compute new per-state level data and register it
     for entry in fns:
-        transform_level_data(entry, wfc_bits)
+        transform_level_data(entry, level_bits)
 
 class Context():
 

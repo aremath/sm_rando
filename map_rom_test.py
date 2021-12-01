@@ -4,7 +4,7 @@ from world_rando import map_viz
 from rom_tools import rom_manager
 
 if __name__ == "__main__":
-    random.seed(0)
+    random.seed(2)
     abstract_map_info = generate.generate_abstract_map()
     concrete_map_info = generate.generate_concrete_map(abstract_map_info)
     rcmaps, _, _, extra_info = concrete_map_info
@@ -15,6 +15,7 @@ if __name__ == "__main__":
     generate.print_stats(extra_info)
     generate.visualize_abstract_maps(abstract_map_info)
     generate.visualize_concrete_maps(concrete_map_info)
+    generate.mission_embeddings(concrete_map_info, abstract_map_info)
 
     rom = rom_manager.RomManager("../roms/sm_clean.smc", "../roms/sm_map_edit.smc")
     # Put each map on the ROM

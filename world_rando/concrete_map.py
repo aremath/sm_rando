@@ -29,7 +29,7 @@ class MapTile(object):
         # key - Coord
         # value - itemset needed to reach
         self.d = collections.defaultdict(list)
-        # set of ("L", "R", "U", "D") indicating which walls this tile has.
+        # set of Coord indicating which walls this tile has.
         if _walls is None:
             self.walls = set()
         else:
@@ -180,7 +180,7 @@ class ConcreteMap(object):
             n = xy.neighbors()
             for a in n:
                 if a not in self:
-                    self[xy].walls.add(xy.wall_relate(a))
+                    self[xy].walls.add(a - xy)
 
     #TODO: the space is only the non-fixed tiles!
     # figure out why that hangs by printing the remaining tiles of set?
@@ -216,11 +216,11 @@ class ConcreteMap(object):
         return rooms
 
     def room_walls(self, room):
-        """ puts the walls into a room, given as a set of Coord """
+        """ Puts the walls into a room, given as a set of Coord """
         for xy in room:
             for n in xy.neighbors():
                 if n not in room:
-                    self[xy].walls.add(xy.wall_relate(n))
+                    self[xy].walls.add(n - xy)
 
     def bounded_put(self, pos, mtile):
         """Puts mtile at pos if pos is in bounds, returns whether it succeeded."""
@@ -452,7 +452,7 @@ def can_merge(room1, room2, rooms, maxsize, implicit_bboxes):
     bbox = extent(tiles1 | tiles2)
     # Check that the actual number of screens that need to be loaded
     # for the new room won't exceed maxsize.
-    if bbox.area() > maxsize:
+    if bbox.area > maxsize:
         return False
     # Build the bounding box for each room
     room_bboxes = {k: extent(v) for k, v in rooms.items()}

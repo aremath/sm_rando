@@ -46,7 +46,11 @@ def room_setup(room_tiles, cmap):
 def room_graphs(rooms, tile_rooms, paths):
     #TODO: node_locs for each node and each door node.
     # room_node_locs: room_id -> node -> Coord
-    for (start, end, path, items) in paths:
+    for path_obj in paths:
+        start = path_obj.start_node
+        end = path_obj.end_node
+        path = path_obj.coord_path
+        items = path_obj.itemset
         room_start = tile_rooms[path[0]]
         room_end = tile_rooms[path[-1]]
         # Add nodes for the items at the start and end of this path
@@ -832,6 +836,7 @@ def random_partition(subroom_state, max_parts, min_partsize):
 
 #TODO: use split()ing to make this code much easier to read
 #TODO: parameterized by direction in both x and y
+#TODO: use the same rectangularization alg as the WFC code
 # i.e. which corner to start from.
 def rectangularize(subroom_state, cmap):
     """
@@ -849,7 +854,7 @@ def rectangularize(subroom_state, cmap):
     print("RECT: Finding rectangles")
     while len(positions) > 0:
         pos = position_order[0]
-        rect = find_rect(positions, pos)
+        rect = find_rect_at(positions, pos)
         # Only need to create a subroom if the remaining cmap component that
         # contains it also contains other cells
         cmap_components = find_components(positions)
@@ -861,7 +866,7 @@ def rectangularize(subroom_state, cmap):
         print(rect)
         rects.append(rect)
         if r_set < r_component:
-            # Find the sid for the component in question
+            # Find the subroom id for the component in question
             t = next(iter(r_component)).scale(16) + Coord(8,8)
             component_parent_sid = subroom_state.tile_to_subroom(t)
             rect_room = rect.scale(16).as_set() & subroom_state[component_parent_sid].tiles
@@ -871,28 +876,32 @@ def rectangularize(subroom_state, cmap):
             positions.remove(c)
             position_order.remove(c)
 
-def find_rect(positions, pos):
+def find_rect_at(positions, pos, directions=coord_directions):
+    all_rects = find_all_rects_at(positions, pos, directions)
+    max_rect = max(finished, key=lambda x: x.area())
+    return max_rect
+
+def find_all_rects_at(positions, pos, directions=coord_directions):
     assert pos in positions
     i_rect = Rect(pos, pos + Coord(1,1))
     finished = set([i_rect])
     q = [i_rect]
     while len(q) > 0:
         r = q.pop()
-        expands = expand_rect(positions, r)
+        expands = expand_rect(positions, r, directions)
         for e in expands:
             if e not in finished:
                 finished.add(e)
                 q.append(e)
-    max_rect = max(finished, key=lambda x: x.area())
-    return max_rect
+    return finished
 
-def expand_rect(positions, rect):
+def expand_rect(positions, rect, directions=coord_directions):
     """
     Helper for find_rect
     """
     #TODO: randomize order?
     rects = []
-    for d in coord_directions:
+    for d in directions:
         if d < Coord(0,0):
             r = Rect(rect.start + d, rect.end)
         else:
@@ -901,6 +910,29 @@ def expand_rect(positions, rect):
         if r.as_set() <= positions:
             rects.append(r)
     return rects
+
+def wfc_rectangularize(space, max_area):
+    """
+    Finds a rectangular cover for a space
+    """
+    space = space.copy()
+    rects = []
+    while len(space) > 0:
+        all_rects = find_all_rects(space)
+        area_rects = {rect for rect in all_rects if rect.area <= max_area}
+        # Choose the largest rect with the smallest perimeter
+        #TODO: choose the largest rect with the smallest INTERNAL perimeter
+        best_rect = max(area_rects, key=lambda x: (x.area, -x.perimeter))
+        rects.append(best_rect)
+        space -= best_rect.as_set()
+    return rects
+
+def find_all_rects(space):
+    all_rects = set()
+    for p in space:
+        p_rects = find_all_rects_at(space, p, directions=[Coord(1,0), Coord(0,1)])
+        all_rects |= p_rects
+    return all_rects
 
 #TODO: move to room_utils?
 # Translates the (uncompressed) leveldata bytes to a level dictionary.
