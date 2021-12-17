@@ -551,7 +551,7 @@ Draygon_Save_L				0x001a888	Colosseum_R1
 Halfie_Refill_L				0x001a894	Halfie_Climb_R2
 Butterfly_Sand_Pit_BS		0x001a8a0	Butterfly_Room_TS
 Botwoon_Energy_Pit_BS1		0x001a8ac	Botwoon_Energy_Farm_TS1
-Botwoon_Energy_Pit_BS2		0x001a8b8	Botwoon_Energy_Farm_TS1
+Botwoon_Energy_Pit_BS2		0x001a8b8	Botwoon_Energy_Farm_TS2
 Shaktool_L					0x001a8c4	Pants_Right_R
 Shaktool_R					0x001a8d0	Spring_Ball_L
 Halfie_Climb_L2				0x001a8dc	Botwoon_Energy_R
