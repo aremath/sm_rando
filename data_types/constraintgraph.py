@@ -181,6 +181,7 @@ class ConstraintGraph(object):
         """I don't care about every possible way to get everywhere -
         just BFS until you find end, noting that picking up items is
         always beneficial."""
+        n = 0
 
         # key - node name
         # key - item set
@@ -197,7 +198,10 @@ class ConstraintGraph(object):
         queue = [start_state]
 
         while len(queue) > 0:
+            n += 1
             state = queue.pop(0).copy()
+            #if n % 100:
+            #    print(state)
             node = state.node
             items = state.items
             # we've reached the goal with at least the right items
@@ -234,7 +238,7 @@ class ConstraintGraph(object):
 
         # key - node name
         # value - item set
-        finished = collections.defaultdict(Set)
+        finished = collections.defaultdict(set)
 
         final_state = None
 
@@ -425,17 +429,17 @@ class ConstraintGraph(object):
         total_cut_weight = sum([edge_weights[e] for e in cut_edges])
         return total_cut_weight, cut_edges
 
-    def add_room(self, door1, door2, room_graph):
-        """adds a room to self, connecting door1 in self to door2 in room_graph"""
-        assert door1 in self.name_node, door1
-        assert door2 in room_graph.name_node, door2
-
-        for node_name, node in room_graph.name_node.items():
+    #TODO: check for node name overlaps?
+    def add_subgraph(self, other):
+        for node_name, node in other.name_node.items():
             self.add_node(node_name, node.data)
-        for node_name, node_edges in room_graph.node_edges.items():
+        for node_name, node_edges in other.node_edges.items():
             for edge in node_edges:
                 self.add_edge(node_name, edge.terminal, edge.items)
 
+    def connect_doors(self, door1, door2):
+        assert door1 in self.name_node, door1
+        assert door2 in self.name_node, door2
         # connect up the two doors!
         door1_data = self.name_node[door1].data
         door2_data = self.name_node[door2].data
@@ -444,6 +448,13 @@ class ConstraintGraph(object):
             self.add_edge(door1, door2, door1_data.items)
         if door2_data.items is not None:
             self.add_edge(door2, door1, door2_data.items)
+
+    def add_room(self, door1, door2, room_graph):
+        """adds a room to self, connecting door1 in self to door2 in room_graph"""
+        assert door1 in self.name_node, door1
+        assert door2 in room_graph.name_node, door2
+        self.add_subgraph(room_graph)
+        self.connect_doors(door1, door2)
 
     def copy(self):
         """returns a copy of self - pointers to data might still be entangled"""

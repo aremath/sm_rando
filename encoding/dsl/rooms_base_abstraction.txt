@@ -1,0 +1,1641 @@
+# This is a version of rooms with many of the minibosses / events abstracted away to reduce search complexity
+# DO NOT use this for door randomizer, as this reduction is based on assumptions about the rest of the structure of the game world that only hold in the base game.
+# SUPER METROID GRAPH ENCODINGS
+# This is every room in super metroid, encoded as item constraints -
+# | means or, and & means and
+# Item encoding is not perfect - Currently there's no way to require more than one of a certain item.
+# Furthermore, I was careful in some rooms. For example, in Halfie_Climb, it is possible to jump from R1 to L1 without any items. However, if you fail the jump, you're stuck at the bottom. I want to try to make sure that the player doesn't softlock the game, or at least, if they do softlock, it's their fault rather than mine. To that end, if there's a jump you can fail, I err on the side of making sure you have the items to recover.
+# These constraints don't require stuff like machball or shortcharge - While obviously you can traverse the map faster with them, I don't require speed strats that are difficult to execute. Theoretically, if you wanted to make a harder-difficulty version of this file, the randomizer would work with it. I also won't require infinite bomb jumps, although I sometimes require a single midair bomb jump.
+# These constraints, do, however, assume proficiency with walljumping, and sometimes a creative imagination. I do not require any of the hard Low-Ice suitless maridia strats like climbing Main_Street, but I do allow easier suitless stuff, and if you have ice beam, I might make you jump off the crabs in Mount_Everest. While I am familiar with the game, I'm not a super metroid speedrunner, so I don't expect the necessary movement to be too hard.
+# Constraints on the door mean that to ENTER that door, you need the item. Other constraints mean to get TO the door you need the item. These two are different because when the doors are randomized, you might go through a blue door onto the other side of a power-bomb door. That means that to get back where you came from, you need power bombs. Even if a door is hard to get to from other parts of the room, most of the time it is easy to re-enter if you came through it. Part of making sure that the player won't softlock is making sure they can get back where they came from, even if they go through the wrong door.
+#
+# ITEMS:
+#	B - Bombs - requires morph ball to use
+#	PB - Power Bombs - ""
+#	SPB - Spring Ball - ""
+#	S - Super Missiles
+#	M - Missiles
+#	G - Grapple Beam
+#	SA - Screw Attack
+#	V - Varia Suit - Almost all heat rooms require varia to cross - I don't want to be able to generate a long hell-run.
+#	GS - Gravity Suit
+#	SB - Speed Booster - Be aware of places like Dachora_Room, where you can horizontal shinespark to get through.
+#	HJ - Hi Jump
+#	SB - Speed Booster - Requires knowing there's a run button to use
+#	MB - Morph Ball
+#	CB - Charge Beam - I require this for most bosses, since you're not guaranteed to have enough ammo
+#	WB - Wave Beam - I decided not to make you fight botwoon through the wall - Thank me later
+#	E - Energy Tank - Some rooms which are going to hurt you require energy tanks...
+#	PLB - Plasma Beam
+#	IB - Ice Beam
+#
+#	Thanks to http://deanyd.net/sm/index.php?title=Main_Page for the list of rooms.
+#	Thanks to SMILE creator Jathys - http://metroidconstruction.com/resource.php?id=63 - This is really an amazing resource.
+#
+#
+
+Landing_Site - 791F8
+L1
+L2
+R1			- PB
+R2			- S
+ALL -> L1	- | (& SB E) (| B PB SA)
+L1 -> ALL	- | B PB SA
+ALL -> R1	- | (& SB E) SJ B
+
+Gauntlet_Entrance - 792B3
+L
+R
+L <-> R		- | B PB SA
+
+Parlor - 792FD
+L1
+L2
+L3
+B
+R1
+R2
+R3					- M
+ALL <-> L1			- | B PB SA SB
+ALL <-> L2			- MB
+ALL -> R2			- MB
+R2 -> ALL			- MB
+
+Crateria_Power_Bombs - 793AA
+L
+PB
+
+Parlor_Save_Room - 793D5
+R
+
+West_Ocean - 793FE
+L2
+R1
+R2
+R3
+R5										- X
+R6										- S
+M1
+M2
+M3
+ALL -> M3								- MB
+(R1 R2 R3 M1) -> (L2 R6 M2 M3)			- & S MB
+ALL <-> R3								- | B PB SPB
+(L2 R5 R6 M3) -> (R1 R2 R3 M1 M2) 		- X
+ALL -> R5								- X
+
+Bowling_Path - 79461
+L
+R
+
+Crateria_Kihunters - 7948C
+L
+R					- PB
+B					- PB
+
+Crateria_Maridia_Shaft - 794CC
+T
+ET
+
+East_Ocean - 794FD
+L
+R
+L <-> R				- | GS (& SPB HJ)
+
+Forgotten_Highway - 79552
+L
+B
+
+Crab_Maze - 7957D
+T
+L
+T <-> L				- MB
+
+Crateria_Power_Door - 795A8
+R
+B					- PB
+
+Crateria_Tube - 795D4
+L
+R
+
+# Enforcing CWJ seems like a bad idea, allowing some outs via logic
+Moat - 795FF
+L
+R
+M
+(L M) <-> R				- | B GS SJ G
+
+Caterpillar_Elevator - 7962A
+T						- PB
+ET
+
+Gauntlet - 7965B
+L
+R
+E
+L <-> (R E)				- | PB B
+
+Ocean_Ship_Trans - 7968F
+L
+R
+
+Climb_Room - 796BA
+T
+R1						- X
+R2						- PB
+R3
+L						- X
+ALL <-> L 				- | B PB
+ALL <-> R1 				- | B PB
+ALL <-> R2				- | B PB
+
+Old_Mother_Brain - 7975C
+L
+R
+M
+(L R) -> M				- | SA B PB
+
+Blue_Brinstar_Elevator - 797B5
+L
+ET
+
+Bomb_Torizo - 79804
+L
+Bombs
+
+BT_Flyway - 79879
+L
+R						- M
+
+Map_Flyway - 798E2
+L
+R
+
+Terminator_Room - 7990D
+L
+R
+E
+
+Brinstar_Elevator - 79938
+R
+ET
+
+Kago_Room - 79969
+L
+R
+
+Crateria_Map - 79994
+L
+
+# Could maybe remove requirement for killing green pirates
+Green_Pirates_Shaft - 799BD
+R1
+R2
+R3							- M
+L
+M1
+M2
+ALL -> R1					- X
+(R2 R3 L M2) -> M1			- X
+(R2 R3 L M1) -> M2			- X
+R1 -> ALL					- MB
+(L R3) <-> R2				- | E M GS V SA CB
+
+Crateria_Supers - 799F9
+L1
+L2
+S
+L1 <-> S					- & MB E
+L1 -> L2					- X
+L2 -> S						- & SB E
+L2 -> L1					- & SB MB E
+S -> L2						- X
+
+Final_Missile_Bombway - 79A44
+L
+R
+R -> L						- | B PB
+
+#The missile isn't there unless you've awakened brinstar first
+Final_Missile - 79A90
+R
+M
+R -> M						- X
+
+#Unsure whether to randomize R3 and L4
+Brinstar_Entrance - 79AD9
+EB
+L1										- M
+L2										- M
+L3										- M
+L4
+L5
+L6
+R1										- M
+R2										- M
+R3										- X
+PB
+(EB L1 L2 L3 R1 R2) <-> (R3 L5)			- PB
+(EB L1 L2 L3 L5 R1 R2 R3) -> (L4 L6 PB)	- X
+(L4 L6) -> PB							- MB
+(L4 L6 PB) -> (L5 R3)					- MB
+
+Spore_Spawn_Supers - 79B5B
+L1
+L2
+S
+(L2 S) -> L1			- X
+
+Brinstar_Map_Entrance - 79B9D
+L
+R						- | B PB
+L <-> R					- | B PB
+
+# I'm not satisfied with this encoding - 
+# it doesn't force you to leave the room if you
+# start at R and go to L, then want to go back to R
+Early_Supers - 79BC8
+L
+R						- M
+S
+M
+M -> R					- X
+L -> (R S)				- | SB MB
+
+Brinstar_Reserve - 79C07
+L
+RT
+M1
+M2
+ALL -> M1					- MB
+ALL -> M2					- | B PB SA
+
+Brinstar_Map - 79C35
+R
+
+Brinstar_Firefleas - 79C5E
+L
+R
+
+Brinstar_Missile_Refill - 79C89
+R
+
+Dachora_Room - 79CB3
+L1
+L2
+R
+L1 <-> R				- | B PB SA SB
+ALL -> L2				- SB
+L2 -> ALL				- & SB E
+
+Big_Pink - 79D19
+L1
+L2
+L3
+L4						- X
+L5						- M
+R1						- M
+R2						- PB
+R3
+R4						- S
+M1
+M2
+CB
+L1 <-> ALL				- | B PB
+ALL -> R3				- & (| B PB) S
+R3 -> ALL				- & (| B PB) S
+ALL <-> R4				- | MB
+ALL <-> CB				- | B PB
+L5 <-> ALL				- PB
+ALL <-> L3				- PB
+
+Pre-Spore_Kihunters - 79D9C
+L
+T
+
+Spore_Spawn - 79DC7
+B						- S
+R
+B <-> R					- CB
+
+Pink_Power_Bombs - 79E11
+R1
+R2
+PB
+R1 -> (PB R2)			- & S (| B PB)
+(R2 PB) -> R1			- X
+R2 -> PB				- X
+
+Green_Hill_Zone - 79E52
+L
+R1						- PB
+R2
+M
+ALL -> M				- MB
+R2 -> ALL				- | WB S
+
+Morph_Ball_Room - 79E9F
+L
+R
+EB
+MB
+PB
+L -> PB					- & (| B PB) E
+PB -> L					- | B PB
+L -> (EB MB R)			- & PB E
+(EB MB R) <-> PB		- PB
+(EB MB R) -> L			- PB
+
+# Old MB room constraints
+#L <-> PB				- | B PB
+#L <-> (EB R MB)		- PB
+#PB <-> (EB R MB)		- PB
+
+Construction_Zone - 79F11
+L1
+L2
+R						- M
+ALL <-> L2				- MB
+
+Blue_Brinstar_Energy - 79F64
+L1
+L2
+E
+M
+L2 <-> M				- MB
+L1 -> ALL				- | B PB (& SA MB)
+ALL -> L1				- PB
+ALL -> E                - | HJ SB SPB B
+
+Noob_Bridge - 79FBA
+L
+R						- S
+
+Green_Brinstar_Beetoms - 79FE5
+L
+R
+
+Green_Brinstar_Energy - 7A011
+L1						- S
+L2
+R1
+R2
+E
+(L2 R2)	-> (L1 R1 E)	- X
+ALL <-> R2				- MB
+
+Etecoon_Supers - 7A051
+R
+S
+
+Brinstar_Refill - 7A078
+R
+
+Spore_Spawn_Farm - 7A0A4
+L						- S
+R
+
+Waterway_Energy - 7A0D2
+R
+E
+R -> E					- SB
+
+First_Missile - 7A107
+R
+M
+
+Pink_Hoppers - 7A130
+L
+R
+L -> R					- | WB S
+R -> L					- | CB S
+
+Hopper_Energy - 7A15B
+L
+E
+
+Pink_Save - 7A184
+R
+
+Blue_Brinstar_Boulders - 7A1AD
+L
+R
+
+Billy_Mays - 7A1D8
+R
+M1
+M2
+
+Green_Entrance_Save - 7A201
+R
+
+Green_Beetom_Save - 7A22A
+R
+
+Red_Tower - 7A253
+L1
+L2						- PB
+L3						- S
+R1
+R2
+ALL <-> L2				- PB
+(L3 R2) -> (L1 L2 R1)	- | HJ SJ IB
+
+# this forces you to damageboost pretty hard :P
+Red_Brinstar_Firefleas - 7A293
+L						- M
+R
+L <-> R					- | G HJ V E SJ
+
+X-Ray - 7A2CE
+R
+XR
+R -> XR					- B
+
+Hellway - 7A2F7
+L
+R
+
+Caterpillar_Room - 7A322
+L1						- S
+L2						- PB
+L3						- S
+R1
+R2
+EB
+ALL -> R1				- X
+R1 -> ALL				- & S MB
+
+Beta_Power_Bombs - 7A37C
+R
+PB
+R -> PB					- PB
+
+Alpha_Power_Bombs - 7A3AE
+R
+PB
+M
+ALL -> M				- PB
+
+Bat_Room - 7A3DD
+L
+R
+
+Spazer_Troll - 7A408
+L
+R1						- S
+R2
+ALL <-> R1				- | B PB
+
+Spazer - 7A447
+L
+Spazer
+
+Warehouse_Zeelas - 7A471
+L1
+L2						- Kraid
+T
+(L1 L2) <-> T			- | B PB
+
+Warehouse_Energy - 7A4B1
+R						- | M S B PB
+E
+
+Warehouse_Kihunters - 7A4DA
+B
+R1
+R2
+M
+ALL <-> R1				- B
+ALL -> M				- PB
+
+Baby_Kraid - 7A521
+L						- | CB SB M S
+R						- | CB SB M S
+
+Kraid_Eye_Door - 7A56B
+L
+R1						- S
+R2						- M
+
+Kraid - 7A59F
+L						- Kraid
+R
+Kraid
+L -> Kraid				- CB
+R -> Kraid				- X
+L <-> R					- Kraid
+
+Kraid2 - 7A59F
+L						- Kraid
+R
+Kraid
+L -> Kraid				- CB
+R -> Kraid				- X
+L <-> R					- Kraid
+
+Statue_Corridor - 7A5ED
+L
+R
+
+Red_Tower_Refill - 7A618
+R
+
+Kraid_Refill - 7A641
+L
+
+Statues - 7A66A
+L
+ET
+Statues
+L <-> (ET Statues)		- & Kraid Phantoon Draygon Ridley
+
+Warehouse_Entrance - 7A6A1
+L
+R
+ET
+(L ET) <-> R			- S
+
+Varia_Suit - 7A6E2
+L
+V
+
+Kraid_Save - 7A70B
+L
+
+Caterpillar_Save - 7A734
+L
+
+Ice_Beam_Acid - 7A75D
+L
+R
+L <-> R					- V
+
+Cathedral - 7A788
+L
+R						- S
+M
+ALL <-> ALL				- V
+ALL -> M				- MB
+
+Cathedral_Entrance - 7A7B3
+L
+R						- M
+L -> R					- | HJ SB B SJ SPB
+L <-> R					- V
+
+Business_Center - 7A7DE
+L1						- S
+L2						- PB
+L3						- M
+R1
+R2
+R3
+EB
+
+Ice_Beam_Gate - 7A815
+L1
+L2
+L3
+R
+ALL -> L1				- X
+ALL -> L3				- PB
+L1 -> L2				- | B PB
+(L1 L2) -> R			- | B PB
+R -> L2					- | SB MB
+ALL <->	L3				- PB
+R -> L3					- SB
+
+Ice_Beam_Tutorial - 7A865
+L
+R
+ALL <-> ALL				- V
+R <-> L					- MB
+
+Ice_Beam - 7A890
+L
+IB
+
+Ice_Beam_Snakes - 7A8B9
+R1
+R2
+R3
+ALL <-> ALL				- V
+R2 <-> ALL				- MB
+
+Crumble_Shaft - 7A8F8
+R1
+R2
+M
+ALL <-> ALL				- V
+
+Crocomire_Speedway - 7A923
+L1
+L2
+R1
+R2
+B						- S
+L2 -> ALL				- SB
+ALL -> L2				- X
+ALL <-> ALL				- V
+
+Crocomire - 7A98D
+T
+L
+E
+ALL -> E					- & (| G SJ E) CB
+T <-> L						- CB
+
+# You can get stuck in the 2-block high ceiling
+Hi_Jump - 7A9E5
+R
+HJ
+
+Crocomire_Escape - 7AA0E
+L
+R
+M
+L -> (R M)						- X
+R -> L							- S
+R -> (L M)						- | B SB
+ALL <-> ALL						- V
+
+Hi_Jump_Energy - 7AA41
+L
+R
+M
+E
+(L M) -> (E R)					- | B PB
+(E R) -> (L M)					- MB
+L <-> M							- MB
+
+Crocomire_Farm - 7AA82
+L								- M
+R1
+R2
+B
+
+Post-Croc_Save - 7AAB5
+L
+
+Post-Croc_Power_Bombs - 7AADE
+R
+PB
+
+Post-Croc_Shaft - 7AB07
+T
+L
+R								- M
+B
+
+Cosine_Room - 7AB3B
+L
+M
+L -> M							- MB
+
+Grapple_Hardest - 7AB64
+L
+R
+R -> L							- S
+L -> R							- S
+
+Grapple_Yump - 7AB8F
+T
+L
+M
+L -> T							- MB
+L -> M							- | (& PB SB) (| SJ G) (& GS SB E) B
+T -> (M L)						- | (& PB SB) (& MB SJ) (& MB GS SB E) B
+
+Grapple_Harder - 7ABD2
+L
+R
+L -> R							- | HJ SJ G B
+
+Grapple_Hard - 7AC00
+L
+R
+
+Grapple - 7AC2B
+R1
+R2
+G
+
+Bubble_Reserve - 7AC5A
+R
+RT
+M
+ALL <-> ALL						- V
+
+Bubble_Missiles - 7AC83
+L
+R
+M
+ALL <-> ALL						- V
+L <-> R							- MB
+
+Bubble_Mountain - 7ACB3
+L1								- S
+L2
+L3
+L4
+R1								- S
+R2
+B
+M
+ALL <-> (L4 B)					- | B PB
+
+Go_Fast - 7ACF0
+L
+R								- M
+M
+ALL <-> ALL						- V
+
+Speed_Booster - 7AD1B
+L
+SB
+ALL <-> ALL						- V
+
+Single_Chamber - 7AD5E
+L
+R1
+R2								- M
+R3
+R4
+ALL -> R1						- X
+R1 -> ALL						- & MB (| PB B SA)
+ALL <-> ALL						- V
+
+# I can't prevent you from doing stupid stuff like going into the second part without morph ball...
+Double_Chamber - 7ADAD
+L1
+L2
+R
+M
+(R M) -> L2						- MB
+(R M) -> L1						- MB
+ALL <-> ALL						- V
+
+# no varia required - it's a very short DEAD END
+Wave_Beam - 7ADDE
+L
+WB
+
+Spiky_Platforms - 7AE07
+L
+R
+ALL <-> ALL						- V
+
+Volcano_Room - 7AE32
+L1
+L2
+L2 <-> L1						- MB
+ALL <-> ALL						- V
+
+Kronic_Boost - 7AE74
+L1
+L2
+L3								- PB
+R
+L2 <-> ALL						- MB
+ALL -> L2						- | WB S
+ALL <-> ALL						- V
+
+Magdollite_Tunnel - 7AEB4
+L
+R
+ALL <-> ALL						- V
+
+Purple_Shaft - 7AEDF
+T
+R1
+R2
+ALL <-> ALL						- V
+
+Lava_Dive - 7AF14
+L
+R
+L -> R							- GS
+R -> L							- GS
+ALL <-> ALL						- V
+
+Lower_Elevator - 7AF3F
+L
+R
+ET
+ALL <-> ALL						- V
+
+Upper_Norfair_Farm - 7AF72
+L1
+L2
+R
+ALL <-> ALL						- V
+ALL -> L2						- | WB S
+
+Rising_Tide - 7AFA3
+L
+R
+ALL <-> ALL						- V
+
+Acid_Snakes - 7AFCE
+L
+T
+R
+ALL <-> ALL						- V
+
+Spiky_Acid_Snakes - 7AFFB
+L
+R
+ALL <-> ALL						- V
+L <-> R							- | G (& GS E) SJ
+
+Croc_Recharge - 7B026
+L
+R
+
+Purple_Farm - 7B051
+L
+ALL <-> ALL						- V
+
+Bat_Cave - 7B07A
+L
+R
+ALL <-> ALL						- V
+
+Norfair_Map - 7B0B4
+R
+
+Bubble_Save - 7B0DD
+R
+
+Frog_Speedway - 7B106
+L
+R
+L -> R							- SB
+R -> L							- | SB (& WB Spazer) (& WB PLB)
+
+Red_Pirates_Shaft - 7B139
+R
+B
+
+Business_Save - 7B167
+L
+R
+
+Crocomire_Save - 7B192
+L
+
+Lower_Elevator_Save - 7B1BB
+R
+
+Water_Closet - 7B1E5
+R1
+R2
+R1 <-> R2						- & (& PB SJ) (| B PB)
+ALL <-> ALL						- V
+
+Main_Hall - 7B236
+L
+R
+EB
+ALL <-> ALL						- V
+
+Golden_Torizo - 7B283
+L
+R								- & CB PLB E
+S
+M
+(R S) -> (L M)					- X
+M -> L							- X
+ALL <-> ALL						- V
+ALL -> S						- | SA PB
+
+Fast_Rippers - 7B2DA
+L
+R
+L -> R							- S
+R -> L							- S
+ALL <-> ALL						- V
+
+Golden_Recharge - 7B305
+L
+
+# not sure what the ridley requirements should be...
+Ridley - 7B32E
+L
+R
+Ridley
+ALL <-> ALL						- V
+L <-> R							- Ridley
+ALL -> Ridley					- & CB IB MB
+
+Ridley2 - 7B32E
+L
+R
+Ridley
+ALL <-> ALL						- V
+L <-> R							- Ridley
+ALL -> Ridley					- & CB IB MB
+
+Lower_Norfair_Farm - 7B37A
+L								- | M S
+R
+ALL <-> ALL						- V
+
+Fast_Pillars_Setup - 7B3A5
+L1
+L2
+R1
+R2
+(L1 R1) <-> (L2 R2)				- PB
+ALL <-> ALL						- V
+
+#7B3E1 - Not sure if this room is ever used, or what it even is...
+
+Mickey_Mouse - 7B40A
+L
+R
+M
+L -> (R M)						- X
+R -> M							- | B PB
+ALL -> L						- & (| S M) CB E
+ALL <-> ALL						- V
+
+Pillars - 7B457
+L
+R
+ALL <-> ALL						- V
+L <-> R							- | (PB) SA
+
+Plowerhouse - 7B482
+L
+R
+ALL <-> ALL						- V
+
+The_Worst_Room_in_the_Game - 7B4AD
+L1
+L2
+R
+L2 -> ALL						- | (& B E) (& PB (| HJ (& CB IB) SPB) E)
+ALL -> L2						- | B PB SA
+ALL <-> ALL						- V
+
+# No hellruns for now, otherwise R->L would be possible
+Amphitheatre - 7B4E5
+L
+R
+ALL <-> ALL						- V
+R -> L							- X
+
+Hotarubi - 7B510
+L
+R
+B
+M
+ALL <-> ALL						- V
+B -> ALL						- X
+ALL -> B						- | B PB
+
+Escape_Power_Bombs - 7B55A
+L
+T
+PB
+L -> (T PB)						- X
+ALL <-> ALL						- V
+
+Red_Kihunter_Shaft - 7B585
+L
+R1
+R2
+B								- PB
+ALL <-> B						- | B PB
+ALL <-> ALL						- V
+
+Wasteland - 7B5D5
+T
+PB
+L								- S
+ALL <-> L						- PB
+ALL -> PB						- | B PB (& SA MB)
+ALL <-> T						- | B PB
+ALL <-> ALL						- V
+
+# I want to make sure there's at least some source of recurrable damage
+Metal_Pirates - 7B62B
+L
+R
+ALL <-> ALL						- V
+L <-> R							- PLB
+
+Three_Musketeers - 7B656
+L
+R
+M
+ALL <-> ALL						- V
+L <-> ALL						- MB
+ALL -> M						- & MB (| B PB SA)
+
+Ridley_Energy - 7B698
+R
+E
+ALL <-> ALL						- V
+R -> E							- MB
+
+Screw_Attack - 7B6C1
+L
+R1
+R2
+SA
+ALL <-> ALL						- V
+(L SA R2) -> R1					- | B (& SJ (| B SA PB)) (& PB SPB)
+R1 -> ALL						- | B PB SA
+(L SA) -> R2					- | B PB SA
+R2 -> (L SA)					- | B PB SA
+
+Lower_Firefleas - 7B6EE
+L1
+L2
+R
+E
+ALL -> E						- | B PB S
+L2 <-> (L1 R)					- | E CB
+
+
+Red_Kihunter_Save - 7B741
+L
+
+# WRECKED SHIP
+
+Bowling_Alley - 7C98E
+L1
+L2								- X
+L3
+RT
+M
+L1 <-> ALL						- X
+L2 -> ALL						- | G E SJ
+L3 -> L2						- X
+ALL -> (L3 M RT)				- & Phantoon MB
+ALL -> M						- | B PB
+ALL -> RT						- & SB PB
+
+Wrecked_Ship_Entrance - 7CA08
+L
+R
+
+Attic - 7CA52
+L								- Phantoon
+R								- Phantoon
+B
+
+Beep_Boop - 7CAAE
+L
+M
+L -> M							- Phantoon
+
+Wrecked_Ship_Main - 7CAF6
+T
+L1
+L2								- Phantoon
+R1
+R2								- Phantoon
+R3
+B								- S
+M
+ALL -> M						- | B PB
+ALL <-> R3						- | B PB
+ALL <-> B						- | B PB (& WB MB)
+
+Spiky_Room_of_Death - 7CB8B
+L
+R
+
+Electric_Room_of_Death - 7CBD5
+L1								- M
+L2
+R
+
+# it's possible to reach the etank with no items :D
+Wrecked_Ship_Energy - 7CC27
+R
+E
+R -> E							- Phantoon
+
+#Could add (& MB SB) to ALL<->R but might be a bit too tricky?
+Basement - 7CC6F
+L
+T
+R								- M
+ALL <-> R						- | B PB
+
+Wrecked_Ship_Map - 7CCCB
+R
+
+Phantoon - 7CD13
+L								- Phantoon
+Phantoon
+L -> Phantoon					- CB
+
+Phantoon2 - 7CD13
+L								- Phantoon
+Phantoon
+L -> Phantoon					- CB
+
+Sponge_Bath - 7CD5C
+L
+R
+L -> R							- | HJ GS SJ SPB SB B
+
+Wrecked_Ship_Supers - 7CDA8
+R
+S
+R -> S							- Phantoon
+
+Beep_Boop_Supers - 7CDF1
+L
+S
+L -> S							- & Phantoon (| B PB)
+
+Gravity - 7CE40
+L
+R
+GS
+ALL -> GS						- Phantoon
+
+Wrecked_Save - 7CE8A
+L
+
+Glass_Tunnel_Save - 7CED2
+L
+
+Glass_Tunnel - 7CEFB
+T
+L
+R1
+R2								- M
+(L R1) <-> ALL					- PB
+ALL -> T						- | HJ GS SPB
+T -> R2							- PB
+R2 -> T							- PB
+
+West_Tunnel - 7CF54
+L
+R
+
+East_Tunnel - 7CF80
+L
+R1
+R2
+ALL -> R1						- X
+R1 -> ALL						- S
+
+#Took out special case to make climbing up without SPB possible
+#(R3) -> R1						- | GS (& HJ CB IB) (& HJ SPB)
+Main_Street - 7CFC9
+R1
+RMB2
+R3
+R4								- M
+B
+M
+S
+ALL -> M						- & GS SB
+(R1 R3 R4 B M) <-> (S RMB2)		- X
+ALL -> (R1 R3)					- | GS (& HJ CB IB S) (& HJ SPB)
+RMB2 -> S						- MB
+
+#Don't want people to softlock by falling down the left side, so double SPB-Jump is in logic to get back up
+Fish_Tank - 7D017
+L
+R								- M
+T1
+T2
+(L T1) -> ALL					- | GS (& HJ SPB IB CB)
+ALL -> T1						- | GS (& HJ SPB IB CB)
+T2 -> R							- | GS HJ
+(T2 R) -> ALL					- | GS HJ
+
+Mama_Turtle - 7D055
+L
+E
+M
+ALL -> E						- | SJ G B SPB (& HJ SB)
+
+Crab_Tunnel - 7D08A
+L
+R
+R -> L							- & GS S
+L -> R							- S
+
+Mount_Everest - 7D0B9
+L1
+LMB2
+T
+R
+B1
+B2
+ALL -> LMB2						- | GS (& CB IB) (& HJ SPB)
+B2 -> ALL						- | GS (& HJ SPB)
+ALL -> R						- | GS (& CB IB) (& HJ SPB)
+ALL -> (L1 R)					- | GS G (& CB IB) (& HJ SPB)
+ALL -> T						- | GS (& HJ SPB G) (& CB IB HJ G)
+
+McElligot's_Pool - 7D104
+L
+B
+B -> L							- & (| GS HJ (& CB IB)) (| B PB SPB)
+L -> B							- MB
+
+#Stationary spinjump into chained walljumps gets you out of the hole
+#Might be too difficult though so leaving the 0requirement strat out for now
+Watering_Hole - 7D13B
+R
+S
+M
+R -> (S M)						- | GS HJ
+
+Bug_Room - 7D16D
+L
+R
+L -> R							- MB
+R -> L							- | B PB SPB (& GS MB)
+
+# technically it is possible to get from R to L using high jump...
+Crab_Shaft - 7D1A3
+L
+T
+R								- S
+L -> T							- | GS (& HJ SPB) (& CB IB)
+R -> L							- | GS HJ (& CB IB SPB)
+
+Pseudo_Plasma_Spark - 7D1DD
+L
+B
+M
+ALL -> L						- | GS (& CB IB) (& HJ SPB)
+
+# technically you can get from L2 R2 -> L1 R1 without high jump or space jump if you have ice beam, but it's a little inconsistent.
+Crab_Hole - 7D21C
+L1
+L2
+R1
+R2								- M
+(L2 R2) -> (L1 R1)				- | (& CB IB HJ) (& HJ SPB) (& GS MB (| B (& CB IB) HJ SJ))
+(L1 R1) -> (L2 R2)				- MB
+
+Tiny_Crab - 7D252
+L
+R
+
+Plasma_Tutorial - 7D27E
+L
+R
+
+#(& CB E) pseudo-spark is another way to kill pirates, requires a few e-tanks though. can jump all the way to the top without any items
+Plasma - 7D2AA
+L								- | PLB SA
+PLB
+
+Thread_The_Needle - 7D2D9
+L
+R
+
+Maridia_Elevator - 7D308
+EB
+L
+R								- M
+
+Plasma_Spark - 7D340
+R1								- Draygon
+R2
+R3
+B								- S
+R3 -> ALL						- | GS HJ SPB
+
+Kassiuz - 7D387
+L
+R
+
+Maridia_Map - 7D3B6
+L
+
+Maridia_First_Save - 7D3DF
+L
+
+Zip_Tube - 7D408
+T
+B
+
+Grabber_Hole - 7D433
+L
+R
+BS
+
+West_Sand_Hall - 7D461
+L
+R
+TS							- X
+R <-> L						- | (& HJ E) GS
+TS -> ALL					- | (& HJ E) GS
+
+Oasis - 7D48E
+L
+R
+T							- S
+(L R) -> T					- | (& (| B PB) HJ) (& GS (| SA B PB))
+T -> (L R)					- | B PB (& GS SA)
+
+East_Sand_Hall - 7D4C2
+L
+R
+TS							- X
+L <-> R						- | GS (& HJ E)
+TS -> ALL					- | GS (& HJ E)
+
+West_Sand_Hole - 7D4EF
+TS							- X
+BS
+M
+RT
+ALL -> M					- & HJ (| B PB SPB MB)
+ALL -> RT					- & HJ (| B PB SPB MB)
+
+East_Sand_Hole - 7D51E
+TS							- X
+BS
+M
+PB
+ALL -> M					- | GS HJ
+ALL -> PB					- | (& GS MB) (SPB)
+
+West_Sand_Pit - 7D54D
+TS							- X
+BS
+
+East_Sand_Pit - 7D57A
+TS							- X
+BS
+
+#For the sake of sanity snail climb requires HJ
+Aqueduct - 7D5A7
+T
+L1
+L2							- M
+R
+BS1
+BS2
+M
+S
+(BS1 BS2) -> ALL			- X
+ALL -> (M S)				- GS
+L1 -> ALL					- PB
+ALL -> L1					- PB
+ALL -> (T R)				- | HJ SPB GS (& G MB)
+
+Butterfly_Room - 7D5EC
+TS							- X
+L
+R							- Draygon
+
+# This also works with a crystal flash clip, requires to be able to count ammo in logic though
+Botwoon_Hallway - 7D617
+B
+R
+B -> R						- | (& E IB) (& GS SPB)
+R -> B						- | (& E IB (| HJ SPB)) (& GS SB)
+
+#Varia is required for puyo clip damage reduction since I can't check for # of e-tanks at the moment
+Pants - 7D646
+L1
+L2
+R1
+R2
+(L1 L2 R2) -> R1			- | XR (& IB SPB HJ E V) (& GS CB IB (| MB SPB)) (& G GS (| B SPB HJ))
+
+Pants_Right - 7D69A
+L
+R
+
+Spring_Ball - 7D6D0
+L
+SPB
+L -> SPB					- | (& GS (| B PB)) SPB
+SPB -> L					- | (& GS SPB) (& HJ SPB)
+
+Botwoon_Energy_Farm - 7D6FD
+L
+TS1							- X
+TS2							- X
+
+Colosseum - 7D72A
+L
+R1							- M
+R2							- S
+L <-> (R1 R2)				- | GS G IB
+R2 -> R1					- | GS G IB
+
+Aqueduct_Save - 7D765
+R
+
+The_Precious_Room - 7D78F
+L1
+L2							- M
+M
+L2 -> (L1 M)				- | GS (& XR (| M S)) (& HJ SPB)
+
+# there's a swag shortcharge to get from R to L
+Botwoon_Energy - 7D7E4
+L
+R
+E
+BS1
+BS2
+(BS1 BS2) -> ALL			- X
+L -> R						- | (& GS (| B PB SPB SB MB)) (& HJ MB) SPB
+L -> E						- & MB (| GS HJ)
+R -> (E L BS1 BS2)			- | (& HJ MB) (& GS (| B PB SPB SB MB)) SPB
+
+Draygon_Save - 7D81A
+L
+R
+
+Halfie_Refill - 7D845
+L
+
+Butterfly_Sand_Pit - 7D86E
+BS
+TS							- X
+
+Botwoon_Energy_Pit - 7D898
+TS1							- X
+TS2							- X
+BS1
+BS2
+TS2 -> BS1					- X
+TS1 -> BS2					- X
+
+Shaktool - 7D8C5
+L
+R
+L -> R						- PB
+
+# technically you don't need any items to access L1 from R1, but it's a jump you can fail...
+#| GS G (& CB IB E)
+Halfie_Climb - 7D913
+L1							- Draygon
+L2
+R1
+R2
+ALL -> R2					- & MB E
+R2 -> ALL					- & MB E (| HJ SPB GS)
+ALL -> (L1 R1)				- | GS G (& CB IB E)
+R1 -> L1					- | GS G (& CB IB E)
+
+Botwoon - 7D95E
+L							- & E CB
+R
+L <-> R						- & E CB
+
+Space_Jump - 7D9AA
+R
+SJ
+
+Draygon_Recharge - 7D9D4
+L
+
+Cactus_Hallway - 7D9FE
+L
+R
+L -> R						- | GS (& HJ SPB) (& HJ IB)
+
+Cactus_Alley - 7DA2B
+L
+R
+L -> R						- & GS (| B PB SPB)
+R -> L						- | (& GS MB) (& MB HJ SJ)
+
+#Grapple escape is not really viable without being able to check for number of e-tanks  (& G MB E (| M S))
+Draygon - 7DA60
+L
+R
+Draygon
+R -> L						- Draygon
+L -> R						- & Draygon (& GS (| HJ SJ (& SB E)))
+ALL -> Draygon				- & GS E S MB (| CB G)
+
+Draygon2 - 7DA60
+L
+R
+Draygon
+R -> L						- Draygon
+L -> R						- & Draygon (& GS (| HJ SJ (& SB E)))
+ALL -> Draygon				- & GS E S MB (| CB G)
+
+Tourian_Elevator - 7DAAE
+EB
+L
+R
+
+Metroid_1 - 7DAE1
+L							- & IB (| B PB) (| M S)
+R
+ALL <-> ALL					- & IB (| B PB) (| M S)
+
+Metroid_2 - 7DB31
+R1							- & IB (| B PB) (| M S)
+R2
+ALL <-> ALL					- & IB (| B PB) (| M S)
+
+Metroid_3 - 7DB7D
+L
+R
+ALL <-> ALL					- & IB (| B PB) (| M S)
+
+Metroid_4 - 7DBCD
+L
+B							- & IB (| B PB) (| M S)
+ALL <-> ALL					- & IB (| B PB) (| M S)
+
+Blue_Hoppers - 7DC19
+T
+L
+ALL <-> ALL					- & S E
+
+RIP_Torizo - 7DC65
+L
+R							- X
+
+Metroid_Skip - 7DCB1
+L
+R							- X
+
+Seaweed_Room - 7DCFF
+L
+R1
+R2							- M
+
+Tourian_Refill - 7DD2E
+R
+
+# I'm not going to try to encode the equipment needed - Hopefully every item is accessible (with one possible exception)
+Mother_Brain - 7DD58
+L							- Mother_Brain
+R
+Mother_Brain
+L -> Mother_Brain			- X
+
+Tourian_Eye_Door - 7DDC4
+L
+R							- M
+
+Rinka_Shaft - 7DDF3
+L1
+L2
+L3
+
+Mother_Brain_Save - 7DE23
+R
+
+Escape_1 - 7DE4D
+R							- X
+B
+
+Escape_2 - 7DE7A
+T							- X
+R
+
+Escape_3 - 7DEA7
+L							- X
+R
+
+Escape_4 - 7DEDE
+L							- X
+R
+
+Tourian_Save - 7DF1B
+L
+
+Ceres_Entrance - 7DF45
+T							- Ceres_Ridley
+R
+
+Ceres_1 - 7DF8D
+L
+R
+
+Ceres_2 - 7DFD7
+L
+R
+
+Ceres_3 - 7E021
+L
+R
+
+Ceres_4 - 7E06B
+L
+R
+
+Ceres_Ridley - 7E0B5
+L
+Ceres_Ridley

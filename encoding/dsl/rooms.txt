@@ -761,7 +761,7 @@ M
 R -> L							- | SB GS
 ALL <-> ALL						- V
 
-Speed_Booster - 7AD18
+Speed_Booster - 7AD1B
 L
 SB
 ALL <-> ALL						- V
@@ -1560,22 +1560,22 @@ EB
 L
 R
 
-Metroid_Can_He_Crawl? - 7DAE1
+Metroid_1 - 7DAE1
 L							- & IB (| B PB) (| M S) GS
 R
 ALL <-> ALL					- & IB (| B PB) (| M S) GS
 
-Metroid_The_Return_of_Samus - 7DB31
+Metroid_2 - 7DB31
 R1							- & IB (| B PB) (| M S)
 R2
 ALL <-> ALL					- & IB (| B PB) (| M S)
 
-Metroid_Fusion? - 7DB73
+Metroid_3 - 7DB7D
 L
 R
 ALL <-> ALL					- & IB (| B PB) (| M S)
 
-Metroid_Zero_Mission - 7DBCD
+Metroid_4 - 7DBCD
 L
 B							- & IB (| B PB) (| M S)
 ALL <-> ALL					- & IB (| B PB) (| M S)
@@ -1640,7 +1640,7 @@ Tourian_Save - 7DF1B
 L
 
 Ceres_Entrance - 7DF45
-START						- Ceres_Ridley
+T							- Ceres_Ridley
 R
 
 Ceres_1 - 7DF8D

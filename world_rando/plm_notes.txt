@@ -1,0 +1,41 @@
+C826 - Gate body (small)
+C82A - Gate body (big)
+C836 - Gate (look at plm variable low byte)
+[Low] Type of gate.
+     00 = blue left
+     02 = blue right
+     04 = pink left
+     06 = pink right
+     08 = green left
+     0A = green right
+     0C = yellow left
+     0E = yellow right
+
+C842 - Grey door (look at plm variable high byte)
+C848
+C84E
+C854
+[High] == Open on certain criteria being met.*
+     00 = Main boss for the area is dead.
+     04 = Mini boss for the area is dead.
+     08 = Torizo for the area is dead.
+     0C = Enemies Dead matches Enemies Needed.
+     10 = Always closed.
+     14 = Delay in Tourian Gate room.
+     18 = Eticoons/Dachora saved?
+
+C85A - yellow door shell (
+C860 - yellow door shell )
+C866 - yellow door shell up
+C86C - yellow door shell down
+C872 - green door shell (
+C878 - green door shell )
+C87E - green door shell up
+C884 - green door shell down
+C88A - pink door shell (
+C890 - pink door shell )
+C896 - pink door shell up
+C89C - pink door shell down
+
+DB48 - eye door piece (middle left)
+DB56 - eye door piece (middle right)

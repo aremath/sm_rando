@@ -89,7 +89,7 @@ def make_room(room_defn):
     for node1, node2 in scheduled_for_destruction:
         graph.remove_edge(room_name + "_" + node1, room_name + "_" + node2)
 
-    room = Room(room_name, 0, graph, door_dict, item_nodes)
+    room = Room(room_name, int(room_address, 16), graph, door_dict, item_nodes)
     return room
 
 def parse_line(line, all_nodes=[]):
@@ -192,7 +192,6 @@ def parse_node_name(node_name, constraint):
         return Boss(node_type)
     else:
         assert False, "Unrecognized Type: " + node_name
-
 
 def parse_rooms(room_file):
     # open the file

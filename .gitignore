@@ -9,3 +9,4 @@ testing
 .ipynb_checkpoints
 *.png
 *.pickle
+abstraction_validation/ram.bin
