@@ -1277,7 +1277,7 @@ L
 T
 R								- S
 L -> T							- | GS (& HJ SPB) (& CB IB)
-R -> L							- | GS HJ (& CB IB SPB)
+R -> (L T)						- | GS HJ (& CB IB SPB)
 
 Pseudo_Plasma_Spark - 7D1DD
 L
