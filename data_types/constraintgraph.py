@@ -200,7 +200,8 @@ class ConstraintGraph(object):
         while len(queue) > 0:
             n += 1
             state = queue.pop(0).copy()
-            #if n % 100:
+            #if n % 10000 == 0:
+            #    print(n)
             #    print(state)
             node = state.node
             items = state.items
@@ -359,9 +360,8 @@ class ConstraintGraph(object):
                         assignments_copy = assignments.copy()
                         # Make an assignment that allows crossing that edge
                         for item in need_items:
-                            # Use random instead of pop to prevent hashing shenanigans
-                            wildcard = random.choice(list(wildcards_copy))
-                            wildcards_copy.remove(wildcard)
+                            # Get the last available wildcard -> the latest one the player got.
+                            wildcard = wildcards_copy.pop()
                             assignments_copy[wildcard] = item
                             items_copy = items_copy.add(item)
                         new_state = BFSItemsState(edge.terminal, wildcards_copy, items_copy, assignments_copy)

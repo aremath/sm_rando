@@ -97,7 +97,17 @@ def filter_paths(paths_through, state, room_exits):
         else:
             return False
 
-    return list(filter(is_path, paths_through))
+    paths_through = filter(is_path, paths_through)
+    maximal_paths_through = []
+    # Each node picks a maximal representative
+    for i, p1 in enumerate(paths_through):
+        chosen = True
+        for j, p2 in enumerate(paths_through):
+            if p1 < p2:
+                chosen = False
+        if chosen:
+            maximal_paths_through.append(p1)
+    return maximal_paths_through
 
 def clean_rooms(rooms):
     """remove some rooms we don't want to change from the dictionary of rooms"""
