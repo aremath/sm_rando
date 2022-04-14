@@ -12,7 +12,8 @@ from world_rando.util import weighted_random_order
 
 #TODO: Room Orientation randomization???? (far future)
 
-# 3. Leftover item placement
+n_exits_to_search = 15
+powerful_items = ["GS", "V", "PLB", "SA", "SJ"]
 
 # Get the list of items which have fixed locations (bosses, etc.)
 fixed_items = get_fixed_items()
@@ -45,6 +46,10 @@ def sort_nodes(current_state, nodes):
 
 # Score BFSStates based on how desirable they are
 # Depends on the current state - and related to game stage
+#TODO: may want to explicitly separate and randomly choose desirable vs. undesirable states
+# GS may still be chosen early despite the penalty because there are simply more locations that are GS-locked
+#TODO: This cost function can be used by the generator to do design intent - "I wanted the player to progress quickly"
+# or even "I wanted the player to use the grapple beam a lot"
 def score_node(current_state, node):
     # Base score
     score = 50
@@ -55,31 +60,31 @@ def score_node(current_state, node):
     # Early game
     if len(current_state.items) <= 4:
         # States where the second suit is acquired will always be considered last
-        if "GS" in node.items and "V" in new_items or "GS" in new_items and "V" in node.items:
+        if ("GS" in node.items and "V" in new_items) or ("GS" in new_items and "V" in node.items):
             return 0
         # Powerful items take a score penalty
-        if "GS" in new_items or "V" in new_items or "SA" in new_items or "PLB" in new_items:
-            score -= 25
+        if any([p in new_items for p in powerful_items]):
+            score -= 35
         # Modest penalty for acquiring new items
         score -= len(new_items) * 10
     # Midgame
     elif total_pickups <= 25:
         # Continue to penalize collecting both suits (less)
-        if "GS" in node.items and "V" in new_items or "GS" in new_items and "V" in node.items:
-            score -= 25
+        if ("GS" in node.items and "V" in new_items) or ("GS" in new_items and "V" in node.items):
+            score -= 35
         # Powerful items take a slightly less severe score penalty
-        if "GS" in new_items or "V" in new_items or "SA" in new_items or "PLB" in new_items:
+        if any([p in new_items for p in powerful_items]):
             score -= 20
     # Lategame
     else:
         # Bonus for placing bosses
         for b in sm_global.bosses:
             if b in new_items:
-                score += 20
+                score += 50
     if score < 0:
-        return score
-    else:
         return 0
+    else:
+        return score
 
 # Choose a progress exit by accumulating at least n exits, then 
 def choose_progress_exit(current_state, rooms, rooms_to_place, n, current_direction):
@@ -217,6 +222,8 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
         
         # Equivalent to the previous algorithm if using a uniform score function
         sorted_exits = sort_nodes(current_state, reachable_exits)
+        #for e in sorted_exits:
+        #    print(e.items, score_node(current_state, e))
         found = False
         # Keep trying until we exhaust the list of exit states too
         # LOOP over exit states, trying to place a room at one of them
@@ -233,7 +240,7 @@ def item_quota_rando(rooms, debug, starting_items, items_to_place):
             random.shuffle(rooms_to_place)
             # LOOP over rooms trying to place each one at the chosen exit state
 
-            exit_info = choose_progress_exit(exit_state, rooms, rooms_to_place, 10, chosen_direction)
+            exit_info = choose_progress_exit(exit_state, rooms, rooms_to_place, n_exits_to_search, chosen_direction)
             # Try to use a different exit if no room can satisfy this one
             if exit_info is None:
                 continue
