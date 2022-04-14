@@ -29,7 +29,7 @@ def fill_unassigned_locs(locations, items_to_place, try_not_to_place):
         else:
             k = random.choice(possible_items)
         item = items_to_place.pop(k)
-        placements.append((item, loc))
+        placements.append((loc, item))
     return placements
 
 def get_exit_items(current_state, exits):
