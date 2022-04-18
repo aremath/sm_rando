@@ -497,21 +497,23 @@ Grabber_Hole_BS				0x001a624	Butterfly_Sand_Pit_TS
 Grabber_Hole_L				0x001a630	Plasma_Spark_R2
 West_Sand_Hall_L			0x001a63c	Tiny_Crab_R
 West_Sand_Hall_R			0x001a648	Oasis_L
-West_Sand_Hall_TS			0x001a654	West_Sand_Hole_TS
 Oasis_L						0x001a660	West_Sand_Hall_R
 Oasis_R						0x001a66c	East_Sand_Hall_L
 Oasis_T						0x001a678	Zip_Tube_B
 East_Sand_Hall_L			0x001a684	Oasis_R
 East_Sand_Hall_R			0x001a690	Pants_L1
-East_Sand_Hall_TS			0x001a69c	East_Sand_Hole_BS
-West_Sand_Hole_TS			0x001a6a8	West_Sand_Pit_BS
 West_Sand_Hole_BS			0x001a6b4	West_Sand_Hall_TS
-East_Sand_Hole_TS			0x001a6c0	East_Sand_Pit_BS
 East_Sand_Hole_BS			0x001a6cc	East_Sand_Hall_TS
-West_Sand_Pit_TS			0x001a6d8	Aqueduct_BS1
 West_Sand_Pit_BS			0x001a6e4	West_Sand_Hole_TS
-East_Sand_Pit_TS			0x001a6f0	Aqueduct_BS2
 East_Sand_Pit_BS			0x001a6fc	East_Sand_Hole_TS
+## TS Sand pit exits (unused)
+East_Sand_Pit_TS			0x001a6f0	Aqueduct_BS2
+West_Sand_Pit_TS			0x001a6d8	Aqueduct_BS1
+East_Sand_Hole_TS			0x001a6c0	East_Sand_Pit_BS
+West_Sand_Hole_TS			0x001a6a8	West_Sand_Pit_BS
+East_Sand_Hall_TS			0x001a69c	East_Sand_Hole_BS
+West_Sand_Hall_TS			0x001a654	West_Sand_Hole_BS
+## Resume normal doors
 Aqueduct_L1					0x001a708	Crab_Shaft_R
 Aqueduct_BS1				0x001a714	West_Sand_Pit_TS
 Aqueduct_BS2				0x001a720	East_Sand_Pit_TS
@@ -551,7 +553,7 @@ Draygon_Save_L				0x001a888	Colosseum_R1
 Halfie_Refill_L				0x001a894	Halfie_Climb_R2
 Butterfly_Sand_Pit_BS		0x001a8a0	Butterfly_Room_TS
 Botwoon_Energy_Pit_BS1		0x001a8ac	Botwoon_Energy_Farm_TS1
-Botwoon_Energy_Pit_BS2		0x001a8b8	Botwoon_Energy_Farm_TS1
+Botwoon_Energy_Pit_BS2		0x001a8b8	Botwoon_Energy_Farm_TS2
 Shaktool_L					0x001a8c4	Pants_Right_R
 Shaktool_R					0x001a8d0	Spring_Ball_L
 Halfie_Climb_L2				0x001a8dc	Botwoon_Energy_R

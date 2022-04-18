@@ -69,7 +69,10 @@ def parse_doors(door_file, rom):
             continue
         (d_from, mem_addr, d_to) = line.split()
         mem_addr = Address(int(mem_addr, 16))
+        assert d_from not in door_from, d_from
         door_from[d_from] = mem_addr
+        # Special-case Shaktool because of stupid pants room
+        assert d_to == "Shaktool_L" or (d_to not in door_to), d_to
         door_to[d_to] = rom.read_from_clean(mem_addr, 12)
     f.close()
     return door_from, door_to
