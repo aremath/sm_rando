@@ -85,7 +85,7 @@ R3 -> (M1 M2 M3 L2 R5 R6)				- X
 (M2 M3 L2 R5 R6) -> R3					- X
 (L2 R5 R6 M3) -> (R1 R2 R3 M1 M2) 		- X
 (R1 R2) -> M1							- HJ
-(R3 R5 R6 M2 M3 L2) -> M1				- X
+(L2 R5 R6 M2 M3) -> M1					- X
 
 Bowling_Path - 79461
 L
@@ -769,7 +769,7 @@ M
 R -> L							- | SB GS
 ALL <-> ALL						- V
 
-Speed_Booster - 7AD18
+Speed_Booster - 7AD1B
 L
 SB
 ALL <-> ALL						- V
@@ -791,10 +791,14 @@ L1
 L2
 R
 M
-L2 -> (L1 M R)					- | HJ SJ
-(R M) -> L2						- MB
-(R M) -> L1						- & MB (| HJ SJ)
-R -> M							- | G SJ
+L1 -> R							- X
+L2 -> R							- X
+L2 -> (L1 M)					- | HJ SJ
+M -> L1							- WB
+M -> L2							- | MB WB
+R -> M							- | SJ G
+R -> L1							- X
+R -> L2							- MB
 ALL <-> ALL						- V
 
 # no varia required - it's a very short DEAD END
@@ -1569,22 +1573,22 @@ EB
 L
 R
 
-Metroid_Can_He_Crawl? - 7DAE1
+Metroid_1 - 7DAE1
 L							- & IB (| B PB) (| M S) GS
 R
 ALL <-> ALL					- & IB (| B PB) (| M S) GS
 
-Metroid_The_Return_of_Samus - 7DB31
+Metroid_2 - 7DB31
 R1							- & IB (| B PB) (| M S)
 R2
 ALL <-> ALL					- & IB (| B PB) (| M S)
 
-Metroid_Fusion? - 7DB73
+Metroid_3 - 7DB7D
 L
 R
 ALL <-> ALL					- & IB (| B PB) (| M S)
 
-Metroid_Zero_Mission - 7DBCD
+Metroid_4 - 7DBCD
 L
 B							- & IB (| B PB) (| M S)
 ALL <-> ALL					- & IB (| B PB) (| M S)
@@ -1649,7 +1653,7 @@ Tourian_Save - 7DF1B
 L
 
 Ceres_Entrance - 7DF45
-START						- Ceres_Ridley
+T							- Ceres_Ridley
 R
 
 Ceres_1 - 7DF8D

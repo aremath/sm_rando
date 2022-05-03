@@ -60,7 +60,8 @@ class Bank(object):
         self.bank = bank_n
         self.extent_list = []
 
-    # TODO: assert no overlapping extents
+    #TODO: assert no overlapping extents
+    #TODO: merge adjacent extents
     def add_extent(self, extent):
         assert(isinstance(extent, Extent))
         assert extent.start.bank == self.bank
@@ -77,7 +78,8 @@ class Bank(object):
         Use first fit to find a place for the data
         """
         assert(size > 0)
-        assert(len(self.extent_list) != 0)
+        if len(self.extent_list) == 0:
+            raise AllocationError
         addr = None
         remove = None
         for (i, extent) in enumerate(self.extent_list):
@@ -96,6 +98,26 @@ class Bank(object):
             raise AllocationError
         else:
             return addr
+
+    def mark_filled(self, address, size):
+        new_extents = []
+        for extent in self.extent_list:
+            address_end = address + Address(size)
+            extent_end = extent.start + Address(extent.size)
+            # If it starts after or ends before, there's no intersection
+            overlap_start = max(extent.start, address)
+            overlap_end = min(extent_end, address_end)
+            # No overlap
+            if overlap_end <= overlap_start:
+                new_extents.append(extent)
+            else:
+                if overlap_start > extent.start:
+                    before = Extent(extent.start, int(address) - int(extent.start))
+                    new_extents.append(before)
+                if overlap_end < extent_end:
+                    after = Extent(address_end, int(extent_end) - int(address_end))
+                    new_extents.append(after)
+        self.extent_list = new_extents
 
 class Memory(object):
 
@@ -128,26 +150,15 @@ class Memory(object):
         if address is None:
             raise AllocationError
         else:
-            self.rom.write_to_new(address, data)
             return address
 
     def allocate_and_write(self, data, banks):
         """Try to allocate <data> in one of the <banks>, then
-        write that data to the <rom>."""
+        write that data to the ROM."""
         size = len(data)
-        address = None
-        assert len(banks) > 0
-        for bank in banks:
-            bank = self.banks[bank]
-            try:
-                address = bank.get_place(size)
-            except AllocationError:
-                continue
-        if address is None:
-            raise AllocationError
-        else:
-            self.rom.write_to_new(address, data)
-            return address
+        address = self.allocate(size, banks)
+        self.rom.write_to_new(address, data)
+        return address
 
     def mark_free(self, address, size):
         """Marks a part of the rom as unallocated free space"""
@@ -158,21 +169,8 @@ class Memory(object):
         extent = Extent(address, size)
         self.banks[bank].add_extent(extent)
 
-    def fixup_futures(self, futures, env):
-        for f in futures:
-            #print(f)
-            f.fill(self.rom, env)
-
-    def alloc_rooms(self, rooms, env=None):
-        if env is None:
-            env = {}
-        futures = []
-        addrs = []
-        for room in rooms:
-            addr, fs = room.allocate(self, env)
-            addrs.append(addr)
-            futures.extend(fs)
-        #print(env)
-        self.fixup_futures(futures, env)
-        return addrs
+    def mark_filled(self, address, size):
+        """Marks a part of the rom as allocated"""
+        bank = address.bank
+        self.banks[bank].mark_filled(address, size)
 

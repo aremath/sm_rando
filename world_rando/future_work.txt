@@ -1,0 +1,7 @@
+Ideas for improving concrete map generation:
+Edit the search algorithm to do the following:
+    - Change the heuristic to favor vertical rooms (like original SM)
+    - Instead of doing two searches, do a single search where adding a new tile has a cost.
+        - Instead of simply cost for adding an item, adding a new direction of entering a tile creates a cost. Perhaps this cost is higher if the tile has no directions.
+    - For fixed rooms, allow search to travel across them as long as the player has the requisite items along the edge that is being constructed.
+    - Add to the set of fixed rooms a set of rooms where only the shape, or the shape and initial subroom configuration are constrained. Each of these rooms is annotated with an item, and can (and should) be used during search. These fixed rooms should afford the construction of hard constraints for items that are difficult to create constraints for (e.g. Hi-Jump, Gravity, Speed Booster), and should only be allowed to be placed on edges where the player has that item. Since we don't want to place many of them, perhaps only restrict them to edges where the player newly acquired that item.

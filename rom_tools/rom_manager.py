@@ -300,6 +300,11 @@ class RomManager(object):
         all_saves = crateria_savestations + brinstar_savestations + norfair_savestations + \
                 wrecked_ship_savestations + maridia_savestations + tourian_savestations
         obj_names = rom_data_structures.parse_from_savestations(all_saves, self)
+        # Register the objects with the memory model so that we don't allocate new levels
+        # on top of existing ones
+        for obj in obj_names.values():
+            if type(obj.old_address) is Address:
+                self.memory.mark_filled(obj.old_address, obj.old_size)
         return obj_names
 
     def compile(self, obj_names):

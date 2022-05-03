@@ -97,7 +97,17 @@ def filter_paths(paths_through, state, room_exits):
         else:
             return False
 
-    return list(filter(is_path, paths_through))
+    paths_through = filter(is_path, paths_through)
+    maximal_paths_through = []
+    # Each node picks a maximal representative
+    for i, p1 in enumerate(paths_through):
+        chosen = True
+        for j, p2 in enumerate(paths_through):
+            if p1 < p2:
+                chosen = False
+        if chosen:
+            maximal_paths_through.append(p1)
+    return maximal_paths_through
 
 def clean_rooms(rooms):
     """remove some rooms we don't want to change from the dictionary of rooms"""
@@ -114,10 +124,10 @@ def clean_rooms(rooms):
     rooms.pop("Ceres_Ridley")
     # Don't randomize tourian or escape
     rooms.pop("Tourian_Elevator")
-    rooms.pop("Metroid_Can_He_Crawl?")
-    rooms.pop("Metroid_The_Return_of_Samus")
-    rooms.pop("Metroid_Fusion?")
-    rooms.pop("Metroid_Zero_Mission")
+    rooms.pop("Metroid_1")
+    rooms.pop("Metroid_2")
+    rooms.pop("Metroid_3")
+    rooms.pop("Metroid_4")
     rooms.pop("Blue_Hoppers")
     rooms.pop("RIP_Torizo")
     rooms.pop("Metroid_Skip")

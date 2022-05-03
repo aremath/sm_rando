@@ -90,18 +90,6 @@ class Coord(tuple):
     def resolve_int(self):
         return Coord(int(self.x), int(self.y))
 
-    def wall_relate(self, other):
-        if other == self.up():
-            return "U"
-        elif other == self.left():
-            return "L"
-        elif other == self.right():
-            return "R"
-        elif other == self.down():
-            return "D"
-        else:
-            assert False, "No wall_relate"
-
     def in_bounds(self, lower, upper):
         """Is this Coord inside the rectangle described by lower, upper?
         Like range, this includes the lower bound but not the upper bound. """
@@ -256,9 +244,11 @@ class Rect(object):
     def translate(self, c):
         return Rect(self.start + c, self.end + c)
 
+    @property
     def area(self):
         return (self.end.x - self.start.x) * (self.end.y - self.start.y)
 
+    @property
     def perimeter(self):
         return 2 * (self.end.x - self.start.x + self.end.y - self.start.y)
 

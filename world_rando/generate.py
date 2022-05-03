@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 def get_path_info(paths):
     npaths = len(paths)
-    lens = [len(p[2]) for p in paths]
+    lens = [len(p.coord_path) for p in paths]
     total_length = sum(lens)
     return total_length, npaths
 
@@ -86,6 +86,15 @@ def visualize_concrete_maps(concrete_map_info):
     region_cmaps, _, _, _ = concrete_map_info
     for region, rcmap in region_cmaps.items():
         map_viz.map_viz(rcmap, "output/" + region + "/cmap.png", "encoding/map_tiles")
+
+def mission_embeddings(concrete_map_info, abstract_map_info):
+    order, _, _, _, _ = abstract_map_info
+    region_cmaps, _, region_paths, _ = concrete_map_info
+    for region, rcmap in region_cmaps.items():
+        print(f"Embedding for {region}")
+        paths = region_paths[region]
+        fname = "output/" + region + "/mission_embedding.png"
+        map_viz.mission_embedding(rcmap, paths, order, fname)
 
 def visualize_rooms(room_info):
     for region, room_defs in room_info.items():

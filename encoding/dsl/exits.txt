@@ -19,11 +19,11 @@ Crateria_Kihunters_R		<>	Moat_L
 Moat_R						<>	West_Ocean_L2
 Crateria_Kihunters_B		<>	Caterpillar_Elevator_T
 Gauntlet_Entrance_L			<>	Gauntlet_R
-##West_Ocean_L1				<>	Moat_R
-##West_Ocean_R4				<>	Wrecked_Ship_Entrance_L
+West_Ocean_R6				<>	Wrecked_Ship_Entrance_L
 Parlor_B					<>	Climb_Room_T
 Old_Mother_Brain_L			<>	Climb_Room_R3
 Blue_Brinstar_Elevator_L	<>	Old_Mother_Brain_R
+BT_Flyway_R                 <>  Bomb_Torizo_L
 BT_Flyway_L					<>	Parlor_R2
 Map_Flyway_L				<>	Parlor_R3
 Terminator_Room_R			<>	Parlor_L1
@@ -266,6 +266,7 @@ Halfie_Climb_L2				<>	Botwoon_Energy_R
 Halfie_Climb_R2				<>	Halfie_Refill_L
 Halfie_Climb_R1				<>	Colosseum_L
 Botwoon_L					<>	Botwoon_Hallway_R
+Botwoon_R                   <>  Botwoon_Energy_L
 Draygon_Recharge_L			<>	Draygon_Save_R
 Colosseum_R2				<>	The_Precious_Room_L1
 Draygon_R					<>	The_Precious_Room_L2
@@ -275,11 +276,11 @@ Cactus_Hallway_R			<>	Cactus_Alley_L
 Cactus_Alley_R				<>	Halfie_Climb_L1
 Tourian_Elevator_EB			<>	Statues_ET
 Tourian_Elevator_R			<>	Tourian_Save_L
-Tourian_Elevator_L			<>	Metroid_Can_He_Crawl_R
-Metroid_Can_He_Crawl_L		<>	Metroid_The_Return_of_Samus_R1
-Metroid_Fusion?_L			<>	Metroid_The_Return_of_Samus_R2
-Metroid_Fusion?_R			<>	Metroid_Zero_Mission_L
-Metroid_Zero_Mission_B		<>	Blue_Hoppers_T
+Tourian_Elevator_L			<>	Metroid_1_R
+Metroid_1_L		            <>	Metroid_2_R1
+Metroid_3_L			        <>	Metroid_2_R2
+Metroid_3_R			        <>	Metroid_4_L
+Metroid_4_B	            	<>	Blue_Hoppers_T
 Blue_Hoppers_L				<>	RIP_Torizo_R
 RIP_Torizo_L				<>	Metroid_Skip_R
 Metroid_Skip_L				<>	Seaweed_Room_R1
@@ -298,4 +299,4 @@ Ceres_1_R					<>	Ceres_2_L
 Ceres_2_R					<>	Ceres_3_L
 Ceres_3_R					<>	Ceres_4_L
 Ceres_4_R					<>	Ceres_Ridley_L
-Ceres_Entrance_START		<>	Landing_Site_START
+Ceres_Entrance_T    		<>	Landing_Site_L2

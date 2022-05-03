@@ -2,9 +2,8 @@ import heapq
 
 block_cost = 0
 cost_weight = 0.5
-max_rules = 10000
 
-def rule_search(start_state, rules, goal_state):
+def rule_search(start_state, rules, goal_state, max_rules=10000):
     if goal_state is None:
         goal_position = "None"
     else:
@@ -14,9 +13,11 @@ def rule_search(start_state, rules, goal_state):
     finished = set()
     entry_count = 0
     h = [(0, entry_count, start_state)]
+    #TODO: is this the right thing to count / variable name?
     n_rules = 0
     while len(h) != 0:
         n_rules += 1
+        #TODO: decreasekey!!
         priority, _, state = heapq.heappop(h)
         #if state in finished:
         #    continue

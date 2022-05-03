@@ -1,3 +1,4 @@
+from collections import defaultdict
 from . import intervals
 from . import compress_graph
 
@@ -96,13 +97,24 @@ def recursive_merge_compress(src, min_size, lb, ub, intervals):
         else:
             return lhs + rhs
 
+def mk_prefix_dict(src, prefix_length):
+    """ Create a dict of prefixes to aid with finding copies """
+    assert prefix_length > 0, "Invalid prefix length: {}".format(prefix_length)
+    d = defaultdict(list)
+    for i in range(len(src) - (prefix_length - 1)):
+        prefix = src[i:i + prefix_length]
+        d[prefix].append(i)
+    return d
+
 # Greedy_compress which just finds the best interval for the next bytes and is reasonably fast
 # TODO: buggy for min_size < 2?
-def greedy_compress(src, min_size=2, debug=False):
+def greedy_compress(src, min_size=2, prefix_length=4, debug=False):
     i = 0
     last_end = 0
     interval_list = []
+    prefix_dict = mk_prefix_dict(src, prefix_length)
     while i < len(src):
+        #TODO: use a dictionary to keep track of locations where byte patterns appear
         bf, _ = intervals.find_bytefill_at(src, i, min_size)
         if debug and len(bf) > 0:
             print(bf[0])
@@ -112,13 +124,16 @@ def greedy_compress(src, min_size=2, debug=False):
         sf, _ = intervals.find_sigmafill_at(src, i, min_size)
         if debug and len(sf) > 0:
             print(sf[0])
-        ac = intervals.find_address_copy_at(src, i, min_size)
+        #ac = intervals.find_address_copy_at(src, i, min_size)
+        ac = intervals.find_address_copy_prefix(src, i, min_size, prefix_dict, prefix_length)
         if debug and len(ac) > 0:
             print(ac[0])
-        xc = intervals.find_address_xor_copy_at(src, i, min_size)
+        #xc = intervals.find_address_xor_copy_at(src, i, min_size)
+        xc = intervals.find_address_xor_copy_prefix(src, i, min_size, prefix_dict, prefix_length)
         if debug and len(xc) > 0:
             print(xc[0])
-        rc = intervals.find_rel_address_copy_at(src, i, min_size)
+        #rc = intervals.find_rel_address_copy_at(src, i, min_size)
+        rc = intervals.find_rel_address_copy_prefix(src, i, min_size, prefix_dict, prefix_length)
         if debug and len(rc) > 0:
             print(rc[0])
         all_intervals = bf + wf + sf + ac + xc + rc

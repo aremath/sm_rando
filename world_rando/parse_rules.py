@@ -5,6 +5,7 @@ import yaml
 from world_rando.rules import *
 from world_rando.coord import Coord, Rect
 from data_types.item_set import ItemSet
+from rom_tools import item_definitions
 
 def reverse_dict(d):
     return {v:k for k,v in d.items()}
@@ -40,7 +41,7 @@ vbehave_str = {
     "Store": VBehavior.STORE
     }
 
-# Separate from color_to_abstract because the mapping is not one to one
+# Separate from abstract_to_color because the mapping is not one to one
 color_to_abstract = {
     unknown_color : AbstractTile.UNKNOWN,
     player_before_color : AbstractTile.AIR,
@@ -76,6 +77,125 @@ water_air_colors = [water_air_color, player_before_water_air_color, player_after
 water_colors = [water_color, player_before_water_color, player_after_water_color]
 #TODO: Other liquids
 
+layer3_to_liquid = {
+    2: LiquidType.LAVA,
+    4: LiquidType.ACID,
+    6: LiquidType.WATER
+}
+
+# Refer rom_tools/item_definitions.py
+def mk_plm_to_item(item_defs):
+    plm_to_item = {}
+    for item in item_defs:
+        for presentation in item_defs[item]:
+            plm_id = int.from_bytes(item_defs[item][presentation], byteorder="little")
+            iset = ItemSet([item])
+            plm_to_item[plm_id] = iset
+    return plm_to_item
+
+def tile_to_abstract(tile, bts, up, left, index):
+    ttype = tile.tile_type
+    # Air
+    if ttype == 0:
+        return AbstractTile.AIR
+    # Slope
+    elif ttype == 1:
+        return AbstractTile.SOLID
+    # Air fool xray
+    elif ttype == 2:
+        return AbstractTile.AIR
+    # Treadmill
+    elif ttype == 3:
+        return AbstractTile.SOLID
+    # H Copy
+    elif ttype == 5 and left is not None:
+        return left
+    # Solid
+    elif ttype == 8:
+        return AbstractTile.SOLID
+    # Door
+    elif ttype == 9:
+        return AbstractTile.AIR
+    # Spike
+    #TODO
+    elif ttype == 10:
+        return AbstractTile.SOLID
+    # Crumble
+    elif ttype == 11:
+        if bts == 0x0E or bts == 0x0F:
+            return AbstractTile.BLOCK_SPEED
+        else:
+            return AbstractTile.BLOCK_CRUMBLE
+    # Shot
+    elif ttype == 12:
+        # Normal shot blocks or door tiles
+        if bts < 0x08 or (bts >= 0x40 and bts < 0x44):
+            return AbstractTile.BLOCK_SHOT
+        elif bts < 0x0A:
+            return AbstractTile.BLOCK_POWER_BOMB
+        elif bts < 0x0C:
+            return AbstractTile.BLOCK_SUPER
+    # V Copy
+    elif ttype == 13 and up is not None:
+        return up
+    # Grapple
+    #TODO crumble grapple is BTS 1 or 2
+    elif ttype == 14:
+        return AbstractTile.BLOCK_GRAPPLE
+    # Bomb
+    elif ttype == 15:
+        return AbstractTile.BLOCK_BOMB
+    assert False, f"Bad tile {hex(ttype)} {hex(bts)} at {index}"
+
+def get_item_locations(plms):
+    item_locations = {}
+    plm_to_item = mk_plm_to_item(item_definitions.make_item_definitions())
+    for plm in plms.l:
+        print(hex(plm.plm_id))
+        if plm.plm_id in plm_to_item:
+            iset = plm_to_item[plm.plm_id]
+            c = Coord(plm.xpos, plm.ypos)
+            item_locations[c] = iset
+    return item_locations
+
+def make_level_from_room(room_header):
+    #TODO: is there a way to know which state is currently in use?
+    state = room_header.state_chooser.default
+    # Get layer1:
+    larray = state.level_data.level_array
+    layer1 = larray.layer1
+    bts = larray.bts
+    level_array = np.zeros(layer1.shape, dtype="int")
+    it = np.nditer(layer1, flags=["multi_index", "refs_ok"])
+    # Abstractify level data
+    for tile in it:
+        tile = tile.item()
+        i = it.multi_index
+        # Get the up and left tiles for v and h copy
+        x = i[0]
+        y = i[1]
+        up = None
+        left = None
+        if y > 0:
+            up = level_array[x, y-1]
+        if x > 0:
+            left = level_array[x-1, y]
+        tile_bts = bts[i]
+        level_array[i] = tile_to_abstract(tile, tile_bts, up, left, i)
+    #TODO: May not use default FX depending on door
+    #TODO: Door cap PLMs change level data!
+    fx = state.fx.default_fx
+    if fx is not None and fx.layer3_type in layer3_to_liquid:
+        liquid_type = layer3_to_liquid[fx.layer3_type]
+        #TODO - tile or pixel?
+        liquid_level = fx.liquid_target_y // 16
+    else:
+        liquid_type = LiquidType.NONE
+        liquid_level = None
+    #TODO
+    item_locations = get_item_locations(state.plms)
+    level = LevelState(Coord(0,0), level_array, liquid_type, liquid_level, item_locations)
+    return level
 
 # Parse the level image to get the level definition for a rule
 def make_level(image):

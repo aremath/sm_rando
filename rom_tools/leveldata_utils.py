@@ -140,9 +140,9 @@ def bit_array_from_bytes(levelbytes, dimensions):
             # Level 2 (background) data
             level2_offset = 24
             if has_level2:
-                level2index = index + (3*levelsize/2)
+                level2index = int(index * 2 + 3*(levelsize/2))
                 level2 = int.from_bytes(levelbytes[level2index:level2index+2], byteorder='little')
-                for i,b in enumerate(bits(level2, 16)):
+                for i, b in enumerate(bits(level2, 16)):
                     levelarray[(x, y, i+level2_offset)] = b
     return levelarray
 

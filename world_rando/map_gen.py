@@ -58,6 +58,14 @@ def spring_model(node_locs, graph, n_iterations, spring_constant, spring_equilib
 #TODO: Possibly just add some extra edges to the regional graph to make it more "uniform"
 # through the spring model?
 
+class Path(object):
+
+    def __init__(self, start_node, end_node, coord_path, itemset):
+        self.start_node = start_node
+        self.end_node = end_node
+        self.coord_path = coord_path
+        self.itemsets = itemset
+
 def map_gen(dimensions, graph, elevators, settings):
     """
     Generate a concrete graph
@@ -102,7 +110,7 @@ def map_gen(dimensions, graph, elevators, settings):
             else:
                 assert False, "Cannot find path: " + str(closest) + ", " + str(node_locs[edge.terminal])
             path = path_concat(to_closest, to_end)
-            paths.append((node, edge.terminal, path, edge.data))
+            paths.append(Path(node, edge.terminal, path, edge.data))
     # partition the map into random rooms
     room_size = len(cmap) // settings["room_size"]
     #_, rooms = cmap.random_rooms(room_size)

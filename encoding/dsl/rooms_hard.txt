@@ -79,6 +79,7 @@ ALL -> M3								- MB
 (R1 R2 R3 M1) -> (L2 R6 M2 M3)			- & S MB
 ALL <-> R3								- | B PB SPB
 (L2 R5 R6 M3) -> (R1 R2 R3 M1 M2) 		- X
+ALL -> R5								- X
 
 Bowling_Path - 79461
 L
@@ -754,7 +755,7 @@ R								- M
 M
 ALL <-> ALL						- V
 
-Speed_Booster - 7AD18
+Speed_Booster - 7AD1B
 L
 SB
 ALL <-> ALL						- V
@@ -1276,7 +1277,7 @@ L
 T
 R								- S
 L -> T							- | GS (& HJ SPB) (& CB IB)
-R -> L							- | GS HJ (& CB IB SPB)
+R -> (L T)						- | GS HJ (& CB IB SPB)
 
 Pseudo_Plasma_Spark - 7D1DD
 L
@@ -1420,7 +1421,7 @@ L1
 L2
 R1
 R2
-(L1 L2 R2) -> R1			- | XR (& IB SPB HJ E V) (& GS CB IB (| MB SPB)) (& G GS (| B SPB HJ)) 
+(L1 L2 R2) -> R1			- | XR (& IB SPB HJ E V) (& GS CB IB (| MB SPB)) (& G GS (| B SPB HJ))
 
 Pants_Right - 7D69A
 L
@@ -1552,22 +1553,22 @@ EB
 L
 R
 
-Metroid_Can_He_Crawl? - 7DAE1
+Metroid_1 - 7DAE1
 L							- & IB (| B PB) (| M S)
 R
 ALL <-> ALL					- & IB (| B PB) (| M S)
 
-Metroid_The_Return_of_Samus - 7DB31
+Metroid_2 - 7DB31
 R1							- & IB (| B PB) (| M S)
 R2
 ALL <-> ALL					- & IB (| B PB) (| M S)
 
-Metroid_Fusion? - 7DB73
+Metroid_3 - 7DB7D
 L
 R
 ALL <-> ALL					- & IB (| B PB) (| M S)
 
-Metroid_Zero_Mission - 7DBCD
+Metroid_4 - 7DBCD
 L
 B							- & IB (| B PB) (| M S)
 ALL <-> ALL					- & IB (| B PB) (| M S)
@@ -1632,7 +1633,7 @@ Tourian_Save - 7DF1B
 L
 
 Ceres_Entrance - 7DF45
-START						- Ceres_Ridley
+T							- Ceres_Ridley
 R
 
 Ceres_1 - 7DF8D
