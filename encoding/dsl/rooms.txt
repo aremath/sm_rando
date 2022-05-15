@@ -75,13 +75,17 @@ R6										- S
 M1
 M2
 M3
-ALL -> M3								- | B PB
-(R1 R2 R3 M1) -> (L2 R6 M2 M3)			- & S MB
-R3 -> ALL								- | B PB SPB
-ALL -> R3								- | B PB SPB
-(L2 R5 R6 M3) -> (R1 R2 R3 M1 M2) 		- X
-ALL -> M1								- HJ
 ALL -> R5								- X
+(L2 R5 R6) -> M3						- | B PB
+(R1 R2 R3 M1 M2) -> M3					- X
+(R1 R2 M1) -> (L2 R6 M2)				- & S MB
+R3 -> (R1 R2)							- | B PB SPB
+R3 -> (M1 M2 M3 L2 R5 R6)				- X
+(R1 R2 M1) -> R3						- | B PB SPB
+(M2 M3 L2 R5 R6) -> R3					- X
+(L2 R5 R6 M3) -> (R1 R2 R3 M1 M2) 		- X
+(R1 R2) -> M1							- HJ
+(L2 R5 R6 M2 M3) -> M1					- X
 
 Bowling_Path - 79461
 L
@@ -254,12 +258,16 @@ L <-> R					- | B PB
 # I'm not satisfied with this encoding - 
 # it doesn't force you to leave the room if you
 # start at R and go to L, then want to go back to R
+# Added R -> M (X) and M -> L - | B PB to prevent logic from going R -> M
+# to pick up M item without bombs.
 Early_Supers - 79BC8
 L
 R						- M
 S
 M
+R -> M					- X
 M -> R					- X
+M -> L					- | B PB
 L -> M					- | B PB
 L -> (R S)				- SB
 
@@ -777,17 +785,20 @@ R1 -> ALL						- & MB (| PB B SA)
 ALL <-> ALL						- V
 
 # I can't prevent you from doing stupid stuff like going into the second part without morph ball...
+# Needs testing whether R -> M can be done with just HJ
 Double_Chamber - 7ADAD
 L1
 L2
 R
 M
-L2 -> (L1 M R)					- | HJ SJ
-R -> L2							- MB
+L1 -> R							- X
+L2 -> R							- X
+L2 -> (L1 M)					- | HJ SJ
+M -> L1							- WB
 M -> L2							- | MB WB
-R -> L1							- X
-M -> L1							- & WB
 R -> M							- | SJ G
+R -> L1							- X
+R -> L2							- MB
 ALL <-> ALL						- V
 
 # no varia required - it's a very short DEAD END
@@ -1344,6 +1355,8 @@ Grabber_Hole - 7D433
 L
 R
 BS
+L <-> R						- | IB GS
+BS -> (L R)					- | IB GS
 
 West_Sand_Hall - 7D461
 L
