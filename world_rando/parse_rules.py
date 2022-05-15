@@ -194,7 +194,7 @@ def make_level_from_room(room_header):
         liquid_level = None
     #TODO
     item_locations = get_item_locations(state.plms)
-    level = LevelState(Coord(0,0), level_array, liquid_type, liquid_level, item_locations)
+    level = LevelState(Coord(0,0), level_array, liquid_type, liquid_level, item_locations, {})
     return level
 
 # Parse the level image to get the level definition for a rule
@@ -226,7 +226,7 @@ def make_level(image):
     # and at least as high as the highest liquid
     liquid_interval = Interval(lowest_air + 1, highest_liquid)
     # Put the liquid as low as possible
-    level = LevelState(Coord(0,0), level_array, LiquidType.WATER, highest_liquid, [])
+    level = LevelState(Coord(0,0), level_array, LiquidType.WATER, highest_liquid, {}, {})
     if player_after_pos is None:
         player_after_pos = player_before_pos.copy()
     return player_before_pos, player_after_pos, level, liquid_interval, liquid_type, item_locations

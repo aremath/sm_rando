@@ -6,6 +6,15 @@ from enum import Enum
 
 from world_rando.coord import Coord, Rect
 
+class Path(object):
+
+    def __init__(self, start_node, end_node, coord_path, itemsets):
+        self.start_node = start_node
+        self.end_node = end_node
+        self.coord_path = coord_path
+        self.itemsets = itemsets
+
+
 # Enum for what things a tile can be
 class TileType(Enum):
     """
@@ -33,7 +42,7 @@ class MapTile(object):
         if _walls is None:
             self.walls = set()
         else:
-            self.walls = _walls
+            self.walls = set(_walls)
         # general tile info
         self.is_item = _item
         self.is_save = _save
@@ -45,6 +54,9 @@ class MapTile(object):
     def add_path(self, to_coords, with_items):
         """Add a path through self to another tile, with the specified item constraints"""
         self.d[to_coords].append(with_items)
+
+    def copy(self):
+        return MapTile(self.tile_type, self.is_fixed, self.is_item, self.is_save, self.walls)
 
 # Various distance metrics for use as search heuristics
 def euclidean(p1, p2):
@@ -82,7 +94,10 @@ class ConcreteMap(object):
 
     def in_bounds(self, coord):
         """Is the given coord in bounds?"""
-        return coord.in_bounds(Coord(0, 0), self.dimensions)
+        if self.dimensions is None:
+            return True
+        else:
+            return coord.in_bounds(Coord(0, 0), self.dimensions)
 
     def assert_in_bounds(self, coord):
         """Assert that the given coordinate is in bounds"""
@@ -99,15 +114,16 @@ class ConcreteMap(object):
         #TODO: and has the same dimensions as before?
         return ConcreteMap(self.dimensions, _tiles=new_tiles)
 
-    def compose(self, other, collision_policy="error"):
+    def compose(self, other, offset=Coord(0,0), collision_policy="error"):
         """Returns a new cmap which is a composition of self and other.
         If self and other share a maptile, then the collision policy decides."""
         new_tiles = {}
         for c, t in self.items():
-            new_tiles[c] = t
+            # Use a copy to avoid duplicates
+            new_tiles[c] = t.copy()
         for c, t in other.items():
-            self.assert_in_bounds(c)
-            if c in new_tiles:
+            c_o = c + offset
+            if not self.in_bounds(c_o) or c_o in new_tiles:
                 # 'defer' means tiles from self are preferred over tiles from other
                 if collision_policy == "defer":
                     continue
@@ -120,7 +136,7 @@ class ConcreteMap(object):
                 else:
                     assert False, "Bad collision policy: " + collision_policy
             else:
-                new_tiles[c] = t
+                new_tiles[c_o] = t.copy()
         #TODO: which dimensions does it get?
         return ConcreteMap(self.dimensions, _tiles=new_tiles)
 
@@ -264,7 +280,7 @@ class ConcreteMap(object):
 
     # Cannot set an item outside the bounds
     def __setitem__(self, key, value):
-        if key.in_bounds(Coord(0, 0), self.dimensions):
+        if self.dimensions is None or key.in_bounds(Coord(0, 0), self.dimensions):
             self.tiles[key] = value
         else:
             assert False, "Index not in bounds: " + str(key)
@@ -434,6 +450,7 @@ def merging_partition(space, targetn, maxsize, implicit_bboxes):
             del active_neighbors[r]
         else:
             active_neighbors[r] = new_neighbors
+        print(f"Merging {r} and {n}")
         rooms[r] = rooms[r] | rooms[n]
         active_neighbors = active_replace(active_neighbors, n, r)
         del rooms[n]

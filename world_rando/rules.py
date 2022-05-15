@@ -24,6 +24,7 @@ class AbstractTile(IntEnum):
     BLOCK_SPEED = 9
     BLOCK_CRUMBLE = 10
     BLOCK_SHOT = 11
+    DOOR = 12
 
 # Translation between tile colors and types of tile
 unknown_color = (255, 255, 255)
@@ -40,6 +41,7 @@ player_before_water_color = (145, 0, 0)
 player_after_water_air_color = (0, 198, 0)
 player_after_water_color = (0, 145, 0)
 item_color = (255, 22, 169)
+door_color = (255, 22, 169)
 # Destructible blocks
 block_bomb_color = (141, 73, 154)
 block_missile_color = (154, 73, 73)
@@ -49,6 +51,7 @@ block_grapple_color = (73, 150, 154)
 block_speed_color = (73, 90, 154)
 block_crumble_color = (107, 154, 73)
 block_shot_color = (154, 150, 73)
+
 
 abstract_to_color = {
     AbstractTile.UNKNOWN : unknown_color,
@@ -62,7 +65,8 @@ abstract_to_color = {
     AbstractTile.BLOCK_GRAPPLE : block_grapple_color,
     AbstractTile.BLOCK_SPEED : block_speed_color,
     AbstractTile.BLOCK_CRUMBLE : block_crumble_color,
-    AbstractTile.BLOCK_SHOT : block_shot_color
+    AbstractTile.BLOCK_SHOT : block_shot_color,
+    AbstractTile.DOOR : door_color
     }
 
 abstract_to_image = {
@@ -77,7 +81,9 @@ abstract_to_image = {
     AbstractTile.BLOCK_GRAPPLE : "tile_grapple_crumble.png",
     AbstractTile.BLOCK_SPEED : "tile_speed.png",
     AbstractTile.BLOCK_CRUMBLE : "tile_crumble.png",
-    AbstractTile.BLOCK_SHOT : "tile_shot.png"
+    AbstractTile.BLOCK_SHOT : "tile_shot.png",
+    #TODO
+    AbstractTile.DOOR : "tile_air.png"
     }
 
 class SamusPose(IntEnum):
@@ -597,7 +603,7 @@ class LevelState(object):
     Composable structure that keeps track of level data.
     """
 
-    def __init__(self, origin, level, liquid_type, liquid_level, items):
+    def __init__(self, origin, level, liquid_type, liquid_level, items, doors, room_registry):
         self.origin = origin
         self.level = level
         # Set the writeable false flag in order to allow hashing
@@ -607,6 +613,10 @@ class LevelState(object):
         #TODO: does items need to be copied?
         # Items is Coord -> ItemSet
         self.items = items
+        # Doors is Coord -> (Room Name, Coord)
+        self.doors = doors
+        # Room Registry is Room Name -> LevelState
+        self.room_registry = room_registry
 
     #TODO: water?
     def to_image(self, tint_pos=set(), tint_color=None):

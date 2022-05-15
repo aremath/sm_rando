@@ -4,10 +4,10 @@ from world_rando import map_viz
 from rom_tools import rom_manager
 
 if __name__ == "__main__":
-    random.seed(2)
+    random.seed(0)
     abstract_map_info = generate.generate_abstract_map()
     concrete_map_info = generate.generate_concrete_map(abstract_map_info)
-    rcmaps, _, _, extra_info = concrete_map_info
+    rcmaps, _, _, _, extra_info = concrete_map_info
     npaths, path_length, ntiles, room_dims = extra_info
     generate.plot_room_dims(room_dims)
 

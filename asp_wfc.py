@@ -1,10 +1,14 @@
 import random
 import sys
 import argparse
+import pickle
+import glob
+from pathlib import Path
 from world_rando.coord import Coord, Rect
 from world_rando import asp_wave_collapse
 from rom_tools.rom_manager import RomManager
 from rom_tools import rom_data_structures
+from rom_tools import graphics
 
 # If a level is larger than this, it won't be reconfigured, since
 # grounding the ASP model will take ages
@@ -13,23 +17,25 @@ size_threshold = 6000
 
 rom0_path = "../roms/sm_asp.smc"
 rom1_path = "../roms/sm_asp_1.smc"
+rom2_path = "../roms/sm_asp_2.smc"
 rom_clean_path = "../roms/sm_clean.smc"
-
+out_path = Path("output/asp")
 
 # Used for autofilling args from wfc_args
 class WFCArgs(object):
 
-    def __init__(self, name, extra_similarity=0.02, auto_rect=True, rects=None):
+    def __init__(self, name, seed=None, extra_similarity=0.02, auto_rect=True, rects=None):
         self.name = name
         # How many extra tiles are constrained, as a percentage of
         # the level
         self.extra_similarity = extra_similarity
         self.auto_rect = auto_rect
         self.rects = rects
+        self.seed = seed
 
     @property
     def tuple(self):
-        return (self.auto_rect, self.rects, self.extra_similarity)
+        return (self.auto_rect, self.rects, self.extra_similarity, self.seed)
 
 #TODO: in addition to a ROM, read and write a data structure
 # that remembers RNG seed so that you can re-run an individual level
@@ -37,7 +43,7 @@ class WFCArgs(object):
 wfc_args = [
         # Crateria
         #("room_header_0x791f8",),          # too big
-        #("room_header_0x792b3",),          # done
+        ("room_header_0x792b3",0),          # done
         #("room_header_0x792fd",),          # done
         #("room_header_0x793aa",),          # done
         #("room_header_0x793d5",),          # save station
@@ -188,12 +194,16 @@ wfc_args = [WFCArgs(*args) for args in wfc_args]
 def get_args(arg_list):
     parser = argparse.ArgumentParser(description="Build new rooms for Super Metroid using wavefunction collapse!")
     parser.add_argument("--revert", action="store_true", help="Reset altered rooms to their original state")
+    parser.add_argument("--compile", action="store_true", help="Compile the generated rooms from the output folder into a rom")
     args = parser.parse_args(arg_list)
     return args
 
+def get_computed_files():
+    return glob.glob(str(out_path / "*.p"))
+
 def revert():
     clean_rom = RomManager(rom_clean_path, "../roms/sm_foo.smc")
-    revert_rom = RomManager(rom1_path, rom0_path)
+    revert_rom = RomManager(rom2_path, rom0_path)
     print("Parsing...")
     clean_names = clean_rom.parse()
     revert_names = revert_rom.parse()
@@ -218,27 +228,48 @@ def revert():
     revert_rom.save_and_close()
     print("Done!")
 
-def make_new():
+def make_data():
     random.seed(0)
-    rom = RomManager(rom_clean_path, rom1_path)
-    #rom = RomManager(rom0_path, rom1_path)
+    rom = RomManager(rom_clean_path, rom2_path)
     print("Parsing...")
     obj_names = rom.parse()
     print("Collapsing...")
+    computed_files = set(get_computed_files())
     for args in wfc_args:
+        img_path = out_path / (args.name + "_img.png")
+        obj_path = out_path / (args.name + "_obj.p")
+        if str(obj_path) in computed_files:
+            continue
         print("Creating room {}".format(args.name))
         #print(sameness)
         h = obj_names[args.name]
-        asp_wave_collapse.wfc_and_create(h, *args.tuple)
+        # Only leveldata for default state, and fns for producing other leveldata
+        level, fns =  asp_wave_collapse.wfc_level_data(h, *args.tuple)
+        # Make an image
+        img = graphics.layer1_image_from_tileset(rom, level[1].layer1, h.state_chooser.default.tileset)
+        img.save(img_path)
+        # Pickle the level, fns
+        with open(obj_path, "wb") as f:
+            pickle.dump((args.name, level, fns), f)
         print()
-    #all_headers = [obj for obj in obj_names.values() if type(obj) is rom_data_structures.RoomHeader]
-    #for h in all_headers:
-    #    asp_wave_collapse.wfc_and_create(h)
+    print("Done!")
+
+def rom_compile():
+    print("Parsing...")
+    rom = RomManager(rom_clean_path, rom2_path)
+    obj_names = rom.parse()
+    print("Reading level data...")
+    # Find the level data - should be .p files in the output folder
+    for obj_path in get_computed_files():
+        # Read the data
+        with open(obj_path, "rb") as f:
+            name, level, fns = pickle.load(f)
+            h = obj_names[name]
+        asp_wave_collapse.create(h, level, fns)
     print("Compiling...")
     rom.compile(obj_names)
     rom.save_and_close()
     print("Done!")
-
 
 #TODO: pickly stuff for more "interactive" where you can
 # reload and re-generate rooms
@@ -247,5 +278,7 @@ if __name__ == "__main__":
     args = get_args(sys.argv[1:])
     if args.revert:
         revert()
+    elif args.compile:
+        rom_compile()
     else:
-        make_new()
+        make_data()

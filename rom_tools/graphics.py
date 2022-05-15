@@ -2,6 +2,7 @@ from . import rom_manager
 from .address import *
 from .compress import decompress
 
+import numpy as np
 from PIL import Image
 from PIL import ImageOps
 
@@ -191,8 +192,20 @@ def level_image(level, sce_tile_table_images, cre_tile_table_images):
         l_image.paste(tile_image, (c.x * 16, c.y * 16), tile_image)
     return l_image
 
-#TODO: decide on 'subtiles' vs. 'tilesheet'
+def level_arrays_image(layer1, sce_tile_table_images, cre_tile_table_images):
+    l_image = Image.new("RGBA", tuple((layer1.shape * np.array([16, 16]))), "black")
+    it = np.nditer(layer1, flags=["multi_index", "refs_ok"])
+    for tile_ref in it:
+        # What the hell, numpy
+        tile = tile_ref.item()
+        tile_image = get_tile(tile.texture.texture_index, sce_tile_table_images, cre_tile_table_images)
+        flips = (tile.texture.hflip, tile.texture.vflip)
+        tile_image = apply_flips(tile_image, flips)
+        # Third argument is the alpha mask
+        l_image.paste(tile_image, tuple(it.multi_index * np.array([16, 16])), tile_image)
+    return l_image
 
+#TODO: decide on 'subtiles' vs. 'tilesheet'
 def level_from_tileset(rom, level, tileset_index):
     # Set up by getting the tile images for the SCE and CRE by parsing the tile table
     tileset_table = get_tileset_table(rom)
@@ -203,5 +216,13 @@ def level_from_tileset(rom, level, tileset_index):
     sce_tt_image = tile_images(sce_tile_table, sce_tile_sheet, cre_tile_sheet, sce_palette)
     return level_image(level, sce_tt_image, cre_tt_image)
 
-
+def layer1_image_from_tileset(rom, layer1, tileset_index):
+    # Set up by getting the tile images for the SCE and CRE by parsing the tile table
+    tileset_table = get_tileset_table(rom)
+    sce_tile_table, sce_tile_sheet, sce_palette = get_tileset(rom, tileset_index, tileset_table)
+    cre_tile_sheet = get_cre_tilesheet(rom)
+    cre_tile_table = get_cre_tile_table(rom)
+    cre_tt_image = tile_images(cre_tile_table, sce_tile_sheet, cre_tile_sheet, sce_palette)
+    sce_tt_image = tile_images(sce_tile_table, sce_tile_sheet, cre_tile_sheet, sce_palette)
+    return level_arrays_image(layer1, sce_tt_image, cre_tt_image)
 

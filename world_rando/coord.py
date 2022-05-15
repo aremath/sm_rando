@@ -344,3 +344,8 @@ def rect_of_points(points):
     end = Coord(max(xs), max(ys))
     return Rect(start, end + Coord(1,1))
 
+left = Coord(-1,0)
+right = Coord(1,0)
+up = Coord(0,-1)
+down = Coord(0,1)
+

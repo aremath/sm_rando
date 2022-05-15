@@ -251,7 +251,9 @@ def bit_wfc(level_bits, fixed_tiles):
 
 #TODO: If there is a level 2, add an option for considering it independently
 # generating layer 1 without respect to layer 2
-def wfc_and_create(room_header, auto_rect=False, rects=None, extra_similarity=0):
+def wfc_level_data(room_header, auto_rect=False, rects=None, extra_similarity=0, seed=None):
+    if seed is not None:
+        random.seed(seed)
     # Get fns before messing with the level data
     fns = get_state_functions(room_header)
     fixed_tiles, screen_map = get_fixed_tiles(room_header)
@@ -284,9 +286,13 @@ def wfc_and_create(room_header, auto_rect=False, rects=None, extra_similarity=0)
         wfc_bits = bit_wfc(rect_bits, rect_fixed_tiles)
         # Overwrite level_bits with the new data
         level_bits[rect.start[0]:rect.end[0],rect.start[1]:rect.end[1]] = wfc_bits
+    level = level_from_bits(level_bits)
+    return level, fns
+
+def create(room_header, level, fns):
     #TODO: instead of create, assign to the existing level data
     old_level_data = room_header.state_chooser.default.level_data
-    wfc_level_data = room_header.obj_names.create(LevelData, *level_from_bits(level_bits), None, replace=old_level_data)
+    wfc_level_data = room_header.obj_names.create(LevelData, *level, None, replace=old_level_data)
     # Fix up default pointer
     room_header.state_chooser.default.level_data = wfc_level_data.name
     # Use the fns to compute new per-state level data and register it

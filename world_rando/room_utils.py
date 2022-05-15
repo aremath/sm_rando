@@ -1,6 +1,10 @@
+import numpy as np
+
 from world_rando.room_dtypes import *
 from world_rando.coord import *
-from rom_tools import rom_data_structures
+from rom_tools import rom_data_structures as rd
+from rom_tools import leveldata_utils
+from rom_tools import item_definitions
 
 ### DEFAULT TILE TYPES ###
 
@@ -27,13 +31,13 @@ def mk_wall(level, map_xy, direction, thickness=2):
     map_x = map_xy.x * 16
     map_y = map_xy.y * 16
     tstart = 16 - thickness
-    if direction == "U":
+    if direction == up:
         r = Rect(Coord(map_x, map_y), Coord(map_x + 16, map_y + thickness))
-    elif direction == "D":
+    elif direction == down:
         r = Rect(Coord(map_x, map_y + tstart), Coord(map_x + 16, map_y + 16))
-    elif direction == "L":
+    elif direction == left:
         r = Rect(Coord(map_x, map_y), Coord(map_x + thickness, map_y + 16))
-    elif direction == "R":
+    elif direction == right:
         r = Rect(Coord(map_x + tstart, map_y), Coord(map_x + 16, map_y + 16))
     else:
         assert False, "Bad direction: " + str(direction)
@@ -59,13 +63,13 @@ def mk_air_rect(level, rect):
 #return c
 def find_door_pos(map_xy, direction, size=2):
     map_xy_s = map_xy.scale(16)
-    if direction == "U":
+    if direction == up:
         add = Coord(6,0)
-    elif direction == "D":
+    elif direction == down:
         add = Coord(6, 16-size)
-    elif direction == "L":
+    elif direction == left:
         add = Coord(0, 6)
-    elif direction == "R":
+    elif direction == right:
         add = Coord(16-size, 6)
     else:
         assert False, "Bad direction: " + str(direction)
@@ -74,13 +78,13 @@ def find_door_pos(map_xy, direction, size=2):
 # Makes a door (default-looking) at the edge of the given maptile
 def mk_door(level, map_xy, direction, door_id, size=2):
     p = find_door_pos(map_xy, direction, size)
-    if direction == "U":
+    if direction == up:
         door_fun = mk_up_door
-    elif direction == "D":
+    elif direction == down:
         door_fun = mk_down_door
-    elif direction == "L":
+    elif direction == left:
         door_fun = mk_left_door
-    elif direction == "R":
+    elif direction == right:
         door_fun = mk_right_door
     else:
         assert False, "Bad direction: " + str(direction)
@@ -259,8 +263,8 @@ def level_of_cmap(room, wall_thickness=2):
             r = Rect(pos, pos+Coord(1,1))
             mk_default_rect(level, r.scale(16))
     # Make doors
-    for door in doors:
-        mk_door(level, door.pos - room.pos, door.direction, door.id)
+    for i, door in enumerate(doors):
+        mk_door(level, door.pos - room.pos, door.direction, i)
     # Rest is air
     level.missing_defaults(mk_default_air)
     return level
@@ -268,6 +272,108 @@ def level_of_cmap(room, wall_thickness=2):
 #
 # Conversion to ROM data types
 #
+
+def convert_rooms(region_rooms):
+    room_header_namef = "room_header_id_{}"
+    ids = item_definitions.make_item_definitions()
+    # Keeps track of global PLM ids for non-returning PLMs like items
+    plm_id = 0
+    #TODO: Merge with existing (parsed) ObjNames!
+    # compile_from_savestations will handle the DFS to only compile reachable rooms!
+    obj_names = rd.ObjNames()
+    # rooms is room_id -> Room
+    # Rooms handshake on what to call their headers so that
+    # pointers can be created before the room they point to
+    #TODO: Save Stations
+    # Remember to use names when passing pointer-like values to obj_names.create 
+    # (rather than the object itself)
+    for region, rooms in region_rooms.items():
+        for room_id, room in rooms.items():
+            rx, ry = room.level.dimensions
+            rid = f"{room.region}{room.id}"
+            #TODO: FX
+            # FXEntry
+            # FX
+            fx = obj_names.create(sd.FX, [], None)
+            #TODO: enemies
+            # Enemy List
+            #   Enemies
+            enemylist = obj_names.create(sd.EnemyList, [])
+            # Enemy Types
+            #   EnemyType
+            enemytypes = obj_names.create(sd.EnemyTypes, [])
+            # PLM List
+            #   PLMs
+            plms = []
+            # Item PLMs
+            for item in room.items:
+                item_id = int.from_bytes(ids[item.item_type][item.graphic], byteorder="little")
+                ix, iy = item.room_pos
+                pid = plm_id
+                plm_id += 1
+                i = obj_names.create(sd.PLM, item_id, ix, iy, pid)
+                plms.append(i)
+            plmlist = obj_names.create(sd.PLMList, [p.name for p in plms])
+            # Level Data
+            lbytes = room.level.to_bytes()
+            larray = leveldata_utils.level_array_from_bytes(level_bytes, room.level.dimensions)
+            level = obj_names.create(sd.LevelData, lbytes, larray, None)
+            # Scrolls
+            # All green
+            #TODO: more nuanced scrolls
+            scroll_array = np.zeros((rx // 16, ry // 16))
+            for x in range(rx // 16):
+                for y in range(ry // 16):
+                    scroll_array[x,y] = 2
+            scrolls = obj_names.create(sd.Scrolls, scroll_array)
+            # Room State
+            #TODO: set these extra params
+            tilesset = 0
+            music_data = 0
+            music_track = 0
+            layer2_scroll_x = 0
+            layer2_scroll_y = 0
+            special_xray = 0
+            main_asm = 0
+            background_index = 0
+            setup_asm = 0
+            room_state = obj_names.create(sd.RoomState, level_data.name,
+                    tileset, music_data, music_track, fx.name, enemylist.name, enemytypes.name,
+                    layer2_scroll_x, layer2_scroll_y, scrolls.name, special_xray, main_asm,
+                    plmlist.name, background_index, setup_asm)
+            # State Chooser
+            #   State Choices
+            # All rooms are default for now
+            statechooser = obj_names.create(sd.StateChooser, [], room_state.name)
+            # Door List
+            #   Doors
+            doors = []
+            for door in room.doors:
+                #TODO: door.destination is just the ID without the region??
+                room_ptr = room_header_namef.format(door.destination)
+                elevator_properties = 0
+                orientation = door.direction
+                #TODO: appropriate defaults for orientation
+                xlow = 0
+                ylow = 0
+                xhigh = 0
+                yhigh = 0
+                dist = 0
+                door_asm = 0
+                door_obj = obj_names.create(sd.Door, room_ptr, elevator_properties, orientation,
+                        xlow, ylow, xhigh, yhigh, dist, door_asm)
+                doors.append(door_obj)
+            doorlist = obj_names.create(sd.DoorList, [door.name for door in doors])
+            # Room Header
+            #TODO: calculate from region
+            area_index = 0
+            map_x, map_y = room.pos
+            width, height = room.size
+            CRE_bitset = 0 # Refer to rom_tools/rom_data_structures.
+            roomheader = sd.RoomHeader(area_index, map_x, map_y, width, height,
+                    room.up_scroll, room.down_scroll, CRE_bitset, doorlist.name, statechooser.name)
+            obj_names[room_header_namef.format(rid)]
+    return obj_names
 
 # Convert a room into a rom RoomHeader for allocation
 def convert_room(room):

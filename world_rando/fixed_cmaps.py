@@ -2,6 +2,7 @@ from functools import reduce
 
 from world_rando.coord import *
 from world_rando.concrete_map import *
+from world_rando.room_dtypes import Room, Door
 
 #TODO: how to make sure we generate the kraid and draygon item rooms?
 #TODO: these functions should return a cmap, a list of implicit doors, and a list of implicit rooms.
@@ -26,300 +27,343 @@ def mk_area(pos, dims, area):
     # Most of the areas throw away dims, but it's useful for elevators.
     tile_list = area(pos, dims)
     # If any of the tile lie outside the bounds, this map isn't valid
-    if bounded_put_check(cmap,tile_list):
+    if bounded_put_check(cmap, tile_list):
         return cmap
     else:
         return None
 
-def kraid_boss_area(pos, dims):
-    return [
-        (pos + Coord(1,0), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,1)]))),
-        (pos + Coord(1,-1), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,-1)]))),
-        (pos + Coord(2,0), MapTile(_fixed=True,_walls=set([Coord(1,0),Coord(0,1)]))),
-        (pos + Coord(2,-1), MapTile(_fixed=True,_walls=set([Coord(1,0),Coord(0,-1)]))),
-        (pos + Coord(3,0), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
-        (pos, MapTile(_walls=set([Coord(1,0)]))),
+def default_mk_room(loc, rooms, tile_rooms):
+    return
+
+# Functions for instantiating rooms for a boss area
+def mk_single_mker(boss_name, boss_loc):
+    bo_dir = -boss_loc
+    def mker(loc, rooms, tile_rooms):
+        outside = tile_rooms[loc]
+        boss_id = f"{boss_name}_Boss"
+        boss_id_to_outside = Door(loc + boss_loc, bo_dir, boss_id, outside, f"{boss_name}_bo")
+        outside_to_boss_id = Door(loc, -bo_dir, outside, boss_id, f"{boss_name}_ob")
+        boss_room = Room(None, Coord(1,1), boss_id, loc + boss_loc)
+        boss_room.level = boss_id
+        boss_room.room_details = boss_id
+        boss_room.doors.append(boss_id_to_outside)
+        rooms[outside].doors.append(outside_to_boss_id)
+        rooms[boss_id] = boss_room
+    return mker
+
+# Fill-in-the-blanks maker for boss rooms
+def mk_item_mker(boss_name, boss_size, item_size, boss_loc, item_loc, ob_dir=None):
+    ib_loc = item_loc
+    ibx = (item_loc - boss_loc).x
+    ib_dir = Coord(ibx // abs(ibx), 0)
+    bi_loc = item_loc + ib_dir
+    bi_dir = -ib_dir
+    if ob_dir is None:
+        box = boss_loc.x
+        ob_dir = Coord(box // abs(box), 0)
+    ob_loc = Coord(0,0)
+    bo_dir = -ob_dir
+    bo_loc = ob_loc + ob_dir
+    def mker(loc, rooms, tile_rooms):
+        outside = tile_rooms[loc]
+        boss_id = f"{boss_name}_Boss"
+        item_id = f"{boss_name}_Item"
+        b_to_i = Door(loc + bi_loc, bi_dir, boss_id, item_id, f"{boss_name}_bi")
+        i_to_b =  Door(loc + ib_loc, ib_dir, item_id, boss_id, f"{boss_name}_ib")
+        b_to_outside = Door(loc + bo_loc, bo_dir, boss_id, outside, f"{boss_name}_bo")
+        outside_to_b = Door(loc + ob_loc, ob_dir, outside, boss_id, f"{boss_name}_ob")
+        boss_room = Room(None, boss_size, boss_id, loc + boss_loc)
+        #TODO: how to map level data from the real rom?
+        boss_room.level = boss_id
+        #TODO: how to specify what should be kept and what should be replaced?
+        boss_room.room_details = boss_id
+        boss_room.doors.append(b_to_i)
+        boss_room.doors.append(b_to_outside)
+        item_room = Room(None, item_size, item_id, loc + item_loc)
+        item_room.level = item_id
+        item_room.room_details = item_id 
+        item_room.doors.append(i_to_b)
+        #TODO: Add gadora PLM to outside_room
+        #TODO: How to tell outside room about using gadora tiles??
+        rooms[outside].doors.append(outside_to_b)
+        rooms[boss_id] = boss_room
+        rooms[item_id] = item_room
+    return mker
+
+#TODO: FixedMap objects implement a constraintgraph and create implicit actions in the 
+# map generation search space (create, and move across)
+#TODO: FixedMap objects contain Room objects that are created when the FixedMap is used,
+# and refer to each other -> "Room" constructors? Functions that return Rooms when given data?
+# Allows room generation to be initialized at any stage
+# FixedMaps:
+# - Fixed Concrete Map Definition
+# - Fixed Room Bounding Boxes
+# - Fixed ConstraintGraph implemented by the FixedMap
+# - Info -> [Room] special generation function
+#TODO: what needs to be in Info?
+# Needs at least the map position and the dict mapping coords to rooms (to instantiate doors)
+class FixedMap(object):
+
+    def __init__(self, tile_list, bboxes, mk_room=default_mk_room, extend=None, dims=None):
+        self.real_cmap = ConcreteMap(dims)
+        if not bounded_put_check(self.real_cmap, tile_list):
+            assert False
+        self.bboxes = bboxes
+        self.extend = extend
+        self.mk_room = mk_room
+
+    def cmap(self, pos, dims):
+        if self.extend is None:
+            return self.real_cmap
+        # For elevators, extend them downwards or upwards with blank fixed tiles
+        elif self.extend > 0:
+            c2 = ConcreteMap(None, _tiles=self.real_cmap.tiles)
+            for i in range(self.extend, dims.y - pos.y):
+                c2[Coord(0, i)] = MapTile(TileType.elevator_shaft,_fixed=True)
+            return c2
+        elif self.extend <= 0:
+            c2 = ConcreteMap(None, _tiles=self.real_cmap.tiles)
+            for i in range(-pos.y, self.extend):
+                c2[Coord(0, i)] = MapTile(TileType.elevator_shaft,_fixed=True)
+            return c2
+
+# Kraid
+kraid_tiles = [
+        (Coord(1,0), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,1)]))),
+        (Coord(1,-1), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,-1)]))),
+        (Coord(2,0), MapTile(_fixed=True,_walls=set([Coord(1,0),Coord(0,1)]))),
+        (Coord(2,-1), MapTile(_fixed=True,_walls=set([Coord(1,0),Coord(0,-1)]))),
+        (Coord(3,0), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
+        (Coord(0,0), MapTile(_walls=set([Coord(1,0)]))),
+    ]
+kraid_bboxes = [
+        Rect(Coord(1,-1), Coord(3,1)),
+        Rect(Coord(3,0), Coord(4,1))
+        ]
+mk_kraid = mk_item_mker("Kraid", Coord(2,2), Coord(1,1), Coord(1,0), Coord(3,1))
+kraid_room = FixedMap(kraid_tiles, kraid_bboxes, mk_kraid)
+
+# Phantoon
+phantoon_tiles = [
+        (Coord(1,0), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
+        (Coord(0,0), MapTile(_walls=set([Coord(1,0)])))
+        ]
+
+phantoon_bboxes = [
+        Rect(Coord(1,0), Coord(2,1))
+        ]
+mk_phantoon = mk_single_mker("Phantoon", Coord(1,0))
+phantoon_room = FixedMap(phantoon_tiles, phantoon_bboxes, mk_phantoon)
+
+# Draygon
+draygon_tiles = [
+        (Coord(-1,0), MapTile(_fixed=True,_walls=set([Coord(1,0),Coord(0,-1)]))),
+        (Coord(-1,1), MapTile(_fixed=True,_walls=set([Coord(1,0),Coord(0,1)]))),
+        (Coord(-2,0), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,-1)]))),
+        (Coord(-2,1), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,1)]))),
+        (Coord(-3,1), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
+        (Coord(0,0), MapTile(_walls=set([Coord(-1,0)]))),
     ]
 
-def kraid_bboxes(pos, dims):
-    return [
-        Rect(pos + Coord(1,-1), pos + Coord(3,1)),
-        Rect(pos + Coord(3,0), pos + Coord(4,1))
+draygon_bboxes = [
+        Rect(Coord(-2,0), Coord(0,2)),
+        Rect(Coord(-3,1), Coord(-2,2))
+    ]
+mk_draygon = mk_item_mker("Draygon", Coord(2,2), Coord(1,1), Coord(-2, 0), Coord(-3,1))
+draygon_room = FixedMap(draygon_tiles, draygon_bboxes, mk_draygon)
+
+# Ridley
+ridley_tiles = [
+        (Coord(-1,0), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0)]))),
+        (Coord(-1,1), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(1,0),Coord(0,1)]))),
+        (Coord(-2,1), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
+        (Coord(0,0), MapTile(_walls=set([Coord(-1,0)]))),
+
     ]
 
-def phantoon_boss_area(pos, dims):
-    """Returns the Phantoon Boss Area cmap."""
-    return [
-        (pos + Coord(1,0), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
-        (pos, MapTile(_walls=set([Coord(1,0)]))),
+ridley_bboxes = [
+        Rect(Coord(-1,0), Coord(0,2)),
+        Rect(Coord(-2,1), Coord(-1,2))
     ]
+mk_ridley = mk_item_mker("Ridley", Coord(1,2), Coord(1,1), Coord(-1,0), Coord(-2,1))
+ridley_room = FixedMap(ridley_tiles, ridley_bboxes, mk_ridley)
 
-def phantoon_bboxes(pos, dims):
-    return [
-        Rect(pos + Coord(1,0), pos + Coord(2,1))
-    ]
-
-def draygon_boss_area(pos, dims):
-    return [
-        (pos + Coord(-1,0), MapTile(_fixed=True,_walls=set([Coord(1,0),Coord(0,-1)]))),
-        (pos + Coord(-1,1), MapTile(_fixed=True,_walls=set([Coord(1,0),Coord(0,1)]))),
-        (pos + Coord(-2,0), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,-1)]))),
-        (pos + Coord(-2,1), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,1)]))),
-        (pos + Coord(-3,1), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
-        (pos, MapTile(_walls=set([Coord(-1,0)]))),
-    ]
-    return cmap
-
-def draygon_bboxes(pos, dims):
-    return [
-        Rect(pos + Coord(-2,0), pos + Coord(0,2)),
-        Rect(pos + Coord(-3,1), pos + Coord(-2,2))
-    ]
-
-def ridley_boss_area(pos, dims):
-    """Returns the Ridley Boss Area cmap."""
-    return [
-        (pos + Coord(-1,0), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0)]))),
-        (pos + Coord(-1,1), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(1,0),Coord(0,1)]))),
-        (pos + Coord(-2,1), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
-        (pos, MapTile(_walls=set([Coord(-1,0)]))),
-    ]
-
-def ridley_bboxes(pos, dims):
-    return [
-        Rect(pos + Coord(-1,0), pos + Coord(0,2)),
-        Rect(pos + Coord(-2,1), pos + Coord(-1,2))
-    ]
-
+# Mother Brain
 #TODO: how to make sure that the other side is used?
-def mother_brain_boss_area(pos, dims):
-    """Returns the Mother Brain Boss Area cmap."""
-    return [
-        (pos + Coord(-1,0), MapTile(_fixed=True,_walls=set([Coord(0,-1),Coord(1,0),Coord(0,1)]))),
-        (pos + Coord(-2,0), MapTile(_fixed=True,_walls=set([Coord(0,-1),Coord(0,1)]))),
-        (pos + Coord(-3,0), MapTile(_fixed=True,_walls=set([Coord(0,-1),Coord(0,1)]))),
-        (pos + Coord(-4,0), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(0,1)]))),
-        (pos + Coord(-5,0), MapTile(_walls=set([Coord(1,0)]))),
-        (pos, MapTile(_walls=set([Coord(-1,0)]))),
+mother_brain_tiles = [
+        (Coord(-1,0), MapTile(_fixed=True,_walls=set([Coord(0,-1),Coord(1,0),Coord(0,1)]))),
+        (Coord(-2,0), MapTile(_fixed=True,_walls=set([Coord(0,-1),Coord(0,1)]))),
+        (Coord(-3,0), MapTile(_fixed=True,_walls=set([Coord(0,-1),Coord(0,1)]))),
+        (Coord(-4,0), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(0,1)]))),
+        (Coord(-5,0), MapTile(_walls=set([Coord(1,0)]))),
+        (Coord(0,0), MapTile(_walls=set([Coord(-1,0)]))),
     ]
 
-def mother_brain_bboxes(pos, dims):
-    return [
-        Rect(pos + Coord(-4,0), pos + Coord(0,1)),
+mother_brain_bboxes = [
+        Rect(Coord(-4,0), Coord(0,1)),
     ]
+#TODO: mk_mother_brain
+mother_brain_room = FixedMap(mother_brain_tiles, mother_brain_bboxes)
 
-def bomb_torizo_boss_area(pos, dims):
-    return [
-        (pos + Coord(1,0), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
-        (pos, MapTile(_walls=set([Coord(1,0)]))),
-    ]
+# Bomb Torizo
+bomb_torizo_tiles = [
+        (Coord(1,0), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
+        (Coord(0,0), MapTile(_walls=set([Coord(1,0)]))),
+        ]
 
-def bomb_torizo_bboxes(pos, dims):
-    return [
-        Rect(pos + Coord(1,0), pos + Coord(2,1)),
-    ]
+bomb_torizo_bboxes = [
+        Rect(Coord(1,0), Coord(2,1)),
+        ]
+mk_bomb_torizo = mk_single_mker("Bomb_Torizo", Coord(1,0))
+bomb_torizo_room = FixedMap(bomb_torizo_tiles, bomb_torizo_bboxes)
 
-def spore_spawn_boss_area(pos, dims):
-    """Returns the Spore Spawn Boss Area cmap."""
-    return [
-        (pos + Coord(0,-1), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
-        (pos + Coord(0,-2), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(1,0),Coord(0,1)]))),
-        (pos + Coord(0,-3), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0)]))),
-        (pos + Coord(1,-3), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
-        (pos, MapTile(_walls=set([Coord(0,-1)]))),
-    ]
+# Spore Spawn
+spore_spawn_tiles = [
+        (Coord(0,-1), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
+        (Coord(0,-2), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(1,0),Coord(0,1)]))),
+        (Coord(0,-3), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0)]))),
+        (Coord(1,-3), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
+        (Coord(0,0), MapTile(_walls=set([Coord(0,-1)]))),
+        ]
 
-def spore_spawn_bboxes(pos, dims):
-    return [
-        Rect(pos + Coord(0,-3), pos + Coord(1,0)),
-        Rect(pos + Coord(1,-3), pos + Coord(2,-2))
-    ]
+spore_spawn_bboxes = [
+        Rect(Coord(0,-3), Coord(1,0)),
+        Rect(Coord(1,-3), Coord(2,-2))
+        ]
+mk_spore_spawn = mk_item_mker("Spore_Spawn", Coord(1,2), Coord(1,1), Coord(0,-2), Coord(1,-2), Coord(0,-1))
+spore_spawn_room = FixedMap(spore_spawn_tiles, spore_spawn_bboxes, mk_spore_spawn)
 
-def crocomire_boss_area(pos, dims):
-    """Returns the Crocomire Boss Area cmap."""
-    return [
-        (pos + Coord(-4, 1),MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
-        (pos + Coord(-3, 1),MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(0,1)]))),
-        (pos + Coord(-2, 1),MapTile(_fixed=True,_walls=set([Coord(0,-1),Coord(0,1)]))),
-        (pos + Coord(-1, 1),MapTile(_fixed=True,_walls=set([Coord(0,-1),Coord(0,1)]))),
-        (pos + Coord(0, 1),MapTile(_fixed=True,_walls=set([Coord(0,-1),Coord(0,1)]))),
-        (pos + Coord(1, 1),MapTile(_fixed=True,_walls=set([Coord(0,-1),Coord(0,1)]))),
-        (pos + Coord(2, 1),MapTile(_fixed=True,_item=True,_walls=set([Coord(0,-1),Coord(0,1)]))),
-        (pos + Coord(3, 1),MapTile(_fixed=True,_walls=set([Coord(0,-1),Coord(0,1)]))),
-        (pos + Coord(4, 1),MapTile(_fixed=True,_item=True,_walls=set([Coord(0,-1),Coord(1,0),Coord(0,1)]))),
-        (pos, MapTile(_walls=set([Coord(0,1)]))),
-    ]
+# Crocomire
+crocomire_tiles = [
+        (Coord(-4, 1),MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
+        (Coord(-3, 1),MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(0,1)]))),
+        (Coord(-2, 1),MapTile(_fixed=True,_walls=set([Coord(0,-1),Coord(0,1)]))),
+        (Coord(-1, 1),MapTile(_fixed=True,_walls=set([Coord(0,-1),Coord(0,1)]))),
+        (Coord(0, 1),MapTile(_fixed=True,_walls=set([Coord(0,-1),Coord(0,1)]))),
+        (Coord(1, 1),MapTile(_fixed=True,_walls=set([Coord(0,-1),Coord(0,1)]))),
+        (Coord(2, 1),MapTile(_fixed=True,_item=True,_walls=set([Coord(0,-1),Coord(0,1)]))),
+        (Coord(3, 1),MapTile(_fixed=True,_walls=set([Coord(0,-1),Coord(0,1)]))),
+        (Coord(4, 1),MapTile(_fixed=True,_item=True,_walls=set([Coord(0,-1),Coord(1,0),Coord(0,1)]))),
+        (Coord(0,0), MapTile(_walls=set([Coord(0,1)]))),
+        ]
 
-def crocomire_bboxes(pos, dims):
-    return [
-        Rect(pos + Coord(-3,1), pos + Coord(5,2)),
-        Rect(pos + Coord(-4,1), pos + Coord(-3,2))
-    ]
+crocomire_bboxes = [
+        Rect(Coord(-3,1), Coord(5,2)),
+        Rect(Coord(-4,1), Coord(-3,2))
+        ]
+mk_crocomire = mk_item_mker("Crocomire", Coord(8,1), Coord(1,1), Coord(-3,1), Coord(-4,1), Coord(0,1))
+crocomire_room = FixedMap(crocomire_tiles, crocomire_bboxes, mk_crocomire)
 
-def botwoon_boss_area(pos, dims):
-    """Returns the Botwoon Boss Area cmap."""
-    return [
-        (pos + Coord(1,0), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
-        (pos + Coord(2,0), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
-        (pos + Coord(3,0), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
-        (pos, MapTile(_walls=set([Coord(1,0)]))),
-    ]
+# Botwoon
+botwoon_tiles = [
+        (Coord(1,0), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
+        (Coord(2,0), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
+        (Coord(3,0), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
+        (Coord(0,0), MapTile(_walls=set([Coord(1,0)]))),
+        ]
 
-def botwoon_bboxes(pos, dims):
-    return [
-        Rect(pos + Coord(1,0), pos + Coord(3,1)),
-        Rect(pos + Coord(3,0), pos + Coord(4,1))
-    ]
+botwoon_bboxes = [
+        Rect(Coord(1,0), Coord(3,1)),
+        Rect(Coord(3,0), Coord(4,1))
+        ]
+mk_botwoon = mk_item_mker("Botwoon", Coord(2,1), Coord(1,1), Coord(1,0), Coord(3,0))
+botwoon_room = FixedMap(botwoon_tiles, botwoon_bboxes, mk_botwoon)
 
-def golden_torizo_boss_area(pos, dims):
-    """Returns the Golden Torizo Boss Area cmap."""
-    return [
-        (pos + Coord(1,0), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
-        (pos + Coord(2,0), MapTile(_fixed=True,_item=True,_walls=set([Coord(0,-1),Coord(1,0)]))),
-        (pos + Coord(1,1), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,1)]))),
-        (pos + Coord(2,1), MapTile(_fixed=True,_walls=set([Coord(1,0),Coord(0,1)]))),
-        (pos + Coord(3,1), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
-        (pos, MapTile(_walls=set([Coord(1,0)]))),
-    ]
+# Golden Torizo
 
-def golden_torizo_bboxes(pos, dims):
-    return [
-        Rect(pos + Coord(1,0), pos + Coord(3,2)),
-        Rect(pos + Coord(3,1), pos + Coord(4,2))
-    ]
+golden_torizo_tiles = [
+        (Coord(1,0), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
+        (Coord(2,0), MapTile(_fixed=True,_item=True,_walls=set([Coord(0,-1),Coord(1,0)]))),
+        (Coord(1,1), MapTile(_fixed=True,_walls=set([Coord(-1,0),Coord(0,1)]))),
+        (Coord(2,1), MapTile(_fixed=True,_walls=set([Coord(1,0),Coord(0,1)]))),
+        (Coord(3,1), MapTile(_fixed=True,_item=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
+        (Coord(0,0), MapTile(_walls=set([Coord(1,0)]))),
+        ]
 
-def elevator_down_area(pos, dims):
-    """Returns the cmap for a down elevator."""
-    e_tiles = [
-        (pos, MapTile(_walls=set([Coord(0,1)]))),
-        (pos + Coord(0,1), MapTile(TileType.elevator_main_down,_fixed=True,_walls=set([Coord(-1,0),Coord(1,0),Coord(0,-1)]))),
-        (pos + Coord(0,2), MapTile(TileType.elevator_shaft,_fixed=True,_walls=set([Coord(-1,0),Coord(1,0)]))),
-        (pos + Coord(0,3), MapTile(TileType.up_arrow,_fixed=True,_walls=set([Coord(-1,0),Coord(1,0),Coord(0,1)]))),
-    ]
-    # Blank tiles down to the bottom of dims
-    # Note: range(x,y) = [] when x>=y
-    #TODO: dims.y + 1? is dims inclusive?
-    for i in range(pos.y + 4, dims.y):
-        t = (Coord(pos.x, i), MapTile(TileType.blank,_fixed=True))
-        e_tiles.append(t)
-    return e_tiles
+golden_torizo_bboxes = [
+        Rect(Coord(1,0), Coord(3,2)),
+        Rect(Coord(3,1), Coord(4,2))
+        ]
 
-def elevator_down_bboxes(pos, dims):
-    return [
-        Rect(pos + Coord(0,1), pos + Coord(1,4)),
-    ]
+mk_golden_torizo = mk_item_mker("Golden_Torizo", Coord(2,2), Coord(1,1), Coord(1,0), Coord(3,1))
+golden_torizo_room = FixedMap(golden_torizo_tiles, golden_torizo_bboxes, mk_golden_torizo)
 
-def elevator_up_area(pos, dims):
-    """Returns the cmap for an up elevator."""
-    e_tiles = [
-        (pos, MapTile(_walls=set([Coord(0,-1)]))),
-        (pos + Coord(0,-1), MapTile(TileType.elevator_main_down,_fixed=True,_walls=set([Coord(-1,0),Coord(1,0),Coord(0,1)]))),
-        (pos + Coord(0,-2), MapTile(TileType.elevator_shaft,_fixed=True,_walls=set([Coord(-1,0),Coord(1,0)]))),
-        (pos + Coord(0,-3), MapTile(TileType.up_arrow,_fixed=True,_walls=set([Coord(-1,0),Coord(1,0),Coord(0,-1)]))),
-    ]
-    # Blank tiles up to the top of dims
-    for i in range(0, pos.y - 3):
-        t = (Coord(pos.x, i), MapTile(TileType.blank,_fixed=True))
-        e_tiles.append(t)
-    return e_tiles
+# Elevator Down
 
-def elevator_up_bboxes(pos, dims):
-    return [
-        Rect(pos + Coord(0,-3), pos + Coord(1,0))
-    ]
+elevator_down_tiles = [
+        (Coord(0,0), MapTile(_walls=set([down]))),
+        (Coord(0,1), MapTile(TileType.elevator_main_down,_fixed=True,_walls=set([left,right,up]))),
+        (Coord(0,2), MapTile(TileType.elevator_shaft,_fixed=True,_walls=set([left,right]))),
+        (Coord(0,3), MapTile(TileType.up_arrow,_fixed=True,_walls=set([left,right,down]))),
+        ]
 
-def save_point_area(pos, dims):
-    return [
-        (pos, MapTile(_save=True))
-    ]
+elevator_down_bboxes = [
+        Rect(Coord(0,1), Coord(1,4)),
+        ]
 
-#TODO?
-def save_point_bboxes(pos, dims):
-    return []
+elevator_down_room = FixedMap(elevator_down_tiles, elevator_down_bboxes, extend=4)
 
-def item_area(pos, dims):
-    return [
-        (pos, MapTile(_item=True))
-    ]
+# Elevator Up
 
-def item_bboxes(pos, dims):
-    return []
+elevator_up_tiles = [
+        (Coord(0,0), MapTile(_walls=set([up]))),
+        (Coord(0,-1), MapTile(TileType.elevator_main_down,_fixed=True,_walls=set([left,right,down]))),
+        (Coord(0,-2), MapTile(TileType.elevator_shaft,_fixed=True,_walls=set([left, right]))),
+        (Coord(0,-3), MapTile(TileType.up_arrow,_fixed=True,_walls=set([left, right, up]))),
+        ]
 
-fixed_areas = {
-    "Kraid"         :   kraid_boss_area,
-    "Phantoon"      :   phantoon_boss_area,
-    "Draygon"       :   draygon_boss_area,
-    "Ridley"        :   ridley_boss_area,
-    "Bomb_Torizo"   :   bomb_torizo_boss_area,
-    "Spore_Spawn"   :   spore_spawn_boss_area,
-    "Botwoon"       :   botwoon_boss_area,
-    "Golden_Torizo" :   golden_torizo_boss_area,
+elevator_up_bboxes = [
+        Rect(Coord(0,-3), Coord(1,0))
+        ]
+
+elevator_up_room = FixedMap(elevator_up_tiles, elevator_up_bboxes, extend=-3)
+
+# Save Point
+#TODO: How to let save points have either left or right doors, but not up / down doors?
+save_point_tiles = [
+        (Coord(1,0), MapTile(_fixed=True,_save=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
+        (Coord(0,0), MapTile(_walls=set([Coord(1,0)])))
+        ]
+
+save_point_bboxes = [
+        Rect(Coord(1,0), Coord(2,1))
+        ]
+
+#TODO: mk_save_point
+save_point_room = FixedMap(save_point_tiles, save_point_bboxes)
+
+# Item - Is this a fixedmap, or something else?
+item_tiles = [
+        (Coord(0,0), MapTile(_item=True))
+        ]
+
+item_bboxes = []
+
+item_room = FixedMap(item_tiles, item_bboxes)
+
+fixed_maps = {
+    "Kraid"         :   kraid_room,
+    "Phantoon"      :   phantoon_room,
+    "Draygon"       :   draygon_room,
+    "Ridley"        :   ridley_room,
+    "Bomb_Torizo"   :   bomb_torizo_room,
+    "Spore_Spawn"   :   spore_spawn_room,
+    "Botwoon"       :   botwoon_room,
+    "Golden_Torizo" :   golden_torizo_room,
+    "Mother_Brain"  :   mother_brain_room,
 }
 
-# node -> elevators -> (pos -> dims -> tile list)
-def node_to_area(node, up_es, down_es):
+def node_to_fixedmap(node, up_es, down_es):
     if node in up_es:
-        return elevator_up_area
+        return elevator_up_room
     elif node in down_es:
-        return elevator_down_area
-    elif node == "Kraid":
-        return kraid_boss_area
-    elif node == "Phantoon":
-        return phantoon_boss_area
-    elif node == "Draygon":
-        return draygon_boss_area
-    elif node == "Ridley":
-        return ridley_boss_area
-    #TODO: How to connect up the back end?
-    elif node == "Mother_Brain":
-        return mother_brain_boss_area
-    elif node == "Bomb_Torizo":
-        return bomb_torizo_boss_area
-    elif node == "Spore_Spawn":
-        return spore_spawn_boss_area
-    elif node == "Botwoon":
-        return botwoon_boss_area
-    elif node == "Golden_Torizo":
-        return golden_torizo_boss_area
-    #TODO - save points, reserves, etc?
+        return elevator_down_room
+    elif node in fixed_maps:
+        return fixed_maps[node]
+    #TODO: requires handshake about save node names
+    elif node.rstrip("123456789") == "Save":
+        return save_point_room
+    #TODO - save points, reserves, map stations, etc?
     else:
-        return item_area
+        return item_room
 
-def node_to_info(node, pos, dims, up_es, down_es):
-    if node in up_es:
-        return (mk_area(pos, dims, elevator_up_area),
-            elevator_up_bboxes(pos, dims))
-    elif node in down_es:
-        return (mk_area(pos, dims, elevator_down_area),
-            elevator_down_bboxes(pos, dims))
-    elif node == "Kraid":
-        return (mk_area(pos, dims, kraid_boss_area),
-            kraid_bboxes(pos, dims))
-    elif node == "Phantoon":
-        return (mk_area(pos, dims, phantoon_boss_area),
-            phantoon_bboxes(pos, dims))
-    elif node == "Draygon":
-        return (mk_area(pos, dims, draygon_boss_area),
-            draygon_bboxes(pos, dims))
-    elif node == "Ridley":
-        return (mk_area(pos, dims, ridley_boss_area),
-            ridley_bboxes(pos, dims))
-    elif node == "Mother_Brain":
-        return (mk_area(pos, dims, mother_brain_boss_area),
-            mother_brain_bboxes(pos, dims))
-    elif node == "Bomb_Torizo":
-        return (mk_area(pos, dims, bomb_torizo_boss_area),
-        bomb_torizo_bboxes(pos, dims))
-    elif node == "Spore_Spawn":
-        return (mk_area(pos, dims, spore_spawn_boss_area),
-            spore_spawn_bboxes(pos, dims))
-    elif node == "Botwoon":
-        return (mk_area(pos, dims, botwoon_boss_area),
-            botwoon_bboxes(pos, dims))
-    elif node == "Golden_Torizo":
-        return (mk_area(pos, dims, golden_torizo_boss_area),
-            golden_torizo_bboxes(pos, dims))
-    #TODO - save points, reserves, etc?
-    else:
-        return (mk_area(pos, dims, item_area),
-            item_bboxes(pos, dims))

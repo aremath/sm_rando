@@ -7,7 +7,6 @@ import numpy as np
 import cv2
 from math import pi
 from world_rando.concrete_map import *
-from world_rando.map_gen import Path
 
 def pairwise(iterable):
     a, b = tee(iterable)
@@ -35,7 +34,8 @@ def load_map_tiles(map_dir):
                  "et" : et,
                  "b"  : ba
                 }
-    return wall_dict, ba, ia, ea
+    sp  = Image.open(map_dir + "/save_point.png")
+    return wall_dict, ba, ia, ea, sp
 
 def find_image(walls, xy):
     """returns which image to use, and how to rotate it"""
@@ -78,14 +78,19 @@ def find_image(walls, xy):
         return "4w", 0
     assert False, "no matching walls! " + str(walls)
        
-def map_viz(rcmap, filename, map_dir):
+def map_viz(rcmap, filename, map_dir, relative=False):
     map_extent = rcmap.map_extent()
-    map_size = map_extent.size_coord()
+    if relative:
+        map_size = map_extent.size_coord()
+        offset = map_extent.start
+    else:
+        map_size = rcmap.dimensions
+        offset = Coord(0,0)
     map_image = Image.new("RGBA", ((map_size.x)*16, (map_size.y)*16), "black")
     # bind the current region for easy re-use
-    wmap, blank, item, elevator = load_map_tiles(map_dir)
+    wmap, blank, item, elevator, save_point = load_map_tiles(map_dir)
     for c in map_extent.as_list():
-        c_rel = c - map_extent.start
+        c_rel = c - offset
         image_loc = (c_rel.x*16, c_rel.y*16)
         if c in rcmap:
             mtile = rcmap[c]
@@ -98,6 +103,8 @@ def map_viz(rcmap, filename, map_dir):
             image = wmap[image_name]
             imrotate = image.rotate(rotation)
             map_image.paste(imrotate, image_loc, imrotate)
+            if mtile.is_save:
+                map_image.paste(save_point, image_loc, save_point)
             if mtile.is_item:
                 map_image.paste(item, image_loc, item)
             if (mtile.tile_type == TileType.elevator_main_up or

@@ -48,12 +48,11 @@ class Door(object):
     Holds the info for a door
     """
 
-    def __init__(self, tile, direction, room1, room2, door_id, name):
+    def __init__(self, tile, direction, room1, room2, name):
         self.pos = tile
         self.direction = direction
         self.origin = room1
         self.destination = room2
-        self.id = door_id
         self.name = name
 
     #def __hash__(self):

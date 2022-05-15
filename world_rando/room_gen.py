@@ -50,7 +50,7 @@ def room_graphs(rooms, tile_rooms, paths):
         start = path_obj.start_node
         end = path_obj.end_node
         path = path_obj.coord_path
-        items = path_obj.itemset
+        items = path_obj.itemsets
         room_start = tile_rooms[path[0]]
         room_end = tile_rooms[path[-1]]
         # Add nodes for the items at the start and end of this path
@@ -72,23 +72,23 @@ def room_graphs(rooms, tile_rooms, paths):
                 gcurrent = rooms[current_room].graph
                 gnew = rooms[new_room].graph
                 # Create a door node in the old room
-                current_wr = current_pos.wall_relate(new_pos)
-                current_door = str(current_room) + "_" + str(current_pos) + "_" + current_wr
+                current_wr = new_pos - current_pos
+                current_door = str(current_room) + "_" + str(current_pos) + "_" + str(current_wr)
                 if current_door not in gcurrent.nodes:
                     gcurrent.add_node(current_door)
                     # Create a new door for current -> new
                     d = rooms[current_room].doors
-                    d.append(Door(current_pos, current_wr, current_room, new_room, len(d), current_door))
+                    d.append(Door(current_pos, current_wr, current_room, new_room, current_door))
                 # Link the current node with the door
                 gcurrent.update_edge(current_node, current_door, items)
                 # Node in the new room
-                new_wr = new_pos.wall_relate(current_pos)
-                new_door = str(new_room) + "_" + str(new_pos) + "_" + new_wr
+                new_wr = current_pos - new_pos
+                new_door = str(new_room) + "_" + str(new_pos) + "_" + str(new_wr)
                 if new_door not in gnew.nodes:
                     gnew.add_node(new_door)
                     # Create a new door for the new -> current
                     d = rooms[new_room].doors
-                    d.append(Door(new_pos, new_wr, new_room, current_room, len(d), new_door))
+                    d.append(Door(new_pos, new_wr, new_room, current_room, new_door))
                 # set the new current room
                 current_room = tile_rooms[new_pos]
                 # the new current node is the door we came into the new room by
@@ -97,15 +97,21 @@ def room_graphs(rooms, tile_rooms, paths):
         # Link the final current node with end
         gend.update_edge(current_node, end, items)
 
-def make_rooms(room_tiles, cmap, paths, settings, patterns):
+def make_rooms(room_tiles, cmap, paths, node_info, settings, patterns):
     rooms = room_setup(room_tiles, cmap)
+    # Tile to room
     tile_rooms = reverse_list_dict(room_tiles)
+    # Set up fixed rooms
+    for node, info in node_info.items():
+        loc, fmap = info
+        fmap.mk_room(loc, rooms, tile_rooms)
     room_graphs(rooms, tile_rooms, paths)
     # ... generate map data etc ...
     for i, r in rooms.items():
         print("BEGIN: Generating room " + str(i))
-        r.level = level_of_cmap(r)
-        make_subrooms(r, settings, patterns)
+        if r.level is None:
+            r.level = level_of_cmap(r)
+            make_subrooms(r, settings, patterns)
         # ...
     return rooms
 
@@ -252,16 +258,16 @@ def mk_door_obstacles(room):
         room_pos_b = find_door_pos(map_pos, door.direction, size=2)
         direction = door.direction
         #TODO: some way to have this as a construct rather than writing it out every time...
-        if direction == "U":
+        if direction == up:
             obstacle_rect_rel = Rect(Coord(0,0), Coord(4,3))
             target_rect_rel = Rect(Coord(0,0), Coord(4,1))
-        elif direction == "D":
+        elif direction == down:
             obstacle_rect_rel = Rect(Coord(0,0), Coord(4,3))
             target_rect_rel = Rect(Coord(0,1), Coord(4,2))
-        elif direction == "L":
+        elif direction == left:
             obstacle_rect_rel = Rect(Coord(0,0), Coord(3,4))
             target_rect_rel = Rect(Coord(0,0), Coord(1,4))
-        elif direction == "R":
+        elif direction == right:
             obstacle_rect_rel = Rect(Coord(0,0), Coord(3,4))
             target_rect_rel = Rect(Coord(1,0), Coord(2,4))
         else:
@@ -500,6 +506,9 @@ class SubroomState(object):
         # Check contiguity
         s_root = next(iter(subroom_tiles))
         _, s_tiles = bfs(subroom_tiles, s_root)
+        #print(subroom_tiles)
+        #print(s_tiles)
+        #print(subroom_tiles - s_tiles)
         assert s_tiles == subroom_tiles, "Proposed subroom is not contiguous"
         # The border that will become potentially many adjacencies
         border = coord_set_border(subroom_tiles) & parent_subroom.tiles
@@ -878,7 +887,7 @@ def rectangularize(subroom_state, cmap):
 
 def find_rect_at(positions, pos, directions=coord_directions):
     all_rects = find_all_rects_at(positions, pos, directions)
-    max_rect = max(finished, key=lambda x: x.area())
+    max_rect = max(all_rects, key=lambda x: x.area)
     return max_rect
 
 def find_all_rects_at(positions, pos, directions=coord_directions):

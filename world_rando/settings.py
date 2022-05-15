@@ -13,7 +13,7 @@ def rand_d(p1, p2):
 
 abstract_map_settings = {
     # How many extra items of each type to add
-    "extra_items"       :   {"S": 10, "PB": 10, "M": 15, "E": 12}, # Abstract_Map, Item_Order_Graph
+    "extra_items"       :   {"S": 10, "PB": 10, "M": 15, "E": 12, "Save": 10}, # Abstract_Map, Item_Order_Graph
     # How aggressively each region grabs nodes (approximately related to eventual region size)
     # Larger values allow more nuance, but are also higher variance
     "region_weights"    :   {"Wrecked_Ship" : 2,
@@ -30,10 +30,11 @@ concrete_map_settings = {
     # The desired average room size, in map tiles.
     "room_size"         :   5, # map_gen.map_gen
     # Spring model constants
-    "n_iterations"      :   5,
+    "n_iterations"      :   50,
     "spring_constant"   :   2,
     "equilibrium"       :   3,
     "spring_dt"         :   0.1, # map_gen.node_place
+    "spring_damping"    :   0.9,
     }
 
 room_gen_settings = {

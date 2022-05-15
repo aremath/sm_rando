@@ -18,7 +18,7 @@ def abstract_map(settings):
     order, graph = order_graph()
     #TODO: add items before or after partition?
     # after is probably better...
-    add_items(graph, settings["extra_items"])
+    add_nodes(graph, settings["extra_items"])
     #region_order, region_finished = partition_order(graph, sm_global.regions)
     region_order, region_finished = weighted_partition_order(graph, sm_global.regions, settings["region_weights"])
     elevators = make_elevators(graph, region_finished)
@@ -190,11 +190,11 @@ def elevator_directions(elevators, region_order):
                 assert False, "Elevator to same region"
     return up_es, down_es
 
-def add_items(graph, items):
+def add_nodes(graph, items):
     """adds the requested amount of each item to the specified abstract map
     randomly. Items is a dictionary with key - item type to add, value - number to add"""
     for item_type, n in items.items():
-        assert item_type in sm_global.items, item_type + " is not a valid item!"
+        #assert item_type in sm_global.items, item_type + " is not a valid item!"
         for i in range(n):
             #TODO: at some point, can have a from_node and a to_node that this item is between
             node_name = item_type + str(i)
