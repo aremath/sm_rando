@@ -37,6 +37,14 @@ class Tile(object):
         self.tile_type = tile_type
         self.texture = texture
 
+    def to_bytes(self):
+        t = self.tile_type << 12
+        h = self.texture.hflip << 11
+        v = self.texture.vflip << 10
+        ti = self.texture.texture_index
+        tile = t | h | v | ti
+        return tile.to_bytes(2, byteorder="little")
+
 class LevelArrays(object):
     def __init__(self, layer1, bts, layer2):
         self.layer1 = layer1
@@ -97,6 +105,32 @@ def level_array_from_bytes(levelbytes, dimensions):
                 layer2_index = index + (3 * levelsize//2)
                 layer2[x][y] = tile_of_bytes(levelbytes[layer2_index:layer2_index+2], layer1=False)
     return LevelArrays(layer1, bts, layer2)
+
+def bytes_from_level_array(level_arrays):
+    all_layer1_bytes = bytearray(b"")
+    all_bts_bytes = bytearray(b"")
+    all_layer2_bytes = bytearray(b"")
+    xdim, ydim = level_arrays.layer1.shape
+    for y in range(ydim):
+        for x in range(xdim):
+            l1 = level_arrays.layer1[x][y]
+            bts = level_arrays.bts[x][y]
+            for b in l1.to_bytes():
+                all_layer1_bytes.append(b)
+            for b in int(bts).to_bytes(1, byteorder="little"):
+                all_bts_bytes.append(b)
+            if level_arrays.layer2 is not None:
+                l2 = level_arrays.layer2[x][y]
+                for b in l2.to_bytes():
+                    all_layer2_bytes.append(b)
+    all_bytes = all_layer1_bytes + all_bts_bytes
+    if level_arrays.layer2 is not None:
+        all_bytes = all_bytes + all_layer2_bytes
+    # Create the size header
+    head = int.to_bytes(len(all_layer1_bytes), 2, byteorder="little")
+    # Convert back to bytes
+    all_bytes = head + bytes(all_bytes)
+    return all_bytes
 
 def bits(x, size):
     return [(x & 2**i) >> i for i in range(size)]
