@@ -42,8 +42,12 @@ class Tile(object):
         h = self.texture.hflip << 11
         v = self.texture.vflip << 10
         ti = self.texture.texture_index
+        assert ti & 0b1111111111 == ti
         tile = t | h | v | ti
         return tile.to_bytes(2, byteorder="little")
+
+    def __repr__(self):
+        return (self.tile_type, self.texture).__repr__()
 
 class LevelArrays(object):
     def __init__(self, layer1, bts, layer2):
@@ -102,7 +106,7 @@ def level_array_from_bytes(levelbytes, dimensions):
             bts_data = int.from_bytes(levelbytes[bts_index:bts_index+1], byteorder='little')
             bts[x][y] = bts_data
             if has_layer2:
-                layer2_index = index + (3 * levelsize//2)
+                layer2_index = index * 2 + (3 * (levelsize//2))
                 layer2[x][y] = tile_of_bytes(levelbytes[layer2_index:layer2_index+2], layer1=False)
     return LevelArrays(layer1, bts, layer2)
 
