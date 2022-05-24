@@ -415,8 +415,8 @@ def mk_bitset_fns(under_fns, enum):
         return s, n
     def enum_compiler(obj, rom):
         i = 0
-        for e in enum:
-            i &= e
+        for b in obj:
+            i |= b
         return under_compiler(i, rom)
     return enum_parser, enum_compiler
 
