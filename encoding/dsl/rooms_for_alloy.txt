@@ -32,10 +32,12 @@
 #
 #
 Landing_Site - 791F8
+Ship
 L1
 L2
 R1			- PB
 R2			- S
+Ship -> (L1 R1 R2)	- X
 ALL -> L1	- | (& SB E) (& SJ (| B PB SA))
 L1 -> ALL	- | B PB SA
 ALL -> R1	- | (& SB E) SJ

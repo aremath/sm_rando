@@ -177,8 +177,9 @@ def parse_node_name(node_name, constraint):
     # randomized
     elif node_type in sm_global.boss_types or node_type in sm_global.special_types:
         return Boss(node_type)
+    # Allow for semantic nodes that do not have node data
     else:
-        assert False, "Unrecognized Type: " + node_name
+        return None
 
 def parse_rooms(room_file):
     # open the file
