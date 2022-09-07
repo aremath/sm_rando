@@ -109,8 +109,6 @@ class RomManager(object):
         self.write_to_new(Address(0x134c5), b"\x0c")
         # Apply other IPSs #TODO: make sure this works!
         patches_path = Path(__file__).parent.parent / "patches"
-        self.apply_ips(patches_path / "itemsounds.ips")
-        self.apply_ips(patches_path / "elevators_doors_speed.ips")
         self.apply_ips(patches_path / "g4_skip.ips")
         self.apply_ips(patches_path / "max_ammo_display.ips")
         self.apply_ips(patches_path / "wake_zebes.ips")

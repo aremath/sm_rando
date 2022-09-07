@@ -19,19 +19,6 @@ from encoding.constraints import *
 from data_types.constraintgraph import *
 from encoding import sm_global
 
-door_hookups = {
-    "L": "R",
-    "R": "L",
-    "T": "B",
-    "B": "T",
-    "ET": "EB",
-    "EB": "ET",
-    "TS": "BS",
-    "BS": "TS",
-    "LMB": "RMB",
-    "RMB": "LMB"
-}
-
 def make_room(room_defn):
     # room defn is a list of strings, which are the lines of this room definition
     room_name, room_address = room_defn[0].split(" - ")
@@ -225,3 +212,32 @@ def parse_rooms(room_file):
             rooms[room.name] = room
     f.close()
     return rooms
+
+def parse_exits(exits_file):
+    out = {}
+    with open(exits_file, "r") as f:
+        for line in f.readlines():
+            line = line.strip()
+            if line[0] == "#":
+                continue
+            door_a, door_b = line.split("<>")
+            door_a = door_a.strip()
+            door_b = door_b.strip()
+            out[door_a] = door_b
+            out[door_b] = door_a
+    return out
+
+def dictify_rooms(rooms, exits):
+    """
+    Convert rooms to a dictionary object compatible with JSON
+    (Use json.dumps to create a json string)
+    """
+    d_rooms = {room.name : room.dictify(exits) for room in rooms.values()}
+    #TODO: Add Landing_Site_Ship (requires changing this file to allow non-item, non-door nodes
+    out = {"Start": {"Node": "Landing_Site_L2", "Items": []},
+            "End": {"Node": "Landing_Site_L2", "Items": ["Mother_Brain"]},
+            "Items": {i: sm_global.item_translate[i] for i in sm_global.items + sm_global.special_types},
+            "Bosses": {i: sm_global.item_translate[i] for i in sm_global.bosses + sm_global.minibosses},
+            "Door_Directions": { d: {"Name": sm_global.door_translate[d], "Partner": sm_global.door_hookups[d]} for d in sm_global.door_types },
+            "Rooms": d_rooms}
+    return out

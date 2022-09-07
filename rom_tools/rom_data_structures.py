@@ -849,6 +849,7 @@ class Enemy(RomObject):
 
 Enemy.fns = mk_default_fns(Enemy)
 
+#TODO: complain during compilation if more than four types are present
 class EnemyTypes(RomObject):
     name_def = "enemy_types_{}"
     fields = ["l"]

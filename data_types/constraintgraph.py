@@ -475,6 +475,16 @@ class ConstraintGraph(object):
         # remove trailing \n
         return self_str[:-1]
 
+    @property
+    def nodes(self):
+        return [n for n in self.name_node]
+
+    @property
+    def edges(self):
+        for n, edges in self.node_edges.items():
+            for e in edges:
+                yield n, e
+
 class ConstraintEdge(object):
 
     def __init__(self, terminal, items=MinSetSet()):
@@ -509,6 +519,18 @@ class Boss(object):
     def __init__(self, boss_type=""):
         self.type = boss_type
 
+def node_room(door_name):
+    """ Get the room from a node name """
+    return "_".join(door_name.split("_")[:-1])
+
+def node_rel_name(door_name):
+    """ Get the relative node name for a door node """
+    return door_name.split("_")[-1]
+
+def door_direction(door_name):
+    """ Get the direction code for a door node """
+    return door_name.split("_")[-1].rstrip("0123456789")
+
 class Room(object):
 
     def __init__(self, name, address, graph, doors, item_nodes):
@@ -517,6 +539,45 @@ class Room(object):
         self.graph = graph
         self.doors = doors
         self.item_nodes = item_nodes
+
+    def dictify(self, exits):
+        g = self.graph
+        nodes = list([node_rel_name(node) for node in g.nodes])
+        drops = {}
+        for n in g.name_node:
+            n_rel = node_rel_name(n)
+            d = g.name_node[n].data
+            if isinstance(d, Item) or isinstance(d, Boss):
+                drops[n_rel] = d.type
+        edges = {}
+        for node, edge in g.edges:
+            n_rel = node_rel_name(node)
+            mss = edge.items
+            t_d = g.name_node[edge.terminal].data
+            # Inaccessible door
+            if isinstance(t_d, Door) and t_d.items is None:
+                continue
+            # Push the door item constraint into the edge
+            elif isinstance(t_d, Door):
+                mss = mss * t_d.items
+            mss_list = [iset.to_list() for iset in mss.sets]
+            e_rel = node_rel_name(edge.terminal)
+            if n_rel not in edges:
+                edges[n_rel] = []
+            edges[n_rel].append({"Terminal": e_rel, "Requirements": mss_list})
+        doors = {}
+        for node in g.nodes:
+            if node in exits:
+                n_rel = node_rel_name(node)
+                exit = exits[node]
+                exit_room = node_room(exit)
+                exit_rel = node_rel_name(exit)
+                doors[n_rel] = {"Room": exit_room, "Node": exit_rel, "Direction": door_direction(node)}
+        d = {"Nodes": nodes,
+            "Drops": drops,
+            "Edges": edges,
+            "Doors": doors}
+        return d
 
 #TODO: fix this for normal offers
 # offers:

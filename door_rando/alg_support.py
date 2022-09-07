@@ -1,6 +1,6 @@
 import collections
 from encoding import sm_global
-from encoding.parse_rooms import door_hookups
+from encoding.sm_global import door_hookups
 from data_types.item_set import ItemSet
 #from encoding.parse_rooms import *
 
@@ -111,7 +111,7 @@ def filter_paths(paths_through, state, room_exits):
 
 def clean_rooms(rooms):
     """remove some rooms we don't want to change from the dictionary of rooms"""
-    #TODO: this doesn't quite work... poping a room means I don't want to randomize any of its doors
+    #TODO: this doesn't quite work... popping a room means I don't want to randomize any of its doors
 
     # Get rid of pants_right - we're not using it: the cases in rom_edit will handle this.
     rooms.pop("Pants_Right")
