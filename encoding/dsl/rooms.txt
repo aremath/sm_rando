@@ -266,7 +266,7 @@ R						- M
 S
 M
 R -> M					- X
-M -> R					- X
+M -> (R S)				- X
 M -> L					- | B PB
 L -> M					- | B PB
 L -> (R S)				- SB
@@ -1203,10 +1203,9 @@ T
 L
 R1
 R2								- M
-(L R1) <-> ALL					- PB
+(L R1) <-> (T R2)				- PB
+T <-> R2						- PB
 ALL -> T						- | HJ GS
-T -> R2							- PB
-R2 -> T							- PB
 
 West_Tunnel - 7CF54
 L
