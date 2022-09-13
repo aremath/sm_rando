@@ -519,6 +519,7 @@ class Boss(object):
     def __init__(self, boss_type=""):
         self.type = boss_type
 
+# TODO: these are wrong because node names may have underscores in them
 def node_room(door_name):
     """ Get the room from a node name """
     return "_".join(door_name.split("_")[:-1])
