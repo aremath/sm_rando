@@ -141,6 +141,7 @@ class ConcreteMap(object):
         return ConcreteMap(self.dimensions, _tiles=new_tiles)
 
     #TODO: some optimizations can be made
+    #TODO: use heapdict instead of heapq
     # note that dist can be random, in which case this is kind of a random walk that
     # 'eventually' reaches q
     def map_search(self, start, goal, reach_pred=lambda x: True, dist=euclidean):

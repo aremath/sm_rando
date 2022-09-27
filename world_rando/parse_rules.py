@@ -437,7 +437,7 @@ def parse_rules_yaml(rules_file):
     # Path to directory where the rules.txt lives
     rules_path = Path(rules_file).parents[0]
     f = open(rules_file, "r")
-    rules_yaml = yaml.load(f)
+    rules_yaml = yaml.safe_load(f)
     rules = {}
     tests = {}
     if "Rules" in rules_yaml and rules_yaml["Rules"] is not None:

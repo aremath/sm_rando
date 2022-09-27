@@ -162,3 +162,4 @@ Use patterns to recognize tiling errors?
 
 Randomize Samus Palette?
 Black/Red-paletted enemies that instakill?
+Update to heapdict instead of heapq

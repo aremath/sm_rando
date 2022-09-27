@@ -10,6 +10,8 @@ from data_types.item_set import ItemSet
 Infinity = float("inf")
 TERMINAL_VELOCITY = 1
 
+#TODO: move from "is" to ==
+
 # Part 1: Enumerated types
 class AbstractTile(IntEnum):
     UNKNOWN = 0
@@ -598,12 +600,13 @@ item_to_image = {
     ItemSet(["SJ"]): "item_space_jump_outline.png",
     }
 
+#TODO: WorldState object that includes doors / rooms
 class LevelState(object):
     """
     Composable structure that keeps track of level data.
     """
 
-    def __init__(self, origin, level, liquid_type, liquid_level, items, doors, room_registry):
+    def __init__(self, origin, level, liquid_type, liquid_level, items, doors):
         self.origin = origin
         self.level = level
         # Set the writeable false flag in order to allow hashing
@@ -616,7 +619,6 @@ class LevelState(object):
         # Doors is Coord -> (Room Name, Coord)
         self.doors = doors
         # Room Registry is Room Name -> LevelState
-        self.room_registry = room_registry
 
     #TODO: water?
     def to_image(self, tint_pos=set(), tint_color=None):
@@ -1049,11 +1051,11 @@ class LevelFunction(object):
                         #print(samus)
                         #print(i_samus_tiles)
                         return None, "Collision clipped Samus into a wall at {}".format(t)
-                level = LevelState(sl.origin.copy(), level_array, sl.liquid_type, sl.liquid_level, sl.items)
+                level = LevelState(sl.origin.copy(), level_array, sl.liquid_type, sl.liquid_level, sl.items, sl.doors)
                 return SearchState(samus, level), None
         # No conflict
         # Create the new level state
-        level = LevelState(sl.origin.copy(), level_array, sl.liquid_type, sl.liquid_level, sl.items)
+        level = LevelState(sl.origin.copy(), level_array, sl.liquid_type, sl.liquid_level, sl.items, sl.doors)
         return SearchState(intermediate_samus, level), None
 
     def horizontal_flip(self):

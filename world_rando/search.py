@@ -18,6 +18,7 @@ def rule_search(start_state, rules, goal_state, max_rules=10000):
     while len(h) != 0:
         n_rules += 1
         #TODO: decreasekey!!
+        # Use Heapdict
         priority, _, state = heapq.heappop(h)
         #if state in finished:
         #    continue

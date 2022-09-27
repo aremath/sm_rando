@@ -260,7 +260,7 @@ L
 R						- M
 S
 M
-M -> R					- X
+M -> (R S)				- X
 L -> (R S)				- | SB MB
 
 Brinstar_Reserve - 79C07
@@ -1174,10 +1174,9 @@ T
 L
 R1
 R2								- M
-(L R1) <-> ALL					- PB
+(L R1) <-> (T R2)				- PB
+T <-> R2						- PB
 ALL -> T						- | HJ GS SPB
-T -> R2							- PB
-R2 -> T							- PB
 
 West_Tunnel - 7CF54
 L
