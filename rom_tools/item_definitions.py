@@ -4,6 +4,7 @@
 # thanks to dessyreqt for the item memory values!
 import collections
 
+#TODO: why have this as a function?
 def make_item_definitions():
 	# key1 = item_type (M, SJ, SA, etc)
 	# key1 = location_type ((N)ormal, (C)hozo, or (H)idden)

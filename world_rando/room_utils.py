@@ -272,13 +272,14 @@ def level_of_cmap(room, wall_thickness=2):
 #
 # Conversion to ROM data types
 #
+#TODO: consider using ROM data types from the start?
 
 def convert_rooms(region_rooms):
     room_header_namef = "room_header_id_{}"
     ids = item_definitions.make_item_definitions()
     # Keeps track of global PLM ids for non-returning PLMs like items
     plm_id = 0
-    #TODO: Merge with existing (parsed) ObjNames!
+    #TODO: Merge with existing (parsed) ObjNames ?
     # compile_from_savestations will handle the DFS to only compile reachable rooms!
     obj_names = rd.ObjNames()
     # rooms is room_id -> Room
@@ -292,8 +293,9 @@ def convert_rooms(region_rooms):
             rx, ry = room.level.dimensions
             rid = f"{room.region}{room.id}"
             #TODO: FX
-            # FXEntry
             # FX
+            #   FXEntry
+            #   FX
             fx = obj_names.create(sd.FX, [], None)
             #TODO: enemies
             # Enemy List

@@ -32,6 +32,15 @@ def auto_init(func):
         return wrapper
 
 class FutureBytes(object):
+
+    """
+    Object that represents an unknown pointer of a certain size.
+    Compilation happens in two steps: allocation and resolution.
+    During allocation, objects have real bytes and FutureBytes, making it possible to
+    determine the object's size without knowing exactly what those bytes are.
+    During resolution, FutureBytes are resolved by looking at the allocated location of the
+    underlying object.
+    """
     
     def __init__(self, obj, size, banks):
         self.obj = obj

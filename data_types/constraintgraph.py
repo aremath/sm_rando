@@ -28,6 +28,8 @@
 # you can cross every edge and obtain every* item. 
 # * except the Main Street missiles if you can't do that shortcharge. My encoding makes no edges to that item, for this reason.
 
+#TODO: re-implement using networkx and cached graphs at different item thresholds?
+
 import collections
 import random
 

@@ -139,9 +139,9 @@ class Interval(object):
         return Interval(self.left + n, self.right + n)
 
     def interval_image(self, n, behavior):
-        if behavior is VBehavior.LOSE:
+        if behavior == VBehavior.LOSE:
             return Interval(n, n)
-        elif behavior is VBehavior.STORE:
+        elif behavior == VBehavior.STORE:
             return self.shift(n)
         else:
             assert False
@@ -195,9 +195,9 @@ class HVelocitySet(object):
             return None
 
     def interval_image(self, vh, behavior):
-        if behavior is VBehavior.LOSE:
+        if behavior == VBehavior.LOSE:
             return HVelocitySet(frozenset([vh.type]), Interval(vh.value, vh.value))
-        elif behavior is VBehavior.STORE:
+        elif behavior == VBehavior.STORE:
             return self.shift(vh)
         else:
             assert False
@@ -266,9 +266,9 @@ class VelocityFunction(object):
         """ Apply to get a new velocity. None if the parameter is not in the domain """
         if velocity in self.domain:
             start_vel = velocity.copy()
-            if self.vertical_behavior is VBehavior.LOSE:
+            if self.vertical_behavior == VBehavior.LOSE:
                 start_vel.vv = 0
-            if self.horizontal_behavior is VBehavior.LOSE:
+            if self.horizontal_behavior == VBehavior.LOSE:
                 start_vel.vh = HVelocity(VType.RUN, 0)
             return start_vel + self.vadd
         else:
@@ -284,12 +284,12 @@ class VelocityFunction(object):
     def preimage(self, vset):
         """ Pre-image of a set under this function """
         assert vset.subset(self.image)
-        if self.vertical_behavior is VBehavior.LOSE:
+        if self.vertical_behavior == VBehavior.LOSE:
             v_interval = Interval(-Infinity, Infinity)
         else:
             # Going backwards
             v_interval = self.domain.vertical_set.shift(-self.vadd.vv)
-        if self.horizontal_behavior is VBehavior.LOSE:
+        if self.horizontal_behavior == VBehavior.LOSE:
             h_i = Interval(-Infinity, Infinity)
             h_set = frozenset([VType.RUN, VType.SPEED, VType.WATER])
             h_interval = HVelocitySet(h_i, h_set)
@@ -326,7 +326,7 @@ def combine_vs(v1, v2, b1, b2):
     Combine velocities to obtain the result of doing both 'velocity actions'.
     """
     # Neither lose means add both
-    if b1 is not VBehavior.LOSE and b2 is not VBehavior.LOSE:
+    if b1 != VBehavior.LOSE and b2 != VBehavior.LOSE:
         v = v1 + v2
         b = VBehavior.STORE
     # Second lose means it comes after applying the first,
@@ -336,7 +336,7 @@ def combine_vs(v1, v2, b1, b2):
         b = VBehavior.LOSE
     # First lose and NOT second lose means the velocity change from v1 will carry over
     # and combine with v2
-    elif b1 is VBehavior.LOSE:
+    elif b1 == VBehavior.LOSE:
         v = v1 + v2
         b = VBehavior.LOSE
     return v, b
@@ -749,13 +749,13 @@ class SamusState(object):
         v = self.velocity == other.velocity
         #TODO: what about negative speed?
         i = self.items >= other.items
-        pose = self.pose is other.pose
+        pose = self.pose == other.pose
         return p and v and i and pose
 
     def meets(self, other):
         v = self.velocity >= other.velocity
         i = self.items >= other.items
-        pose = self.pose is other.pose
+        pose = self.pose == other.pose
         return v and i and pose
 
     def copy(self):
@@ -992,7 +992,7 @@ class LevelFunction(object):
             return None, "Liquid level does not match!"
         # If the liquidtype is none, that means that ANY liquidtype is acceptable
         # within the designated interval
-        if self.liquid_type is not LiquidType.NONE and state.level.liquid_type != self.liquid_type:
+        if self.liquid_type != LiquidType.NONE and state.level.liquid_type != self.liquid_type:
             print(state.level.liquid_type)
             print(self.liquid_type)
             return None, "Liquid type does not match!"
