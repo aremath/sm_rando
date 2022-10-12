@@ -3,7 +3,6 @@ from world_rando import item_order_graph
 from world_rando import map_gen
 from world_rando import map_viz
 from world_rando import room_gen
-from world_rando import settings
 from world_rando import pattern
 
 from rom_tools import rom_manager
@@ -32,10 +31,10 @@ def plot_room_dims(room_dims):
     plt.hist(room_dims)
     plt.savefig("output/roomdims.png")
 
-def generate_abstract_map():
+def generate_abstract_map(settings):
     return item_order_graph.abstract_map(settings.abstract_map_settings)
 
-def generate_concrete_map(abstract_map_info):
+def generate_concrete_map(settings, abstract_map_info):
     o, g, rsg, es, ro = abstract_map_info
     region_cmaps = {}
     region_rooms = {}
@@ -65,7 +64,7 @@ def generate_concrete_map(abstract_map_info):
     extra_info = (npaths, path_length, ntiles, room_dims)
     return region_cmaps, region_rooms, region_paths, region_node_info, extra_info
 
-def generate_rooms(concrete_map_info):
+def generate_rooms(settings, concrete_map_info):
     patterns = pattern.load_patterns("encoding/patterns")
     region_cmaps, region_rooms, region_paths, region_node_info, _ = concrete_map_info
     region_room_defs = {}

@@ -54,11 +54,13 @@ def can_place(preds, to_place):
             can.append(item)
     return can
 
-def order():
+# For a full design, use list(sm_global.all_things)
+def order(things):
     preds = parse_preds("encoding/dsl/item_order.txt")
-    return choose_order(preds, list(sm_global.all_things))
+    return choose_order(preds, things)
 
-def region_order():
+# For a full design, use list(sm_global.regions.keys())
+def region_order(regions):
     preds = parse_preds("encoding/dsl/region_order.txt")
-    return choose_order(preds, list(sm_global.regions.keys()))
+    return choose_order(preds, regions)
 

@@ -451,7 +451,7 @@ def merging_partition(space, targetn, maxsize, implicit_bboxes):
             del active_neighbors[r]
         else:
             active_neighbors[r] = new_neighbors
-        print(f"Merging {r} and {n}")
+        #print(f"Merging {r} and {n}")
         rooms[r] = rooms[r] | rooms[n]
         active_neighbors = active_replace(active_neighbors, n, r)
         del rooms[n]

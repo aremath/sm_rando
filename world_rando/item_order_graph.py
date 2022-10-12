@@ -5,7 +5,7 @@ import itertools
 import operator
 
 from data_types import basicgraph, item_set
-from encoding import item_order, sm_global
+from encoding import item_order
 from world_rando.util import pairwise
 
 #TODO: every item needs to keep a unique ID
@@ -15,25 +15,27 @@ from world_rando.util import pairwise
 
 def abstract_map(settings):
     """puts it all together to make an abstract map with regions and elevators"""
-    order, graph = order_graph()
+    order, graph = order_graph(settings["required_nodes"])
     #TODO: add items before or after partition?
     # after is probably better...
-    add_nodes(graph, settings["extra_items"])
-    #region_order, region_finished = partition_order(graph, sm_global.regions)
-    region_order, region_finished = weighted_partition_order(graph, sm_global.regions, settings["region_weights"])
+    add_nodes(graph, settings["extra_nodes"])
+    #_, region_finished = partition_order(graph, sm_global.regions)
+    _, region_finished = weighted_partition_order(graph, settings["region_nodes"], settings["region_weights"])
     elevators = make_elevators(graph, region_finished)
-    region_order = item_order.region_order()
+    print(list(settings["region_weights"].keys()))
+    region_order = item_order.region_order(list(settings["region_weights"].keys()))
     es = elevator_directions(elevators, region_order)
     rsg = region_subgraphs(graph, region_finished)
     #print(es)
     return order, graph, rsg, es, region_order
 
-def order_graph():
+def order_graph(items):
     """Creates an item order graph, which is an
         order in which the items may be picked up
         and a set of tentative paths to do that"""
+    #TODO convert to networkx
     g = basicgraph.BasicGraph()
-    order = item_order.order()
+    order = item_order.order(items)
     g.add_node("START")
     current = "START"
     current_items = item_set.ItemSet()
@@ -96,7 +98,6 @@ def partition_order(graph, initial, priority=lambda x: 0):
                     rfinished[region].add(t)
                     roffers[region][t] = rnode
                     all_finished.add(t)
-
     return roffers, rfinished
 
 def make_elevators(graph, regions):
@@ -190,11 +191,10 @@ def elevator_directions(elevators, region_order):
                 assert False, "Elevator to same region"
     return up_es, down_es
 
-def add_nodes(graph, items):
+def add_nodes(graph, extra_items):
     """adds the requested amount of each item to the specified abstract map
     randomly. Items is a dictionary with key - item type to add, value - number to add"""
-    for item_type, n in items.items():
-        #assert item_type in sm_global.items, item_type + " is not a valid item!"
+    for item_type, n in extra_items.items():
         for i in range(n):
             #TODO: at some point, can have a from_node and a to_node that this item is between
             node_name = item_type + str(i)
@@ -203,10 +203,10 @@ def add_nodes(graph, items):
             # Choose a random feasible item set
             # Choose an item set used on an edge that you use to leave from_node
             out_edge = random.choice(graph.nodes[from_node].edges)
-            items = random.choice(out_edge.data)
+            assumed_items = random.choice(out_edge.data)
             graph.add_node(node_name)
-            graph.add_edge(from_node, node_name, [items])
-            graph.add_edge(node_name, from_node, [items])
+            graph.add_edge(from_node, node_name, [assumed_items])
+            graph.add_edge(node_name, from_node, [assumed_items])
 
 def make_rand_weighted_list(weights):
     """Create a shuffled list using weights. Weights is a key->int dict that contains how
@@ -229,13 +229,15 @@ def weighted_partition_order(graph, initial, weights, priority=lambda x: 0):
     # to grab a node for every 100 total chances. Note that this changes as the set of
     # live regions changes. A region with no unclaimed neighbors has no chances to grab
     # any nodes.
+    # This process uses weights destructively
+    weights = weights.copy()
 
     # set() is ok: order never used
     gnodes = set(graph.nodes.keys())
     # roffers: region name -> offers for that region (node set)
     roffers = {region: {} for region in initial}
     # rfinished: region name -> finished for that region (node set)
-    # Use {} instead of set for ordering purposes
+    # Use {} instead of set for stable ordering purposes
     rfinished = {region: {} for region in initial}
     # Initialize rfinished with initial
     for region in initial:
@@ -278,5 +280,4 @@ def weighted_partition_order(graph, initial, weights, priority=lambda x: 0):
                 rfinished[region][t] = None
                 roffers[region][t] = rnode
                 all_finished.add(t)
-
     return roffers, rfinished
