@@ -1,0 +1,7 @@
+Bomb_Torizo < B
+(CB HJ S) < Kraid
+M < S
+MB < M
+B < (CB HJ)
+CB < Spazer
+#TODO: Spore Spawn

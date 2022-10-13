@@ -1,13 +1,15 @@
 import random
 from world_rando import generate
-from world_rando.settings import default_settings
+from world_rando.settings import default_settings, small_settings
 from world_rando import map_viz
 from rom_tools import rom_manager
 
 if __name__ == "__main__":
+    #sets = default_settings
+    sets = small_settings
     random.seed(0)
-    abstract_map_info = generate.generate_abstract_map(default_settings)
-    concrete_map_info = generate.generate_concrete_map(default_settings, abstract_map_info)
+    abstract_map_info = generate.generate_abstract_map(sets)
+    concrete_map_info = generate.generate_concrete_map(sets, abstract_map_info)
     rcmaps, _, _, _, extra_info = concrete_map_info
     npaths, path_length, ntiles, room_dims = extra_info
     generate.plot_room_dims(room_dims)

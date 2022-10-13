@@ -1,5 +1,6 @@
 import itertools
 
+#TODO: replace with networkx
 class BasicGraph(object):
 
     def __init__(self):

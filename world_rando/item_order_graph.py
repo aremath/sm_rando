@@ -15,27 +15,30 @@ from world_rando.util import pairwise
 
 def abstract_map(settings):
     """puts it all together to make an abstract map with regions and elevators"""
-    order, graph = order_graph(settings["required_nodes"])
+    order = item_order.order(settings["required_nodes"], settings["node_ordering"])
+    graph = order_graph(order)
     #TODO: add items before or after partition?
     # after is probably better...
     add_nodes(graph, settings["extra_nodes"])
     #_, region_finished = partition_order(graph, sm_global.regions)
-    _, region_finished = weighted_partition_order(graph, settings["region_nodes"], settings["region_weights"])
+    # Filter the initial conditions by nodes that are actually present
+    initial = {k: list(filter(lambda x: x in graph, v)) for k,v in settings["region_nodes"].items()}
+    print(initial)
+    _, region_finished = weighted_partition_order(graph, initial, settings["region_weights"])
     elevators = make_elevators(graph, region_finished)
-    print(list(settings["region_weights"].keys()))
-    region_order = item_order.region_order(list(settings["region_weights"].keys()))
+    # Get the set of regions to generate from settings
+    region_order = item_order.region_order(settings["regions"], settings["region_ordering"])
     es = elevator_directions(elevators, region_order)
     rsg = region_subgraphs(graph, region_finished)
     #print(es)
     return order, graph, rsg, es, region_order
 
-def order_graph(items):
+def order_graph(order):
     """Creates an item order graph, which is an
         order in which the items may be picked up
         and a set of tentative paths to do that"""
-    #TODO convert to networkx
+    #TODO: convert to networkx
     g = basicgraph.BasicGraph()
-    order = item_order.order(items)
     g.add_node("START")
     current = "START"
     current_items = item_set.ItemSet()
@@ -58,13 +61,13 @@ def order_graph(items):
         g.add_edge(entrance, item_name, data=[current_items.copy()])
         current_items = current_items.add(item_name)
         g.add_edge(item_name, exit, data=[current_items.copy()])
-    return order, g
+    return g
 
 def partition_order(graph, initial, priority=lambda x: 0):
     """Partitions the item order graph into regions."""
     # initial is a dictionary with
-    # key - region name (ex. "Maridia")
-    # value - nodes in that region
+    # Key - region name (ex. "Maridia")
+    # Value - nodes in that region
 
     gnodes = set(graph.nodes.keys())
     # key - region name, value - offers for that region
@@ -202,6 +205,7 @@ def add_nodes(graph, extra_items):
             #TODO: choose this more wisely
             # Choose a random feasible item set
             # Choose an item set used on an edge that you use to leave from_node
+            #TODO: for all assumed items, I think we'd like to ensure (if possible) that the player has that item as well
             out_edge = random.choice(graph.nodes[from_node].edges)
             assumed_items = random.choice(out_edge.data)
             graph.add_node(node_name)
@@ -220,6 +224,9 @@ def make_rand_weighted_list(weights):
 #TODO: a way to make this have less variance?
 #   A parameter that determines how often every region gets a choice versus
 #   pulling from the weighted list.
+#TODO: Determine initial ahead of time by filtering out nodes that are not required.
+#   This would allow the re-use of a single "initial" across multiple settings,
+#   Even when those settings require the placement of different items.
 def weighted_partition_order(graph, initial, weights, priority=lambda x: 0):
     """Partitions the item order graph into regions."""
     # initial: region name (ex. "Maridia") -> nodes in that region

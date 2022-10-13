@@ -14,6 +14,12 @@ def parse_preds(pred_file):
             preds.extend(parse_pred_expr(line))
     return preds
 
+def filter_preds(to_place, preds):
+    """
+    Filter out predicates that do not apply to the given list of entities that are being ordered
+    """
+    return [(a, b) for a,b in preds if a in to_place and b in to_place]
+
 def parse_pred_expr(pred):
     groups = pred.split("<")
     # 1 group means this expression doesn't have semantic meaning
@@ -29,19 +35,22 @@ def parse_pred_expr(pred):
               preds.extend(itertools.product(g1, g2))
     return preds
 
+#TODO: this may not be very uniform, and it may get stuck, even with satisfiable preds (?)
 def choose_order(preds, to_place):
     """Choose an order for to_place that respects preds"""
-    # invariant - every item in placed respects preds
+    # Copy since this process is destructive to to_place
+    to_place = to_place[:]
+    # Invariant - every item in placed respects preds
     placed = []
     while len(to_place) > 0:
-        #choose an item to place, and remove it from to_place
+        # Choose an item to place, and remove it from to_place
         can = can_place(preds, to_place)
         if len(can) == 0:
-            return -1
+            raise ValueError("No possible ordering")
         place = random.choice(can)
         placed.append(place)
         to_place.remove(place)
-        # update preds: we've satisfied constraints on place
+        # Update preds: we've satisfied constraints on place
         preds = [pred for pred in preds if pred[0] != place]
     return placed
 
@@ -55,12 +64,12 @@ def can_place(preds, to_place):
     return can
 
 # For a full design, use list(sm_global.all_things)
-def order(things):
-    preds = parse_preds("encoding/dsl/item_order.txt")
+def order(things, fname="encoding/dsl/item_order.txt"):
+    preds = filter_preds(things, parse_preds(fname))
     return choose_order(preds, things)
 
 # For a full design, use list(sm_global.regions.keys())
-def region_order(regions):
-    preds = parse_preds("encoding/dsl/region_order.txt")
+def region_order(regions, fname="encoding/dsl/region_order.txt"):
+    preds = filter_preds(regions, parse_preds(fname))
     return choose_order(preds, regions)
 
