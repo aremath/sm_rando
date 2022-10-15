@@ -4,6 +4,7 @@ from world_rando.coord import Coord, Rect
 from world_rando.concrete_map import Path, ConcreteMap, MapTile, get_path, euclidean, path_concat
 from world_rando import fixed_cmaps
 from world_rando import map_viz
+from world_rando.item_order_graph import NodeType
 
 #TODO: Bounds checking on the results of the spring model
 #TODO: A way to keep the model going until the average absolute spring force falls below a threshold?
@@ -57,19 +58,25 @@ def spring_model(node_locs, graph, n_iterations, spring_constant, spring_equilib
 # OR a map station after every boss?
 #TODO: Possibly just add some extra edges to the regional graph to make it more "uniform"
 # through the spring model?
+#TODO: Make map generation less dependent on defined region size!
+#   A map with few nodes and a large region size should be small.
+#   A map with many nodes and a small region size should fill the region.
 
-def map_gen(dimensions, graph, elevators, settings):
+def map_gen(dimensions, graph, settings):
     """
     Generate a concrete graph
     """
     dist = settings["distance_metric"]
-    up_es, down_es = elevators
+    up_es = set([n for n in graph.nodes if graph.nodes[n].data == NodeType.ELEVATOR_UP])
+    down_es = set([n for n in graph.nodes if graph.nodes[n].data == NodeType.ELEVATOR_DOWN])
     # Find a placement for nodes, and initialize it with the areas for those nodes
     node_locs, cmap, bboxes = node_place(graph, dimensions, up_es, down_es, settings)
-    node_info = {node: (loc, fixed_cmaps.node_to_fixedmap(node, up_es, down_es)) for node, loc in node_locs.items()}
+    node_info = {node: (loc, fixed_cmaps.node_to_fixedmap(node, graph.nodes[node].data)) for node, loc in node_locs.items()}
     rnodes = list(graph.nodes.keys())
     random.shuffle(rnodes)
     # Holds all the paths, along with their constraints (TODO: the constraints)
+    #TODO: can get unlucky with elevator placement of multiple elevators
+    #   See output/error.png
     paths = []
     for node in rnodes:
         for edge in graph.nodes[node].edges:
@@ -132,7 +139,6 @@ def random_node_place(graph, dimensions, up_es, down_es):
         elif node in down_es:
             node_locs[node] = sorted_locs.pop()
     node_list = [node for node in node_list if node not in up_es and node not in down_es]
-
     random.shuffle(node_list)
     #TODO: this is where we can make sure there is an item behind Draygon or some such??
     # -> pick an item node later in the order than Draygon and put it past Draygon?
@@ -153,7 +159,7 @@ def can_place(node_fmap, pos, cmap):
             return True
     return False
 
-def find_placement(initial, cmap, up_es, down_es):
+def find_placement(initial, cmap, graph):
     """
     Find a placement of the nodes that allows their concrete maps to co-exist within
     the boundaries of cmap.
@@ -162,7 +168,7 @@ def find_placement(initial, cmap, up_es, down_es):
     final_node_locs = {}
     bboxes = []
     for node, init_pos in initial.items():
-        node_fmap = fixed_cmaps.node_to_fixedmap(node, up_es, down_es)
+        node_fmap = fixed_cmaps.node_to_fixedmap(node, graph.nodes[node].data)
         g, _, _ = cmap.map_bfs(init_pos, lambda p: can_place(node_fmap, p, cmap))
         assert g is not None, "No valid place found."
         final_node_locs[node] = g
@@ -191,7 +197,7 @@ def node_place(graph, dimensions, up_es, down_es, settings):
     trunc_spring = {n : xy.truncate(Coord(0, 0), dimensions) for (n, xy) in spring.items()}
     # Now do a search for a good placement for each nod.
     cmap = ConcreteMap(dimensions)
-    return find_placement(trunc_spring, cmap, up_es, down_es)
+    return find_placement(trunc_spring, cmap, graph)
 
 #TODO
 def connecting_path(cmap, t1, t2, threshold):

@@ -10,6 +10,7 @@ from world_rando.room_dtypes import Room, Level, Tile, Texture, Type
 from world_rando.room_utils import mk_default_rect, mk_air_rect
 from world_rando.coord import Coord, Rect
 from world_rando.util import weighted_random_order
+from world_rando import pattern
 
 from world_rando.room_dtypes import *
 from world_rando.room_utils import *
@@ -30,12 +31,12 @@ def reverse_list_dict(d):
     return reverse
 
 # Room tiles is room_id -> [MCoord]
-def room_setup(room_tiles, cmap):
+def room_setup(room_tiles, cmap, region):
     rooms = OrderedDict()
     for room_id, coord_set in room_tiles.items():
         room_bbox = extent(coord_set)
         room_cmap, room_pos = cmap.sub(room_bbox, relative=True)
-        rooms[room_id] = Room(room_cmap, room_bbox.size_coord(), room_id, room_pos)
+        rooms[room_id] = Room(room_cmap, room_bbox.size_coord(), room_id, room_pos, region)
     return rooms
 
 #TODO: work in progress
@@ -97,8 +98,9 @@ def room_graphs(rooms, tile_rooms, paths):
         # Link the final current node with end
         gend.update_edge(current_node, end, items)
 
-def make_rooms(room_tiles, cmap, paths, node_info, settings, patterns):
-    rooms = room_setup(room_tiles, cmap)
+def make_rooms(room_tiles, cmap, paths, node_info, region, settings):
+    patterns = pattern.load_patterns(settings.room_gen_settings["patterns"])
+    rooms = room_setup(room_tiles, cmap, region)
     # Tile to room
     tile_rooms = reverse_list_dict(room_tiles)
     # Set up fixed rooms

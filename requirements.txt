@@ -7,3 +7,4 @@ pyModelChecking==1.3.3
 tqdm==4.59.0
 opencv-python==4.5.1.48
 Pillow==9.0.0
+bidict==0.21.2

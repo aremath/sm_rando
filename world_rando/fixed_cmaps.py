@@ -3,9 +3,12 @@ from functools import reduce
 from world_rando.coord import *
 from world_rando.concrete_map import *
 from world_rando.room_dtypes import Room, Door
+from world_rando.item_order_graph import NodeType
 
-#TODO: how to make sure we generate the kraid and draygon item rooms?
+#TODO: how to make sure we generate the Kraid and Draygon item rooms?
 #TODO: these functions should return a cmap, a list of implicit doors, and a list of implicit rooms.
+#   Implicit Doors should be added to the appropriate room
+#   Implicit Rooms should be able to be converted to rom data structures somehow
 #TODO: make these functions only predicated on the tile_list - i.e. a mk_area function that
 # uses only the tile_list (except for elevators)
 
@@ -84,7 +87,7 @@ def mk_item_mker(boss_name, boss_size, item_size, boss_loc, item_loc, ob_dir=Non
         item_room.room_details = item_id 
         item_room.doors.append(i_to_b)
         #TODO: Add gadora PLM to outside_room
-        #TODO: How to tell outside room about using gadora tiles??
+        #TODO: How to tell outside room about using gadora tiles near the gadora??
         rooms[outside].doors.append(outside_to_b)
         rooms[boss_id] = boss_room
         rooms[item_id] = item_room
@@ -108,8 +111,13 @@ class FixedMap(object):
         self.real_cmap = ConcreteMap(dims)
         if not bounded_put_check(self.real_cmap, tile_list):
             assert False
+        # What room bounding boxes does the fixedmap contain?
         self.bboxes = bboxes
+        # How far does this room extend up or down (how does it affect the cmap?)
         self.extend = extend
+        # A function that takes info about where the fixed was placed and creates the implicit rooms
+        # needed to implement that cmap by using side-effects to alter the relevant data structures
+        #TODO: mk_rooms()?
         self.mk_room = mk_room
 
     def cmap(self, pos, dims):
@@ -319,7 +327,8 @@ elevator_up_bboxes = [
 elevator_up_room = FixedMap(elevator_up_tiles, elevator_up_bboxes, extend=-3)
 
 # Save Point
-#TODO: How to let save points have either left or right doors, but not up / down doors?
+#TODO: How to allow save points to have either left or right doors, but not up / down doors?
+#   Eventually, save points will have two fixedmaps, and the search will be responsible for choosing one of them
 save_point_tiles = [
         (Coord(1,0), MapTile(_fixed=True,_save=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
         (Coord(0,0), MapTile(_walls=set([Coord(1,0)])))
@@ -353,15 +362,15 @@ fixed_maps = {
     "Mother_Brain"  :   mother_brain_room,
 }
 
-def node_to_fixedmap(node, up_es, down_es):
-    if node in up_es:
+def node_to_fixedmap(node, node_type):
+    if node_type == NodeType.ELEVATOR_UP:
         return elevator_up_room
-    elif node in down_es:
+    elif node_type == NodeType.ELEVATOR_DOWN:
         return elevator_down_room
     elif node in fixed_maps:
         return fixed_maps[node]
-    #TODO: requires handshake about save node names
-    elif node.rstrip("123456789") == "Save":
+    #TODO: Ship?
+    elif node_type == NodeType.SAVE or node_type == NodeType.SHIP:
         return save_point_room
     #TODO - save points, reserves, map stations, etc?
     else:

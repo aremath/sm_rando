@@ -291,7 +291,7 @@ def convert_rooms(region_rooms):
     for region, rooms in region_rooms.items():
         for room_id, room in rooms.items():
             rx, ry = room.level.dimensions
-            rid = f"{room.region}{room.id}"
+            rid = f"{room.region.name}{room.id}"
             #TODO: FX
             # FX
             #   FXEntry
@@ -353,22 +353,12 @@ def convert_rooms(region_rooms):
             for door in room.doors:
                 #TODO: door.destination is just the ID without the region??
                 room_ptr = room_header_namef.format(door.destination)
-                elevator_properties = 0
-                orientation = door.direction
-                #TODO: appropriate defaults for orientation
-                xlow = 0
-                ylow = 0
-                xhigh = 0
-                yhigh = 0
-                dist = 0
-                door_asm = 0
-                door_obj = obj_names.create(sd.Door, room_ptr, elevator_properties, orientation,
-                        xlow, ylow, xhigh, yhigh, dist, door_asm)
-                doors.append(door_obj)
+                d = convert_door(door, room_ptr, obj_names)
+                doors.append(d)
             doorlist = obj_names.create(sd.DoorList, [door.name for door in doors])
             # Room Header
             #TODO: calculate from region
-            area_index = 0
+            area_index = region.region_id
             map_x, map_y = room.pos
             width, height = room.size
             CRE_bitset = 0 # Refer to rom_tools/rom_data_structures.
@@ -376,6 +366,20 @@ def convert_rooms(region_rooms):
                     room.up_scroll, room.down_scroll, CRE_bitset, doorlist.name, statechooser.name)
             obj_names[room_header_namef.format(rid)]
     return obj_names
+
+def convert_door(door, room_ptr, obj_names):
+    elevator_properties = 0
+    orientation = door.direction
+    #TODO: appropriate defaults for orientation
+    xlow = 0
+    ylow = 0
+    xhigh = 0
+    yhigh = 0
+    dist = 0
+    door_asm = None
+    door_obj = obj_names.create(sd.Door, room_ptr, elevator_properties, orientation,
+            xlow, ylow, xhigh, yhigh, dist, door_asm)
+    return door_obj
 
 # Convert a room into a rom RoomHeader for allocation
 def convert_room(room):

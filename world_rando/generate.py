@@ -3,7 +3,6 @@ from world_rando import item_order_graph
 from world_rando import map_gen
 from world_rando import map_viz
 from world_rando import room_gen
-from world_rando import pattern
 
 from rom_tools import rom_manager
 from encoding import sm_global
@@ -32,10 +31,10 @@ def plot_room_dims(room_dims):
     plt.savefig("output/roomdims.png")
 
 def generate_abstract_map(settings):
-    return item_order_graph.abstract_map(settings.abstract_map_settings)
+    return item_order_graph.abstract_map(settings.abstract_map_settings, settings.global_settings)
 
 def generate_concrete_map(settings, abstract_map_info):
-    o, g, rsg, es, ro = abstract_map_info
+    o, g, rsg, ro = abstract_map_info
     region_cmaps = {}
     region_rooms = {}
     region_paths = {}
@@ -46,10 +45,8 @@ def generate_concrete_map(settings, abstract_map_info):
     path_length = 0
     npaths = 0
     for region, graph in rsg.items():
-        print("Generating map for " + region)
-        # At most 64,32
-        dimensions = concrete_map.Coord(54,30)
-        cmap, rooms, paths, node_info = map_gen.map_gen(dimensions, graph, es, settings.concrete_map_settings)
+        print(f"Generating map for {region}")
+        cmap, rooms, paths, node_info = map_gen.map_gen(region.size, graph, settings.concrete_map_settings)
         region_cmaps[region] = cmap
         region_rooms[region] = rooms
         region_paths[region] = paths
@@ -65,7 +62,6 @@ def generate_concrete_map(settings, abstract_map_info):
     return region_cmaps, region_rooms, region_paths, region_node_info, extra_info
 
 def generate_rooms(settings, concrete_map_info):
-    patterns = pattern.load_patterns("encoding/patterns")
     region_cmaps, region_rooms, region_paths, region_node_info, _ = concrete_map_info
     region_room_defs = {}
     for region in region_cmaps.keys():
@@ -74,29 +70,29 @@ def generate_rooms(settings, concrete_map_info):
         rooms = region_rooms[region]
         paths = region_paths[region]
         node_info = region_node_info[region]
-        region_room_defs[region] = room_gen.make_rooms(rooms, cmap, paths, node_info, settings.room_gen_settings, patterns)
+        region_room_defs[region] = room_gen.make_rooms(rooms, cmap, paths, node_info, region, settings.room_gen_settings)
     return region_room_defs
 
 def visualize_abstract_maps(abstract_map_info):
-    _, g, rsg, _, _ = abstract_map_info
+    _, g, rsg, _ = abstract_map_info
     # Visualize the overall graph
     g.visualize("output/graph")
     # Visualize the individual region graphs
     for region, graph in rsg.items():
-        graph.visualize("output/" + region + "/graph")
+        graph.visualize(f"output/{region.name}/graph")
 
 def visualize_concrete_maps(concrete_map_info):
     region_cmaps, _, _, _, _ = concrete_map_info
     for region, rcmap in region_cmaps.items():
-        map_viz.map_viz(rcmap, "output/" + region + "/cmap.png", "encoding/map_tiles")
+        map_viz.map_viz(rcmap, f"output/{region.name}/cmap.png", "encoding/map_tiles")
 
 def mission_embeddings(concrete_map_info, abstract_map_info):
-    order, _, _, _, _ = abstract_map_info
+    order, _, _, _ = abstract_map_info
     region_cmaps, _, region_paths, _, _ = concrete_map_info
     for region, rcmap in region_cmaps.items():
         print(f"Embedding for {region}")
         paths = region_paths[region]
-        fname = "output/" + region + "/mission_embedding.png"
+        fname = f"output/{region.name}/mission_embedding.png"
         map_viz.mission_embedding(rcmap, paths, order, fname)
 
 def visualize_rooms(room_info):

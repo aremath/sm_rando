@@ -1,7 +1,7 @@
 Bomb_Torizo < B
-(CB HJ S) < Kraid
+(CB HJ S Spore_Spawn) < Kraid
+S < Spore_Spawn
 M < S
 MB < M
 B < (CB HJ)
 CB < Spazer
-#TODO: Spore Spawn

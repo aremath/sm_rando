@@ -3,17 +3,27 @@ import heapq
 import collections
 import itertools
 import operator
+from enum import IntEnum
 
 from data_types import basicgraph, item_set
 from encoding import item_order
 from world_rando.util import pairwise
 
-#TODO: every item needs to keep a unique ID
+#TODO: every item and door cap needs to keep a unique ID
 # so that it can know its PLM index when it
 # comes time to place it as a PLM.
 # Can do this later when determining PLM placement, keeping a counter of items placed
 
-def abstract_map(settings):
+# What type is each node?
+class NodeType(IntEnum):
+    SAVE = 0
+    ITEM = 1
+    BOSS = 2
+    SHIP = 3
+    ELEVATOR_UP = 4
+    ELEVATOR_DOWN = 5
+
+def abstract_map(settings, gsettings):
     """puts it all together to make an abstract map with regions and elevators"""
     order = item_order.order(settings["required_nodes"], settings["node_ordering"])
     graph = order_graph(order)
@@ -22,16 +32,19 @@ def abstract_map(settings):
     add_nodes(graph, settings["extra_nodes"])
     #_, region_finished = partition_order(graph, sm_global.regions)
     # Filter the initial conditions by nodes that are actually present
-    initial = {k: list(filter(lambda x: x in graph, v)) for k,v in settings["region_nodes"].items()}
-    print(initial)
-    _, region_finished = weighted_partition_order(graph, initial, settings["region_weights"])
-    elevators = make_elevators(graph, region_finished)
+    initial = {r: list(filter(lambda x: x in graph, r.required_nodes)) for r in gsettings["regions"]}
+    weights =  {r: r.partition_weight for r in gsettings["regions"]}
+    _, region_finished = weighted_partition_order(graph, initial, weights)
     # Get the set of regions to generate from settings
-    region_order = item_order.region_order(settings["regions"], settings["region_ordering"])
-    es = elevator_directions(elevators, region_order)
+    # Need to use the actual string names or the ordering will not work...
+    region_names = {r.name: r for r in gsettings["regions"]}
+    region_order = item_order.region_order(list(region_names.keys()), settings["region_ordering"])
+    region_order = [region_names[r] for r in region_order]
+    elevators = make_elevators(graph, region_finished, region_order)
+    #es = elevator_directions(elevators, region_order)
     rsg = region_subgraphs(graph, region_finished)
     #print(es)
-    return order, graph, rsg, es, region_order
+    return order, graph, rsg, region_order
 
 def order_graph(order):
     """Creates an item order graph, which is an
@@ -39,7 +52,7 @@ def order_graph(order):
         and a set of tentative paths to do that"""
     #TODO: convert to networkx
     g = basicgraph.BasicGraph()
-    g.add_node("START")
+    g.add_node("START", NodeType.SHIP)
     current = "START"
     current_items = item_set.ItemSet()
     for item_name in order:
@@ -57,7 +70,8 @@ def order_graph(order):
         exit = random.choice(list(g.nodes.keys()))
 
         # Add the new node
-        g.add_node(item_name)
+        #TODO: this doesn't necessarily use the appropriate nodetype
+        g.add_node(item_name, NodeType.ITEM)
         g.add_edge(entrance, item_name, data=[current_items.copy()])
         current_items = current_items.add(item_name)
         g.add_edge(item_name, exit, data=[current_items.copy()])
@@ -103,7 +117,21 @@ def partition_order(graph, initial, priority=lambda x: 0):
                     all_finished.add(t)
     return roffers, rfinished
 
-def make_elevators(graph, regions):
+def elevator_directions(r1, r2, region_order):
+    # Return the directions of r1 -> r2 and r2 -> r1 respectively
+    # Determine if r1 is before or after r2
+    r1_index = region_order.index(r1)
+    r2_index = region_order.index(r2)
+    # Earlier in the order list means lower down
+    if r1_index > r2_index:
+        return NodeType.ELEVATOR_DOWN, NodeType.ELEVATOR_UP
+    elif r2_index > r1_index:
+        return NodeType.ELEVATOR_UP, NodeType.ELEVATOR_DOWN
+        up_es.add(e_name)
+    else:
+        assert False, "Elevator to same region"
+
+def make_elevators(graph, regions, region_order):
     """
     Given a set of regions, make the necessary elevators
     Need to:
@@ -114,14 +142,15 @@ def make_elevators(graph, regions):
     crossings = find_crossings(graph, regions)
     for regs, edges in crossings.items():
         r1, r2 = tuple(regs)
-        assert (len(edges) > 0), "Invalid regions: no nodes in " + r1 + ", " + r2
+        e1_direction, e2_direction = elevator_directions(r1, r2, region_order)
+        assert (len(edges) > 0), f"Invalid regions: no nodes in {r1}, {r2}"
         # n1 has an edge to n2 crossing either from r1->r2 or r2->r1
-        r1_e_name = "Elevator " + r1 + "+" + r2 + " @ " + r1
-        r2_e_name = "Elevator " + r1 + "+" + r2 + " @ " + r2
+        r1_e_name = f"Elevator {r1.name} + {r2.name} @ {r1.name}"
+        r2_e_name = f"Elevator {r1.name} + {r2.name} @ {r2.name}"
         elevators[r1].append((r1_e_name, r2))
         elevators[r2].append((r2_e_name, r1))
-        graph.add_node(r1_e_name)
-        graph.add_node(r2_e_name)
+        graph.add_node(r1_e_name, e1_direction)
+        graph.add_node(r2_e_name, e2_direction)
         regions[r1][r1_e_name] = None
         regions[r2][r2_e_name] = None
         graph.add_edge(r1_e_name, r2_e_name, [])
@@ -176,7 +205,7 @@ def region_subgraphs(graph, regions):
         region_sgraphs[region] = graph.subgraph(nodes)
     return region_sgraphs
 
-def elevator_directions(elevators, region_order):
+def elevator_directions2(elevators, region_order):
     up_es = set()
     down_es = set()
 
@@ -208,7 +237,11 @@ def add_nodes(graph, extra_items):
             #TODO: for all assumed items, I think we'd like to ensure (if possible) that the player has that item as well
             out_edge = random.choice(graph.nodes[from_node].edges)
             assumed_items = random.choice(out_edge.data)
-            graph.add_node(node_name)
+            if item_type == "Save":
+                ty = NodeType.SAVE
+            else:
+                ty = NodeType.ITEM
+            graph.add_node(node_name, ty)
             graph.add_edge(from_node, node_name, [assumed_items])
             graph.add_edge(node_name, from_node, [assumed_items])
 
@@ -229,7 +262,7 @@ def make_rand_weighted_list(weights):
 #   Even when those settings require the placement of different items.
 def weighted_partition_order(graph, initial, weights, priority=lambda x: 0):
     """Partitions the item order graph into regions."""
-    # initial: region name (ex. "Maridia") -> nodes in that region
+    # initial: region (ex. Maridia) -> nodes in that region
     # weights: region name -> total weight for that region (int)
     # The weights are not normalized, but for example if the weight sums to 100,
     # and the weight of "Tourian" is 2, then the Tourian region should have 2 chances
@@ -262,12 +295,12 @@ def weighted_partition_order(graph, initial, weights, priority=lambda x: 0):
     # Determines which region's turn it is
     node_chances = []
 
-    # stop when every node has a region assignment
+    # Stop when every node has a region assignment
     while all_finished != gnodes:
         # If we've gone through the list of chances, re-generate it
         if len(node_chances) == 0:
             node_chances = make_rand_weighted_list(weights)
-        # choose the current region from node_chances
+        # Choose the current region from node_chances
         region = node_chances.pop()
         # If there are nodes with live neighbors...
         if len(rheaps[region]) > 0:

@@ -6,7 +6,7 @@ from data_types import basicgraph
 
 class Room(object):
 
-    def __init__(self, cmap, size, room_id, pos, graph=None):
+    def __init__(self, cmap, size, room_id, pos, region, graph=None):
         self.enemies = []
         self.plms = []
         self.doors = []
@@ -19,7 +19,10 @@ class Room(object):
         self.size = size
         self.room_id = room_id
         self.pos = pos
+        #TODO: more aesthetic info
+        self.region = region
 
+        #TODO: why are we doing this here?
         self.up_scroll = 0x70
         self.down_Scroll = 0xa0
         # Filled later
