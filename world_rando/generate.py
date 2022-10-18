@@ -3,6 +3,7 @@ from world_rando import item_order_graph
 from world_rando import map_gen
 from world_rando import map_viz
 from world_rando import room_gen
+from world_rando.room_dtypes import convert_rooms
 
 from rom_tools import rom_manager
 from encoding import sm_global
@@ -73,6 +74,16 @@ def generate_rooms(settings, concrete_map_info):
         region_room_defs[region] = room_gen.make_rooms(rooms, cmap, paths, node_info, region, settings.room_gen_settings)
     return region_room_defs
 
+def reify_rooms(room_info, parsed_rooms):
+    print("Converting Rooms to ROM format")
+    regs = room_info
+    rooms = []
+    # Collect the rooms
+    for room_d in regs.values():
+        for room in room_d.values():
+            rooms.append(room)
+    return convert_rooms(rooms, parsed_rooms)
+
 def visualize_abstract_maps(abstract_map_info):
     _, g, rsg, _ = abstract_map_info
     # Visualize the overall graph
@@ -99,6 +110,7 @@ def visualize_rooms(room_info):
     for region, room_defs in room_info.items():
         for room_def in room_defs.values():
             if not isinstance(room_def.level, str):
-                room_def.viz_cmap("output/" + region)
-                room_def.viz_graph("output/" + region)
-                room_def.viz_level("output/" + region)
+                outstr = f"output/{region.name}"
+                room_def.viz_cmap(outstr)
+                room_def.viz_graph(outstr)
+                room_def.viz_level(outstr)

@@ -74,7 +74,7 @@ def room_graphs(rooms, tile_rooms, paths):
                 gnew = rooms[new_room].graph
                 # Create a door node in the old room
                 current_wr = new_pos - current_pos
-                current_door = str(current_room) + "_" + str(current_pos) + "_" + str(current_wr)
+                current_door = f"{current_room}_{current_pos}_{current_wr}"
                 if current_door not in gcurrent.nodes:
                     gcurrent.add_node(current_door)
                     # Create a new door for current -> new
@@ -84,7 +84,7 @@ def room_graphs(rooms, tile_rooms, paths):
                 gcurrent.update_edge(current_node, current_door, items)
                 # Node in the new room
                 new_wr = current_pos - new_pos
-                new_door = str(new_room) + "_" + str(new_pos) + "_" + str(new_wr)
+                new_door = f"{new_room}_{new_pos}_{new_wr}"
                 if new_door not in gnew.nodes:
                     gnew.add_node(new_door)
                     # Create a new door for the new -> current
@@ -99,7 +99,7 @@ def room_graphs(rooms, tile_rooms, paths):
         gend.update_edge(current_node, end, items)
 
 def make_rooms(room_tiles, cmap, paths, node_info, region, settings):
-    patterns = pattern.load_patterns(settings.room_gen_settings["patterns"])
+    patterns = pattern.load_patterns(settings["patterns"])
     rooms = room_setup(room_tiles, cmap, region)
     # Tile to room
     tile_rooms = reverse_list_dict(room_tiles)
@@ -127,7 +127,8 @@ def choose_place_order(item, placement_chances):
     return weighted_random_order(["chozo", "pedestal", "hidden"], weights)
 
 #TODO: prefer searching the opposite direction from any doors entering the cmap tile (if possible)
-def find_item_loc(item, room, subrooms, roots, patterns, placement_chances):
+#def find_item_loc(item, room, subrooms, roots, patterns, placement_chances):
+def find_item_loc(item, room, subroom_state, patterns, placement_chances):
     """Determines a random item location based on first choosing randomly the
     type of place (chozo statue, pedestal, (hidden)), then finding a location based on the
     places where the appropriate setup pattern matches. Alters the level while doing so by
@@ -237,12 +238,14 @@ def find_item_loc(item, room, subrooms, roots, patterns, placement_chances):
                 # Tell the item where it is in the room and what its graphics should be.
                 item.room_pos = item_placement
                 item.graphic = item_graphic
+                print(f"ITEM_POS:{item.room_pos}")
+                print(f"ITEM_GRAPHIC:{item.graphic}")
                 #TODO: pattern placement might not necessarily be within the subroom?
-                item_subroom = find_coord(subrooms, roots, pattern_placement)
+                item_subroom = subroom_state.tile_to_subroom(pattern_placement)
                 # Add the resulting obstacle to the subroom's obstacles
                 #TODO: item.name different from item.item_type
                 obstacle = Obstacle(item.item_type, obstacle_rect, target_rect)
-                subrooms[item_subroom].place_obstacle(obstacle)
+                subroom_state.obstacles.append(obstacle)
                 print("Found location for: " + p + ", " + d)
                 # Once the location is found, just stop.
                 return
@@ -300,33 +303,33 @@ def make_subrooms(room, settings, patterns):
     subroom_state.mk_adj_walls(room.level)
     # DEBUG: look at the level data
     room.viz_level("./output/")
-    return
     # Generate item locations
     print("Generating item locations")
     placement_chances = settings["item_placement_chances"]
     for i in room.items:
         print("Item: " + i.item_type)
-        find_item_loc(i, room, subrooms, roots, patterns, placement_chances)
+        find_item_loc(i, room, subroom_state, patterns, placement_chances)
+    #TODO: Reconsider this stuff in light of the new architecture
     # Generate the graph
-    print("Generating subroom adjacencies")
-    min_entrance_size = settings["min_room_entrance_size"]
-    max_entrance_size = settings["max_room_entrance_size"]
-    subroom_graph = subroom_adjacency_graph(subroom_leaves, min_entrance_size, max_entrance_size)
+    #print("Generating subroom adjacencies")
+    #min_entrance_size = settings["min_room_entrance_size"]
+    #max_entrance_size = settings["max_room_entrance_size"]
+    #subroom_graph = subroom_adjacency_graph(subroom_leaves, min_entrance_size, max_entrance_size)
     #subroom_graph.visualize("./output/room" + str(room.room_id) + "subroom_graph")
-    print("Embedding room graph")
-    t = embed_room_graph(room.graph, subroom_graph)
-    detailed_room_graph, subroom_nodes, used_subrooms = t
-    unused_subrooms = filter(lambda x: x.id not in used_subrooms, subroom_leaves)
+    #print("Embedding room graph")
+    #t = embed_room_graph(room.graph, subroom_graph)
+    #detailed_room_graph, subroom_nodes, used_subrooms = t
+    #unused_subrooms = filter(lambda x: x.id not in used_subrooms, subroom_leaves)
     #TODO: this is kind of messy
     print("Finishing up subroom generation.")
     # Fill the walls again (now with entrances)
-    make_subroom_walls(room.level, subroom_leaves)
+    #make_subroom_walls(room.level, subroom_leaves)
     # Fill unused subrooms
-    for r in unused_subrooms:
-        mk_default_rect(room.level, r.rect)
+    #for r in unused_subrooms:
+    #    mk_default_rect(room.level, r.rect)
     # Add relevant info to the room
-    room.detailed_room_graph = detailed_room_graph
-    room.subroom_nodes = subroom_nodes
+    #room.detailed_room_graph = detailed_room_graph
+    #room.subroom_nodes = subroom_nodes
 
 # For recognizing when an error has caused
 # SubroomState to violate an invariant
@@ -344,6 +347,7 @@ class SubroomState(object):
         self.recycle_ids = []
         self.walls = walls
         self.obstacles = obstacles
+        #TODO: convert to networkx
         self.g = basicgraph.BasicGraph()
         self.new_subroom(start_subroom)
         #TODO: check borderedness of the starting subroom?
@@ -386,6 +390,9 @@ class SubroomState(object):
         self.g.add_edge(s2, s1, data=adj)
 
     def split_subroom_unknown(self, adj, min_size=None):
+        """
+        Split a subroom along a given adjacency (without reference to which subroom it is in).
+        """
         for sid in self.g.nodes:
             sub_tiles = self.g[sid].tiles
             if adj.tiles < sub_tiles:
@@ -685,24 +692,8 @@ def find_components(s):
         current_s = current_s - root_tiles
     return components
         
-
-#TODO: Some way to determine the subroom that houses a given obstacle for graphs
-#def find_coord(subrooms, roots, coord):
-#    """Find which leaf subroom has the given coord."""
-#    curr_roots = roots
-#    while True:
-#        candidates = [r for r in curr_roots if subrooms[r].rect.coord_within(coord)]
-#        assert len(candidates) == 1
-#        candidate_id = candidates[0]
-#        candidate = subrooms[candidate_id]
-#        if candidate.is_leaf():
-#            break
-#        else:
-#            curr_roots = candidate.children
-#    return candidate_id
-
 #TODO: with update, need patterns to do this properly
-# Should check whether each edge allows 
+# Should check whether each edge can actually be instantiated
 #def subroom_adjacency_graph(subroom_leaves, min_entrance_size, max_entrance_size):
 #    g = basicgraph.BasicGraph()
 #    # Add a node for each subroom and each obstacle that holds the target region of the obstacle

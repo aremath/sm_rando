@@ -301,6 +301,9 @@ def parse_wrapper(constructor):
     def inner(func):
         @wraps(func)
         def wrapper(address, obj_names, rom, data):
+            # Use the address the object was parsed from to determine the name
+            # Parser can theoretically be fooled into parsing multiple different types of object
+            # from the same address, and maybe that's OK (that's how the game code works, after all)
             name = constructor.name_def.format(address)
             # Use the address as the name for parsing
             # Already being parsed
@@ -510,11 +513,12 @@ class ObjNames(MutableMapping):
         return self.d.__delitem__(k)
 
     # TODO: delete which auto unallocates from rom.memory
-    def create(self, constructor, *args, replace=None):
+    def create(self, constructor, *args, replace=None, obj_name=None):
         """ Register a new object of the given type by instantiating it
         with *args """
-        obj_name = constructor.name_def.format(self.new_obj_id)
-        self.new_obj_id += 1
+        if obj_name is None:
+            obj_name = constructor.name_def.format(self.new_obj_id)
+            self.new_obj_id += 1
         # Use replace to allocate the new object on top of an existing object
         if replace is not None:
             old_address = replace.old_address
@@ -526,6 +530,53 @@ class ObjNames(MutableMapping):
         # Register the new object
         self[obj_name] = obj
         return obj
+
+    def copy_obj(self, obj, replace=None, new_name=None):
+        """
+        Move a name from other to self, and also take along all other names it depends on.
+        If replace is not None, then some pointers will be replaced before allocation.
+        """
+        assert obj.obj_names != self, "Copying an object from the same place!"
+        assert isinstance(obj, RomObject)
+        # We're already done
+        if obj.name in self:
+            return obj
+        constructor = type(obj)
+        if new_name is None:
+            new_name = obj.name
+        # Use object's getattr to avoid the standard pointer dereferencing
+        args = [object.__getattribute__(obj, name) for name in obj.fields]
+        # Do the replacement (need to use string pointers)
+        if replace is not None:
+            assert len(replace) == len(args)
+            new_args = []
+            for o, r in zip(args, replace):
+                if r is None:
+                    new_args.append(o)
+                else:
+                    new_args.append(r)
+            args = new_args
+        new_obj = constructor(new_name, None, None, self, *args)
+        self[new_name] = new_obj
+        # Now recursively add dependencies
+        # Now we WANT the dereferencing
+        new_attrs = [new_obj.__getattribute__(name) for name in obj.fields]
+        for attr in new_attrs:
+            if isinstance(attr, RomObject):
+                # Replace and new_name only for the top-level object
+                _ = self.copy_obj(attr)
+        return new_obj
+
+    # Return the addresses of the RoomHeader objects for use with SMILE RF
+    def room_mdb(self):
+        # Do not include uncompiled rooms
+        rooms = filter(lambda x: type(x) is RoomHeader, self.values())
+        rooms2 = filter(lambda x: hasattr(x, "address"), rooms)
+        if len(rooms) != len(rooms2):
+            print("Warning: obj_names has uncompiled room headers!")
+        # Remove 0x and convert hex letters to upper case
+        a_strs = [str(r.address).upper()[2:] for r in rooms2]
+        return "\n".join(a_strs)
 
 # Classes
 
@@ -539,7 +590,7 @@ class RomObject(object):
         self.old_size = old_size
         self.obj_names = obj_names
         fields = type(self).fields
-        assert len(fields) == len(args)
+        assert len(fields) == len(args), f"Number of arguments ({len(args)}) does not match number of parameters ({len(fields)})"
         for field, arg in zip(fields, args):
             setattr(self, field, arg)
 

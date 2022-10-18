@@ -12,3 +12,4 @@ testing
 *.png
 *.pickle
 abstraction_validation/ram.bin
+foo

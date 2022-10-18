@@ -4,6 +4,10 @@ from world_rando.map_viz import *
 from world_rando.room_viz import *
 from data_types import basicgraph
 
+from rom_tools import rom_data_structures as rd
+from rom_tools import leveldata_utils
+from rom_tools import item_definitions
+
 class Room(object):
 
     def __init__(self, cmap, size, room_id, pos, region, graph=None):
@@ -27,6 +31,7 @@ class Room(object):
         self.down_Scroll = 0xa0
         # Filled later
         self.level = None
+        self.converter = None
 
     #TODO
     def translate(self):
@@ -76,6 +81,7 @@ class Item(object):
         # String - one of "C", "N", "H" for Chozo, Hidden, Normal
         # First index to the item definition in rom_tools/item_definitions.py
         self.graphic = None
+        # Filled later
         # Coord - position of the item in the room
         self.room_pos = None
 
@@ -352,4 +358,272 @@ class Type(object):
         else:
             return Type(self.index, self.bts)
 
+#
+# Conversion to ROM data types
+#
+#TODO: consider using ROM data types from the start?
 
+# ObjNames that also keeps track of PLM ID.
+#TODO: automatic tracking on object create?
+# Can check if a PLM object
+#TODO: automatic tracking of save station IDs
+class ObjNamesConvert(rd.ObjNames):
+
+    def __init__(self, plm_id=0):
+        super().__init__()
+        self.plm_id = plm_id
+
+    # Automatic tracking and assignment of PLM IDs
+    def create(self, constructor, *args, replace=None):
+        if constructor is rd.PLM:
+            args = (*args, self.plm_id)
+        obj = super().create(constructor, *args, replace=replace)
+        if constructor is rd.PLM:
+            self.plm_id += 1
+        return obj
+
+def convert_rooms(rooms, parsed_rooms=None):
+    # Keeps track of global PLM ids for non-returning PLMs like items
+    #TODO: Merge with existing (parsed) ObjNames ?
+    # compile_from_savestations will handle the DFS to only compile reachable rooms!
+    #TODO: find out how many PLM ids there are, and which ones are used in the base game
+    #TODO: Some PLMs (i.e. opposing door caps) should be assigned the same ID
+    obj_names = ObjNamesConvert(plm_id=0)
+    # rooms is room_id -> Room
+    # Rooms handshake on what to call their headers so that
+    # pointers can be created before the room they point to
+    #TODO: Save Stations
+    # Remember to use names when passing pointer-like values to obj_names.create 
+    # (rather than the object itself)
+    default_converter = Converter()
+    for room in rooms:
+        # Can do this even though rooms are interlinked because of the shared room header pointer naming format
+        if room.converter is None:
+            _ = default_converter.convert_roomheader(room, obj_names)
+        else:
+            assert parsed_rooms is not None, "Trying to copy details without parsed rooms!"
+            c = room.converter(parsed_rooms)
+            _ = c.convert_roomheader(room, obj_names)
+    return obj_names
+
+# room_id
+room_header_name_f = "room_header_id_{}"
+# region_name, id
+room_id_f = "{}{}"
+
+def get_room_pointer(room):
+    area_index = room.region.region_id
+    rid = room_id_f.format(area_index, room.room_id)
+    return room_header_name_f.format(rid)
+
+class Converter(object):
+    """
+    Class with static methods that convert generated data structures to the rom_tools format
+    Allows replacing any / all of the methods with different ones.
+    """
+    #TODO: how to enforce this kind of thing in the tiles, when the door index must be known by door tiles
+    # but might change during conversion?
+
+    def __init__(self):
+        pass
+
+    # RoomHeader
+    def convert_roomheader(self, room, obj_names):
+        statechooser = self.convert_statechooser(room, obj_names)
+        doorlist = convert_door_list(room.doors, obj_names)
+        #TODO
+        room_index = 0
+        area_index = room.region.region_id
+        map_x, map_y = room.pos
+        width, height = room.size
+        CRE_bitset = 0 # Refer to rom_tools/rom_data_structures.
+        # Room Header
+        roomheader = obj_names.create(rd.RoomHeader, room_index, area_index, map_x, map_y, width, height,
+                room.up_scroll, room.down_scroll, CRE_bitset, doorlist.name, statechooser.name,
+                name=get_room_pointer(room))
+        return roomheader
+
+    #TODO: this can become more complex
+    # StateChooser
+    #   StateChoice
+    def convert_statechooser(self, room, obj_names):
+        room_state = self.convert_roomstate(room, obj_names)
+        # All rooms are default for now
+        statechooser = obj_names.create(rd.StateChooser, [], room_state.name)
+        return statechooser
+
+    # RoomState
+    def convert_roomstate(self, room, obj_names):
+        fx = self.convert_fx(room, obj_names)
+        enemylist = self.convert_enemies([], obj_names)
+        enemytypes = self.convert_enemytypes([], obj_names)
+        plmlist = self.convert_plms(room.items, obj_names)
+        level = self.convert_level(room.level, obj_names)
+        scrolls = self.convert_scrolls(room, obj_names)
+        # Room State
+        #TODO: set these extra params
+        tileset = 0
+        music_data = 0
+        music_track = 0
+        layer2_scroll_x = 0
+        layer2_scroll_y = 0
+        special_xray = 0
+        main_asm = 0
+        background_index = 0
+        setup_asm = 0
+        room_state = obj_names.create(rd.RoomState, level.name,
+                tileset, music_data, music_track, fx.name, enemylist.name, enemytypes.name,
+                layer2_scroll_x, layer2_scroll_y, scrolls.name, special_xray, main_asm,
+                plmlist.name, background_index, setup_asm)
+        return room_state
+
+    #TODO: FX
+    # FX
+    #   FXEntry
+    #   FX
+    def convert_fx(self, room, obj_names):
+        fx = obj_names.create(rd.FX, [], None)
+        return fx
+
+    #TODO
+    # EnemyList
+    #   Enemies
+    def convert_enemies(self, enemies, obj_names):
+        enemylist = obj_names.create(rd.EnemyList, [], 0)
+        return enemylist
+
+    # EnemyTypes
+    def convert_enemytypes(self, enemies, obj_names):
+        # Enemy Types
+        #   EnemyType
+        enemytypes = obj_names.create(rd.EnemyTypes, [])
+        return enemytypes
+
+    #TODO: other PLMs like door caps, gates, etc.
+    # PLMList
+    def convert_plms(self, items, obj_names):
+        #   PLMs
+        plms = []
+        # Item PLMs
+        for item in items:
+            i = self.convert_item(item, obj_names)
+            plms.append(i)
+        plmlist = obj_names.create(rd.PLMList, [p.name for p in plms])
+        return plmlist
+
+    # PLM - Items
+    def convert_item(self, item, obj_names):
+        #TODO: just have item_definitions be a big dict
+        ids = item_definitions.make_item_definitions()
+        print(item.item_type)
+        item_id = int.from_bytes(ids[item.item_type][item.graphic], byteorder="little")
+        ix, iy = item.room_pos
+        # PID assigned automatically by special create
+        i = obj_names.create(rd.PLM, item_id, ix, iy)
+        return i
+
+    # Level Data
+    def convert_level(self, level, obj_names):
+        lbytes = level.to_bytes()
+        larray = leveldata_utils.level_array_from_bytes(level_bytes, level.dimensions)
+        level = obj_names.create(rd.LevelData, lbytes, larray, None)
+        return level
+
+    # Scrolls
+    def convert_scrolls(self, room, obj_names):
+        # All green
+        #TODO: more nuanced scrolls
+        rx, ry = room.level.dimensions
+        scroll_array = np.zeros((rx // 16, ry // 16))
+        for x in range(rx // 16):
+            for y in range(ry // 16):
+                scroll_array[x,y] = 2
+        scrolls = obj_names.create(rd.Scrolls, scroll_array)
+        return scrolls
+
+    # DoorList
+    def convert_door_list(self, doors, obj_names):
+        doors = []
+        for door in doors:
+            #TODO: door.destination is just the ID without the region??
+            # IDs should be unique across multiple regions anyways...
+            #TODO: door "tiles" don't make sense when the door transitions between regions though.
+            # Get the pointer to what will be the target room
+            dest_id = door.destination
+            dest_region = ...
+            dest_rid = room_id_f.format(dest_region, dest_id)
+            room_ptr = room_header_name_f.format(dest_rid)
+            d = self.convert_door(door, room_ptr, obj_names)
+            doors.append(d)
+        doorlist = obj_names.create(rd.DoorList, [door.name for door in doors])
+        return doorlist
+
+    # Door
+    #TODO: elevator properties
+    def convert_door(self, door, room_ptr, obj_names):
+        elevator_properties = 0
+        orientation = door.direction
+        #TODO: appropriate defaults for orientation
+        xlow = 0
+        ylow = 0
+        xhigh = 0
+        yhigh = 0
+        dist = 0
+        door_asm = None
+        door_obj = obj_names.create(rd.Door, room_ptr, elevator_properties, orientation,
+                xlow, ylow, xhigh, yhigh, dist, door_asm)
+        return door_obj
+
+class DetailCopyConverter(Converter):
+
+    def __init__(self, replace_with, replace_from):
+        """
+        to_replace is an object name (RoomHeader)
+        replace_from is an ObjNames containing to_replace
+        """
+        self.replace_header = replace_from[replace_with]
+        assert type(self.replace_header) is rd.RoomHeader
+
+    def convert_roomheader(self, room, obj_names):
+        room_name = get_room_pointer(room)
+        doorlist = self.convert_door_list(room.doors, obj_names)
+        map_x, map_y = room.pos
+        replace = [None, None, room.region.area_index, map_x, map_y, None, None, None,
+                None, None, doorlist, None]
+        # Bring in the room+dependencies from the other namespace
+        rh = obj_names.copy_from(self.replace_header, replace=replace, new_name=room_name)
+        return rh
+
+    # Save door properties from each door as well
+    def convert_door_list(self, doors, obj_names):
+        doors = []
+        # This requires doors are listed in the same order as the original room!
+        for door, old_door in zip(doors, self.replace_header.door_list.l):
+            #TODO: door.destination is just the ID without the region??
+            # IDs should be unique across multiple regions anyways...
+            #TODO: door "tiles" don't make sense when the door transitions between regions though.
+            # Get the pointer to what will be the target room
+            dest_id = door.destination
+            dest_region = ...
+            dest_rid = room_id_f.format(dest_region, dest_id)
+            room_ptr = room_header_name_f.format(dest_rid)
+            d = self.convert_door(door, room_ptr, old_door, obj_names)
+            doors.append(d)
+        doorlist = obj_names.create(rd.DoorList, [door.name for door in doors])
+        return doorlist
+
+    # Door
+    def convert_door(self, door, room_ptr, old_door, obj_names):
+        elevator_properties = old_door.elevator_properties
+        orientation = old_door.direction
+        xlow = old_door.x_pos_low
+        ylow = old_door.y_pos_low
+        xhigh = old_door.x_pos_high
+        yhigh = old_door.y_pos_high
+        dist = old_door.spawn_distance
+        door_asm = old_door.asm_pointer
+        door_obj = obj_names.create(rd.Door, room_ptr, elevator_properties, orientation,
+                xlow, ylow, xhigh, yhigh, dist, door_asm)
+        return door_obj
+
+#TODO: SaveStation room mker + converter that actually edits the state

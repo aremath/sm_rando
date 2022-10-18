@@ -205,24 +205,6 @@ def region_subgraphs(graph, regions):
         region_sgraphs[region] = graph.subgraph(nodes)
     return region_sgraphs
 
-def elevator_directions2(elevators, region_order):
-    up_es = set()
-    down_es = set()
-
-    for r1, t_list in elevators.items():
-        for t in t_list:
-            e_name, r2 = t
-            # determine if r1 is before or after r2
-            r1_index = region_order.index(r1)
-            r2_index = region_order.index(r2)
-            if r1_index > r2_index:
-                down_es.add(e_name)
-            elif r2_index > r1_index:
-                up_es.add(e_name)
-            else:
-                assert False, "Elevator to same region"
-    return up_es, down_es
-
 def add_nodes(graph, extra_items):
     """adds the requested amount of each item to the specified abstract map
     randomly. Items is a dictionary with key - item type to add, value - number to add"""

@@ -2,7 +2,7 @@ from functools import reduce
 
 from world_rando.coord import *
 from world_rando.concrete_map import *
-from world_rando.room_dtypes import Room, Door
+from world_rando.room_dtypes import Room, Door, Converter, DetailCopyConverter
 from world_rando.item_order_graph import NodeType
 
 #TODO: how to make sure we generate the Kraid and Draygon item rooms?
@@ -38,6 +38,31 @@ def mk_area(pos, dims, area):
 def default_mk_room(loc, rooms, tile_rooms):
     return
 
+def mk_copyconverter(room_name):
+    return lambda p: DetailCopyConverter(room_name, p)
+
+rhs = "room_header_{}"
+boss_rooms = {
+    "Kraid"         :   rhs.format("0x7a59f"),
+    "Phantoon"      :   rhs.format("0x7cd13"),
+    "Draygon"       :   rhs.format("0x7da60"),
+    "Ridley"        :   rhs.format("0x7b32e"),
+    "Bomb_Torizo"   :   rhs.format("0x79804"),
+    "Spore_Spawn"   :   rhs.format("0x79dc7"),
+    "Botwoon"       :   rhs.format("0x7d95e"),
+    "Golden_Torizo" :   rhs.format("0x7b283"),
+    "Mother_Brain"  :   rhs.format("0x7dd58"),
+}
+
+#TODO: how to do Bomb Torizo's item?
+#TODO: other bosses
+boss_item_rooms = {
+    "Kraid"         :   rhs.format("0x7a6e2"),
+    "Draygon"       :   rhs.format("0x7d9aa"),
+    "Ridley"        :   rhs.format("0x7B698"),
+}
+
+
 # Functions for instantiating rooms for a boss area
 def mk_single_mker(boss_name, boss_loc):
     bo_dir = -boss_loc
@@ -47,8 +72,7 @@ def mk_single_mker(boss_name, boss_loc):
         boss_id_to_outside = Door(loc + boss_loc, bo_dir, boss_id, outside, f"{boss_name}_bo")
         outside_to_boss_id = Door(loc, -bo_dir, outside, boss_id, f"{boss_name}_ob")
         boss_room = Room(None, Coord(1,1), boss_id, loc + boss_loc)
-        boss_room.level = boss_id
-        boss_room.room_details = boss_id
+        boss_room.converter = mk_copyconverter(boss_rooms[boss_name])
         boss_room.doors.append(boss_id_to_outside)
         rooms[outside].doors.append(outside_to_boss_id)
         rooms[boss_id] = boss_room
@@ -76,15 +100,13 @@ def mk_item_mker(boss_name, boss_size, item_size, boss_loc, item_loc, ob_dir=Non
         b_to_outside = Door(loc + bo_loc, bo_dir, boss_id, outside, f"{boss_name}_bo")
         outside_to_b = Door(loc + ob_loc, ob_dir, outside, boss_id, f"{boss_name}_ob")
         boss_room = Room(None, boss_size, boss_id, loc + boss_loc)
-        #TODO: how to map level data from the real rom?
-        boss_room.level = boss_id
         #TODO: how to specify what should be kept and what should be replaced?
-        boss_room.room_details = boss_id
+        boss_room.converter = mk_copyconverter(boss_rooms[boss_name])
         boss_room.doors.append(b_to_i)
         boss_room.doors.append(b_to_outside)
         item_room = Room(None, item_size, item_id, loc + item_loc)
         item_room.level = item_id
-        item_room.room_details = item_id 
+        item_room.converter = mk_copyconverter(boss_item_rooms[boss_name])
         item_room.doors.append(i_to_b)
         #TODO: Add gadora PLM to outside_room
         #TODO: How to tell outside room about using gadora tiles near the gadora??
@@ -107,7 +129,8 @@ def mk_item_mker(boss_name, boss_size, item_size, boss_loc, item_loc, ob_dir=Non
 # Needs at least the map position and the dict mapping coords to rooms (to instantiate doors)
 class FixedMap(object):
 
-    def __init__(self, tile_list, bboxes, mk_room=default_mk_room, extend=None, dims=None):
+    def __init__(self, tile_list, bboxes, mk_room=default_mk_room,
+            extend=None, dims=None,):
         self.real_cmap = ConcreteMap(dims)
         if not bounded_put_check(self.real_cmap, tile_list):
             assert False
