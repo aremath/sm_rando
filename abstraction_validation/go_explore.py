@@ -5,6 +5,7 @@ import random
 import functools
 import imageio
 import networkx as nx
+import numpy as np
 
 def pairwise(iterable):
     "s -> (s0, s1), (s1, s2), (s2, s3), ..."
