@@ -122,7 +122,7 @@ def state_set_distance(state1, state_lib, offset):
     dists = [(state_distance(state1, s, offset), s) for s in state_lib]
     return min(dists, key=lambda x: x[0])
 
-def mk_cell_ok(state_library, max_distance):
+def mk_cell_ok(state_library, max_distance, offset):
     """
     Make a function that returns True iff samus is inside the guidance tube
     """
@@ -132,3 +132,16 @@ def mk_cell_ok(state_library, max_distance):
         return dist <= max_distance
     return cell_ok
 
+# Want weight to increase for cells with a lower total distance to goal
+# futurecost is a dict of abstract state -> float
+# Use with go_explore.softminselector
+def mk_cell_dists(state_library, futurecost):
+    @functools.lru_cache(maxsize=None)
+    def cell_dist(state):
+        # Approximate distance to the nearest valid state
+        dist_to_valid, valid = state_set_distance(state, state_library, offset)
+        # Approximate futurecost to reach the goal from valid
+        dist_to_goal = futurecost[valid]
+        totaldist = dist_to_valid + dist_to_goal
+        return totaldist
+    return cell_dist

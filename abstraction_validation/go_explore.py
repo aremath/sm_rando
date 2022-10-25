@@ -68,7 +68,7 @@ class MarkovSelector(Selector):
     def select(self, actions):
         random.choices(actions, self.background, k=1)[0]
 
-def go_explore(initial_state, actions, emu, n_steps, max_step_size, cell_ok=lambda x: True,  goal=lambda s: False, cell_selector=Selector(), action_selector=Selector()):
+def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, cell_ok=lambda x: True,  goal=lambda s: False, cell_selector=Selector(), action_selector=Selector()):
     #  Graph of Real State, with actions on edges
     graph = nx.Graph()
     # Abstract State -> Set(Real State) 
