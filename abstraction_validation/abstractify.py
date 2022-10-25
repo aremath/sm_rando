@@ -78,7 +78,7 @@ def abstractify_pos(frame):
     top = (y_center - y_radius) // 16
     left = (x_center - x_radius) // 16
     pos = Coord(left, top)
-	return pos
+    return pos
 
 # Use global position for shared reference point
 #$079F: Area index
@@ -107,17 +107,17 @@ maptile_size = Coord(256, 256)
 
 # Global pos
 def abstractify_pos_global(frame):
-	frame8 = frame.view("uint8")
-	# Area pos
-	area_index = frame8[0x79f]
-	area_pos = maptile_size * area_offsets[area_index]
-	# Map pos
-	map_x = frame8[0x07a1]
-	map_y = frame8[0x07a3]
-	map_pos = maptile_size * Coord(map_x, map_y)
-	# Room pos
-	room_pos = abstractify_pos(frame)
-	return area_pos + map_pos + room_pos
+    frame8 = frame.view("uint8")
+    # Area pos
+    area_index = frame8[0x79f]
+    area_pos = maptile_size * area_offsets[area_index]
+    # Map pos
+    map_x = frame8[0x07a1]
+    map_y = frame8[0x07a3]
+    map_pos = maptile_size * Coord(map_x, map_y)
+    # Room pos
+    room_pos = abstractify_pos(frame)
+    return area_pos + map_pos + room_pos
 
 def abstractify_pose(frame):
     x_radius = frame[0x0afe // 2]
@@ -151,11 +151,11 @@ def abstractify_velocity(frame):
     return Velocity(vvel, hvel)
 
 def abstractify_state(frame, global=False):
-	if global:
-		pos = abstractify_pos_global(frame)
-	else:
-		pos = abstractify_pos(frame)
-	pose = abstractify_pose(frame)
+    if global:
+        pos = abstractify_pos_global(frame)
+    else:
+        pos = abstractify_pos(frame)
+    pose = abstractify_pose(frame)
     v = abstractify_velocity(frame)
     items, n_ammo = abstractify_items(frame)
     return SamusState(pos, v, items, pose)
