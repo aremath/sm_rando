@@ -4,6 +4,7 @@ from tqdm.notebook import tqdm
 import random
 import functools
 import imageio
+import networkx as nx
 
 def pairwise(iterable):
     "s -> (s0, s1), (s1, s2), (s2, s3), ..."

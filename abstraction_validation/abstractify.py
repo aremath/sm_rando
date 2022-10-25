@@ -123,6 +123,9 @@ def state_set_distance(state1, state_lib, offset):
     return min(dists, key=lambda x: x[0])
 
 def mk_cell_ok(state_library, max_distance):
+    """
+    Make a function that returns True iff samus is inside the guidance tube
+    """
     @functools.lru_cache(maxsize=None)
     def cell_ok(state):
         dist = state_set_distance(state, state_library, offset)[0]
