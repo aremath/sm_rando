@@ -123,9 +123,9 @@ def state_set_distance(state1, state_lib, offset):
     return min(dists, key=lambda x: x[0])
 
 def mk_cell_ok(state_library, max_distance):
-	@functools.lru_cache(maxsize=None)
- 	def cell_ok(state):
-		dist = state_set_distance(state, state_library, offset)[0]
-		return dist <= max_distance
-	return cell_ok
+    @functools.lru_cache(maxsize=None)
+    def cell_ok(state):
+        dist = state_set_distance(state, state_library, offset)[0]
+        return dist <= max_distance
+    return cell_ok
 
