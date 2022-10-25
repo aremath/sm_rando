@@ -68,16 +68,60 @@ def abstractify_items(frame):
         all_items = all_items.add("E")
     return all_items, n_ammo
  
-#TODO: - this uses within-room pos rather than "global" pos using maptiles
-def abstractify_pos_pose(frame):
+# Within-room pos rather than "global" pos using maptiles
+def abstractify_pos(frame):
     # Compute Abstract position
-    x_center = frame[0x0af6 // 2]
-    y_center = frame[0x0afa // 2]
     x_radius = frame[0x0afe // 2]
     y_radius = frame[0x0b00 // 2]
+    x_center = frame[0x0af6 // 2]
+    y_center = frame[0x0afa // 2]
     top = (y_center - y_radius) // 16
     left = (x_center - x_radius) // 16
     pos = Coord(left, top)
+	return pos
+
+# Use global position for shared reference point
+#$079F: Area index
+#{
+#    0: Crateria
+#    1: Brinstar
+#    2: Norfair
+#    3: Wrecked Ship
+#    4: Maridia
+#    5: Tourian
+#    6: Ceres
+#    7: Debug
+#}
+area_offsets = {
+    0: Coord(3, 10),
+    1: Coord(0, 29),
+    2: Coord(31, 49),
+    3: Coord(37, 0),
+    4: Coord(28, 29),
+    5: Coord(0, 10),
+    # Out of bounds
+    6: Coord(0, -10),
+    7: Coord(0, 0),
+}
+maptile_size = Coord(256, 256)
+
+# Global pos
+def abstractify_pos_global(frame):
+	frame8 = frame.view("uint8")
+	# Area pos
+	area_index = frame8[0x79f]
+	area_pos = maptile_size * area_offsets[area_index]
+	# Map pos
+	map_x = frame8[0x07a1]
+	map_y = frame8[0x07a3]
+	map_pos = maptile_size * Coord(map_x, map_y)
+	# Room pos
+	room_pos = abstractify_pos(frame)
+	return area_pos + map_pos + room_pos
+
+def abstractify_pose(frame):
+    x_radius = frame[0x0afe // 2]
+    y_radius = frame[0x0b00 // 2]
     # Compute abstract pose
     if y_radius <= 0x7:
         pose = SamusPose.MORPH
@@ -98,7 +142,7 @@ def abstractify_pos_pose(frame):
     #TODO: unknown pose
     elif y_radius == 0x18:
         pose = SamusPose.STAND
-    return pos, pose
+    return pose
     
 #TODO
 def abstractify_velocity(frame):
@@ -106,8 +150,12 @@ def abstractify_velocity(frame):
     vvel = 0
     return Velocity(vvel, hvel)
 
-def abstractify_state(frame):
-    pos, pose = abstractify_pos_pose(frame)
+def abstractify_state(frame, global=False):
+	if global:
+		pos = abstractify_pos_global(frame)
+	else:
+		pos = abstractify_pos(frame)
+	pose = abstractify_pose(frame)
     v = abstractify_velocity(frame)
     items, n_ammo = abstractify_items(frame)
     return SamusState(pos, v, items, pose)
@@ -135,7 +183,7 @@ def mk_cell_ok(state_library, max_distance, offset):
 # Want weight to increase for cells with a lower total distance to goal
 # futurecost is a dict of abstract state -> float
 # Use with go_explore.softminselector
-def mk_cell_dists(state_library, futurecost):
+def mk_cell_dists(state_library, futurecost, offset):
     @functools.lru_cache(maxsize=None)
     def cell_dist(state):
         # Approximate distance to the nearest valid state

@@ -7,6 +7,17 @@ import imageio
 import networkx as nx
 import numpy as np
 
+from abstraction_validation.abstractify import abstractify_state
+
+class cachedict(defaultdict):
+	def __missing__(self, key):
+		if self.default_factory is None:
+			raise KeyError(key)
+		else:
+			value = self.default_factory(key)
+			self[key] = value
+			return value
+
 def pairwise(iterable):
     "s -> (s0, s1), (s1, s2), (s2, s3), ..."
     a, b = itertools.tee(iterable)
