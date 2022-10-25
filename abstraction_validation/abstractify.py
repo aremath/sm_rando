@@ -1,3 +1,5 @@
+
+import functools
 from data_types import item_set
 from world_rando.coord import Coord
 from world_rando.rules import SamusState, SamusPose, Velocity, VType, HVelocity
@@ -109,3 +111,21 @@ def abstractify_state(frame):
     v = abstractify_velocity(frame)
     items, n_ammo = abstractify_items(frame)
     return SamusState(pos, v, items, pose)
+
+def state_distance(state1, state2, offset):
+    if state1.items == state2.items:
+        return state1.position.euclidean(state2.position + offset)
+    else:
+        return float("inf")
+
+def state_set_distance(state1, state_lib, offset):
+    dists = [(state_distance(state1, s, offset), s) for s in state_lib]
+    return min(dists, key=lambda x: x[0])
+
+def mk_cell_ok(state_library, max_distance):
+	@functools.lru_cache(maxsize=None)
+ 	def cell_ok(state):
+		dist = state_set_distance(state, state_library, offset)[0]
+		return dist <= max_distance
+	return cell_ok
+
