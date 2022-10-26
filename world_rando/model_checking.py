@@ -12,9 +12,13 @@ import time
 import graphviz
 import pickle
 
-import parse_rules
-from rules import *
-from search import *
+#import parse_rules
+#from world_rando import parse_rules
+#from rules import *
+#from search import *
+from world_rando import parse_rules
+from world_rando.rules import *
+from world_rando.search import *
 
 no_softlocks = AG(EF("goal"))
 no_softlocks_inner = EF("goal")
