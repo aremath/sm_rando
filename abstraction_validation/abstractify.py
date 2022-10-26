@@ -103,7 +103,10 @@ area_offsets = {
     6: Coord(0, -10),
     7: Coord(0, 0),
 }
-maptile_size = Coord(256, 256)
+
+#maptile_size = Coord(256, 256)
+# In integer positions, 256 in pixel positions
+maptile_size = Coord(16, 16)
 
 # Global pos
 def abstractify_pos_global(frame):
@@ -150,8 +153,8 @@ def abstractify_velocity(frame):
     vvel = 0
     return Velocity(vvel, hvel)
 
-def abstractify_state(frame, global=False):
-    if global:
+def abstractify_state(frame, global_pos=False):
+    if global_pos:
         pos = abstractify_pos_global(frame)
     else:
         pos = abstractify_pos(frame)

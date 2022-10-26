@@ -1,6 +1,6 @@
 import itertools
 from collections import defaultdict
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 import random
 import functools
 import imageio
@@ -79,7 +79,9 @@ class MarkovSelector(Selector):
     def select(self, actions):
         random.choices(actions, self.background, k=1)[0]
 
-def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, cell_ok=lambda x: True,  goal=lambda s: False, cell_selector=Selector(), action_selector=Selector()):
+def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, cell_ok=lambda x: True,  goal=lambda s: False, cell_selector=Selector(), action_selector=Selector(), global_pos=False, seed=None):
+    if seed is not None:
+        random.seed(seed)
     #  Graph of Real State, with actions on edges
     graph = nx.Graph()
     # Abstract State -> Set(Real State) 
@@ -87,7 +89,7 @@ def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, ce
     emu.set_state(initial_state)
     ram = np.frombuffer(gamedata.memory.blocks[0x7e0000],'int16')
     graph.add_node(initial_state, ram=ram)
-    initial_cell = abstractify_state(ram)
+    initial_cell = abstractify_state(ram, global_pos)
     print(initial_cell)
     atlas[initial_cell] = set([initial_state])
     cell = None
@@ -105,7 +107,7 @@ def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, ce
             emu.set_button_mask(action,0)
             emu.step()
         ram = np.frombuffer(gamedata.memory.blocks[0x7e0000],'int16')
-        next_cell = abstractify_state(ram)
+        next_cell = abstractify_state(ram, global_pos)
         # Bounds checking using cell_ok
         if cell_ok(next_cell):
             next_state = emu.get_state()
