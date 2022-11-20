@@ -97,7 +97,6 @@ def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, ce
     graph = nx.Graph()
     # Abstract State -> Set(Real State)
     # Store the timestamp of cell discovery
-    log = [(0, initial_cell)]
     atlas = defaultdict(set)
     emu.set_state(initial_state)
     ram = np.frombuffer(gamedata.memory.blocks[0x7e0000],'int16')
@@ -105,6 +104,7 @@ def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, ce
     initial_cell = abstractify_state(ram, global_pos)
     print(initial_cell)
     atlas[initial_cell] = set([initial_state])
+    log = [(0, initial_cell)]
     cell = None
     for t in tqdm(range(n_steps), unit="step"):
         all_cells = list(atlas.keys())
@@ -128,6 +128,6 @@ def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, ce
             graph.add_node(next_state, ram=ram)
             graph.add_edge(state, next_state, action=(action, n_steps))
             if next_cell not in atlas:
-                log.append((t, next_cell))
+                log.append((t+1, next_cell))
             atlas[next_cell].add(next_state)
     return atlas, graph, cell, initial_cell, log
