@@ -9,14 +9,15 @@ import numpy as np
 
 from abstraction_validation.abstractify import abstractify_state
 
+#TODO: replace with @functools.lru_cache
 class cachedict(defaultdict):
-	def __missing__(self, key):
-		if self.default_factory is None:
-			raise KeyError(key)
-		else:
-			value = self.default_factory(key)
-			self[key] = value
-			return value
+    def __missing__(self, key):
+        if self.default_factory is None:
+            raise KeyError(key)
+        else:
+            value = self.default_factory(key)
+            self[key] = value
+            return value
 
 def pairwise(iterable):
     "s -> (s0, s1), (s1, s2), (s2, s3), ..."
@@ -53,6 +54,7 @@ class Selector(object):
     def select(self, cells):
         return random.choice(cells)
 
+#TODO: parameterize instead of a constant.
 class SoftminSelector(Selector):
 
     def __init__(self, weight_fun):
@@ -66,10 +68,12 @@ class SoftminSelector(Selector):
         cell = random.choices(cells, weights, k=1)[0]
         return cell
 
+#TODO: blend between markov + uniform
+#TODO: Need to pass in the previous action
 class MarkovSelector(Selector):
 
     def __init__(self, model, background):
-        # Action -> ([float])
+        # Action -> [float]
         # How often did each action occur after the current action
         # Must be in the same order as the action list
         # Must include an entry None for the background (unconditional) distribution
@@ -77,14 +81,22 @@ class MarkovSelector(Selector):
         self.prev_action = None
     
     def select(self, actions):
-        random.choices(actions, self.background, k=1)[0]
+        action = random.choices(actions, self.background, k=1)[0]
+        self.prev_action = action
 
+#TODO: Pass the select method instead of the whole class
+#TODO: Pass in abstractify_state (with default)
+#TODO: StateSelector
+#TODO: (long term) - Atlas that contains all of these external settings
+#TODO: state-level / ram-level predicate
 def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, cell_ok=lambda x: True,  goal=lambda s: False, cell_selector=Selector(), action_selector=Selector(), global_pos=False, seed=None):
     if seed is not None:
         random.seed(seed)
     #  Graph of Real State, with actions on edges
     graph = nx.Graph()
-    # Abstract State -> Set(Real State) 
+    # Abstract State -> Set(Real State)
+    # Store the timestamp of cell discovery
+    log = [(0, initial_cell)]
     atlas = defaultdict(set)
     emu.set_state(initial_state)
     ram = np.frombuffer(gamedata.memory.blocks[0x7e0000],'int16')
@@ -93,7 +105,7 @@ def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, ce
     print(initial_cell)
     atlas[initial_cell] = set([initial_state])
     cell = None
-    for _ in tqdm(range(n_steps), unit="step"):
+    for t in tqdm(range(n_steps), unit="step"):
         all_cells = list(atlas.keys())
         cell = cell_selector.select(all_cells)
         if goal(cell):
@@ -104,6 +116,7 @@ def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, ce
         emu.set_state(state)
         n_steps = random.randint(1, max_step_size)
         for _  in range(n_steps):
+            #TODO: Check goal in here
             emu.set_button_mask(action,0)
             emu.step()
         ram = np.frombuffer(gamedata.memory.blocks[0x7e0000],'int16')
@@ -113,5 +126,7 @@ def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, ce
             next_state = emu.get_state()
             graph.add_node(next_state, ram=ram)
             graph.add_edge(state, next_state, action=(action, n_steps))
+            if next_cell not in atlas:
+                log.append((t, next_cell))
             atlas[next_cell].add(next_state)
-    return atlas, graph, cell, initial_cell
+    return atlas, graph, cell, initial_cell, log
