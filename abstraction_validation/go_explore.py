@@ -57,14 +57,15 @@ class Selector(object):
 #TODO: parameterize instead of a constant.
 class SoftminSelector(Selector):
 
-    def __init__(self, weight_fun):
+    def __init__(self, weight_fun, temp):
         # Cache cell distance for faster computation
         self.cache = cachedict(weight_fun)
+        self.temp = temp
 
     def select(self, cells):
         dists = np.array([self.cache[cell] for cell in cells])
         # Softmin
-        weights = np.exp(-dists/3) / np.sum(np.exp(-dists/3))
+        weights = np.exp(-dists / self.temp) / np.sum(np.exp(-dists / self.temp))
         cell = random.choices(cells, weights, k=1)[0]
         return cell
 
