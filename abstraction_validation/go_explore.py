@@ -105,6 +105,7 @@ def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, ce
     print(initial_cell)
     atlas[initial_cell] = set([initial_state])
     log = [(0, initial_cell)]
+    n_frames = 0
     cell = None
     for t in tqdm(range(n_steps), unit="step"):
         all_cells = list(atlas.keys())
@@ -120,6 +121,7 @@ def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, ce
             #TODO: Check goal in here
             emu.set_button_mask(action,0)
             emu.step()
+            n_frames += 1
         ram = np.frombuffer(gamedata.memory.blocks[0x7e0000],'int16')
         next_cell = abstractify_state(ram, global_pos)
         # Bounds checking using cell_ok
@@ -130,4 +132,4 @@ def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, ce
             if next_cell not in atlas:
                 log.append((t+1, next_cell))
             atlas[next_cell].add(next_state)
-    return atlas, graph, cell, initial_cell, log
+    return atlas, graph, cell, initial_cell, log, n_frames
