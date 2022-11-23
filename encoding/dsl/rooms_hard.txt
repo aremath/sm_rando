@@ -777,7 +777,7 @@ L1
 L2
 R
 M
-(R M) -> (L1 L2)				- MB | WB
+(R M) -> (L1 L2)				- | MB WB
 ALL <-> ALL						- V
 
 # no varia required - it's a very short DEAD END
