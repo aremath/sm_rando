@@ -31,19 +31,25 @@
 #	Thanks to SMILE creator Jathys - http://metroidconstruction.com/resource.php?id=63 - This is really an amazing resource.
 #
 #
+
+BlowUp = | B PB
+MorphJump = | BlowUp SPB
+BombBlock = | BlowUp SA
+WaterJump = | GS HJ
+
 Landing_Site - 791F8
 L1
 L2
 R1			- PB
 R2			- S
-ALL -> L1	- | (& SB E) (& SJ (| B PB SA))
-L1 -> ALL	- | B PB SA
+ALL -> L1	- | (& SB E) (& SJ BombBlock)
+L1 -> ALL	- BombBlock
 ALL -> R1	- | (& SB E) SJ
 
 Gauntlet_Entrance - 792B3
 L
 R
-L <-> R		- | B PB SA
+L <-> R		- BombBlock
 
 Parlor - 792FD
 L1
@@ -53,10 +59,10 @@ B
 R1
 R2
 R3					- M
-ALL <-> L1			- | B PB SA
+ALL <-> L1			- BombBlock
 ALL <-> L2			- MB
 ALL -> R2			- MB
-R2 -> ALL			- | B PB
+R2 -> ALL			- BlowUp
 
 Crateria_Power_Bombs - 793AA
 L
@@ -76,12 +82,12 @@ M1
 M2
 M3
 ALL -> R5								- X
-(L2 R5 R6) -> M3						- | B PB
+(L2 R5 R6) -> M3						- BlowUp
 (R1 R2 R3 M1 M2) -> M3					- X
 (R1 R2 M1) -> (L2 R6 M2)				- & S MB
-R3 -> (R1 R2)							- | B PB SPB
+R3 -> (R1 R2)							- MorphJump
 R3 -> (M1 M2 M3 L2 R5 R6)				- X
-(R1 R2 M1) -> R3						- | B PB SPB
+(R1 R2 M1) -> R3						- MorphJump
 (M2 M3 L2 R5 R6) -> R3					- X
 (L2 R5 R6 M3) -> (R1 R2 R3 M1 M2) 		- X
 (R1 R2) -> M1							- HJ
@@ -127,7 +133,7 @@ Moat - 795FF
 L
 R
 M
-(L M) <-> R				- | (& (| B PB) (| G SJ)) (& GS HJ)
+(L M) <-> R				- | (& BlowUp (| G SJ)) (& GS HJ)
 (L R) -> M				- | G SJ GS
 
 Caterpillar_Elevator - 7962A
@@ -138,7 +144,7 @@ Gauntlet - 7965B
 L
 R
 E
-L <-> (R E)				- | PB B
+L <-> (R E)				- BlowUp
 
 Ocean_Ship_Trans - 7968F
 L
@@ -150,9 +156,9 @@ R1						- X
 R2						- PB
 R3
 L						- X
-ALL <-> L 				- | B PB
-ALL <-> R1 				- | B PB
-ALL <-> R2				- | B PB
+ALL <-> L 				- BlowUp
+ALL <-> R1 				- BlowUp
+ALL <-> R2				- BlowUp
 
 Old_Mother_Brain - 7975C
 L
@@ -218,7 +224,7 @@ S -> L2						- X
 Final_Missile_Bombway - 79A44
 L
 R
-R -> L						- | B PB
+R -> L						- BlowUp
 
 #The missile isn't there unless you've awakened brinstar first
 Final_Missile - 79A90
@@ -252,8 +258,8 @@ S
 
 Brinstar_Map_Entrance - 79B9D
 L
-R						- | B PB
-L <-> R					- | B PB
+R						- BlowUp
+L <-> R					- BlowUp
 
 # I'm not satisfied with this encoding - 
 # it doesn't force you to leave the room if you
@@ -267,8 +273,8 @@ S
 M
 R -> M					- X
 M -> (R S)				- X
-M -> L					- | B PB
-L -> M					- | B PB
+M -> L					- BlowUp
+L -> M					- BlowUp
 L -> (R S)				- SB
 
 Brinstar_Reserve - 79C07
@@ -277,7 +283,7 @@ RT
 M1
 M2
 ALL -> M1					- MB
-ALL -> M2					- | B PB
+ALL -> M2					- BlowUp
 
 Brinstar_Map - 79C35
 R
@@ -293,7 +299,7 @@ Dachora_Room - 79CB3
 L1
 L2
 R
-L1 <-> R				- | B PB SA SB
+L1 <-> R				- | BombBlock SB
 ALL -> L2				- SB
 L2 -> ALL				- & SB E
 
@@ -310,10 +316,10 @@ R4						- S
 M1
 M2
 CB
-L1 <-> ALL				- | B PB
+L1 <-> ALL				- BlowUp
 ALL -> R3				- X
-R3 -> ALL				- & (| B PB) S
-ALL <-> CB				- | B PB
+R3 -> ALL				- & BlowUp S
+ALL <-> CB				- BlowUp
 L5 <-> ALL				- PB
 ALL <-> L3				- PB
 
@@ -333,7 +339,7 @@ Pink_Power_Bombs - 79E11
 R1
 R2
 PB
-R1 -> (PB R2)			- & S (| B PB)
+R1 -> (PB R2)			- & S BlowUp
 (R2 PB) -> R1			- X
 R2 -> PB				- X
 
@@ -356,8 +362,8 @@ ALL -> PB				- PB
 L <-> ALL				- & PB E
 
 # Old MB room constraints
-#L <-> PB				- | B PB
-#L <-> (EB R MB)			- PB
+#L <-> PB				- BlowUp
+#L <-> (EB R MB)		- PB
 #PB <-> (EB R MB)		- PB
 
 Construction_Zone - 79F11
@@ -372,7 +378,7 @@ L2
 E
 M
 L2 <-> M				- MB
-L1 -> ALL				- | B PB
+L1 -> ALL				- BlowUp
 ALL -> L1				- PB
 ALL -> E				- | HJ SB
 
@@ -496,7 +502,7 @@ Spazer_Troll - 7A408
 L
 R1						- S
 R2
-ALL <-> R1				- | B PB
+ALL <-> R1				- BlowUp
 
 Spazer - 7A447
 L
@@ -506,7 +512,7 @@ Warehouse_Zeelas - 7A471
 L1
 L2						- Kraid
 T
-(L1 L2) <-> T			- | B PB
+(L1 L2) <-> T			- BlowUp
 
 Warehouse_Energy - 7A4B1
 R						- | M S B PB
@@ -611,8 +617,8 @@ L3
 R
 ALL -> L1				- X
 ALL -> L3				- PB
-L1 -> L2				- | B PB
-(L1 L2) -> R			- | B PB
+L1 -> L2				- BlowUp
+(L1 L2) -> R			- BlowUp
 R -> L2					- SB
 ALL <->	L3				- PB
 R -> L3					- SB
@@ -679,7 +685,7 @@ L
 R
 M
 E
-(L M) -> (E R)					- | B PB
+(L M) -> (E R)					- BlowUp
 (E R) -> (L M)					- MB
 L <-> M							- MB
 
@@ -760,7 +766,7 @@ B
 M
 ALL -> L1						- | G SJ (& IB HJ)
 ALL -> (R1 R2)					- | HJ SJ
-ALL <-> (L4 B)					- | B PB
+ALL <-> (L4 B)					- BlowUp
 
 Go_Fast - 7ACF0
 L
@@ -781,7 +787,7 @@ R2								- M
 R3
 R4
 ALL -> R1						- X
-R1 -> ALL						- & MB (| PB B SA)
+R1 -> ALL						- & MB BombBlock
 ALL <-> ALL						- V
 
 # I can't prevent you from doing stupid stuff like going into the second part without morph ball...
@@ -919,7 +925,7 @@ R1
 R2
 Drain
 R1 <-> Drain					- & PB SJ
-R1 <-> R2						- & Drain (| B PB)
+R1 <-> R2						- & Drain BlowUp
 ALL <-> ALL						- V
 R2 -> Drain						- X
 
@@ -990,7 +996,7 @@ R
 M
 L -> (R M)						- X
 (R M) -> L						- & CB E
-R -> M							- | B PB SA
+R -> M							- BombBlock
 ALL <-> ALL						- V
 
 Pillars - 7B457
@@ -1009,7 +1015,7 @@ L1
 L2
 R
 L2 -> ALL						- & SJ (| PB SA)
-ALL -> L2						- | B PB SA
+ALL -> L2						- BombBlock
 ALL <-> ALL						- V
 
 Amphitheatre - 7B4E5
@@ -1025,7 +1031,7 @@ B
 M
 ALL <-> ALL						- V
 B -> ALL						- X
-ALL -> B						- & SPB (| B PB)
+ALL -> B						- & SPB BlowUp
 
 Escape_Power_Bombs - 7B55A
 L
@@ -1039,7 +1045,7 @@ L
 R1
 R2
 B								- PB
-ALL <-> B						- | B PB
+ALL <-> B						- BlowUp
 ALL <-> ALL						- V
 
 Wasteland - 7B5D5
@@ -1047,8 +1053,8 @@ T
 PB
 L								- S
 ALL <-> L						- PB
-ALL -> PB						- | B PB (& SA MB)
-ALL <-> T						- | B PB
+ALL -> PB						- | BlowUp (& SA MB)
+ALL <-> T						- | BlowUp
 ALL <-> ALL						- V
 
 # I want to make sure there's at least some source of recurrable damage
@@ -1064,7 +1070,7 @@ R
 M
 ALL <-> ALL						- V
 L <-> ALL						- MB
-ALL -> M						- & MB (| B PB SA)
+ALL -> M						- & MB BombBlock
 
 Ridley_Energy - 7B698
 R
@@ -1079,9 +1085,9 @@ R2
 SA
 ALL <-> ALL						- V
 (L SA R2) -> R1					- & SJ (| PB SA)
-R1 -> ALL						- | B PB SA
-(L SA) -> R2					- | B PB SA
-R2 -> (L SA)					- | B PB SA
+R1 -> ALL						- BombBlock
+(L SA) -> R2					- BombBlock
+R2 -> (L SA)					- BombBlock
 
 Lower_Firefleas - 7B6EE
 L1
@@ -1107,7 +1113,7 @@ L1 <-> ALL						- X
 L2 -> ALL						- | G E SJ
 L3 -> L2						- X
 ALL -> (L3 M RT)				- & Phantoon MB
-ALL -> M						- | B PB
+ALL -> M						- BlowUp
 ALL -> RT						- & SB PB
 
 Wrecked_Ship_Entrance - 7CA08
@@ -1133,9 +1139,9 @@ R2								- Phantoon
 R3
 B								- S
 M
-ALL -> M						- | B PB
-ALL <-> R3						- | B PB
-ALL <-> B						- | B PB
+ALL -> M						- BlowUp
+ALL <-> R3						- BlowUp
+ALL <-> B						- BlowUp
 
 Spiky_Room_of_Death - 7CB8B
 L
@@ -1156,7 +1162,7 @@ Basement - 7CC6F
 L
 T
 R								- M
-ALL <-> R						- | B PB
+ALL <-> R						- BlowUp
 
 Wrecked_Ship_Map - 7CCCB
 R
@@ -1184,7 +1190,7 @@ R -> S							- Phantoon
 Beep_Boop_Supers - 7CDF1
 L
 S
-L -> S							- & Phantoon (| B PB)
+L -> S							- & Phantoon BlowUp
 
 Gravity - 7CE40
 L
@@ -1205,7 +1211,7 @@ R1
 R2								- M
 (L R1) <-> (T R2)				- PB
 T <-> R2						- PB
-ALL -> T						- | HJ GS
+ALL -> T						- WaterJump
 
 West_Tunnel - 7CF54
 L
@@ -1231,7 +1237,7 @@ ALL -> M						- X
 (R1 R3 R4 B M) <-> (S RMB2)		- X
 (B R3 R4) -> R1					- GS
 (B R4) -> R3					- GS
-RMB2 -> S						- & GS (| B PB SPB)
+RMB2 -> S						- & GS MorphJump
 
 Fish_Tank - 7D017
 L
@@ -1270,7 +1276,7 @@ ALL -> (L1 T R)					- | (& G HJ) (& GS (| SJ G))
 McElligot's_Pool - 7D104
 L
 B
-B -> L							- & (| B PB SPB) (| GS HJ)
+B -> L							- & MorphJump WaterJump
 L -> B							- MB
 
 Watering_Hole - 7D13B
@@ -1283,7 +1289,7 @@ Bug_Room - 7D16D
 L
 R
 L -> R							- MB
-R -> L							- | B PB SPB
+R -> L							- MorphJump
 
 # technically it is possible to get from R to L using high jump...
 Crab_Shaft - 7D1A3
@@ -1334,7 +1340,7 @@ R1								- Draygon
 R2
 R3
 B								- S
-R3 -> ALL						- | GS HJ
+R3 -> ALL						- WaterJump
 
 Kassiuz - 7D387
 L
@@ -1369,7 +1375,7 @@ L
 R
 T							- S
 (L R) -> T					- & GS (| PB SA (& SPB B))
-T -> (L R)					- | B PB (& GS SA)
+T -> (L R)					- | BlowUp (& GS SA)
 
 East_Sand_Hall - 7D4C2
 L
@@ -1413,10 +1419,10 @@ S
 (BS1 BS2) -> ALL			- X
 ALL -> (M S)				- & GS SB
 L1 -> ALL					- PB
-(R BS1 BS2 M S L2) -> L1	- & GS (| PB B SA)
-T -> L1						- | B PB (& GS SA)
+(R BS1 BS2 M S L2) -> L1	- & GS BombBlock
+T -> L1						- | BlowUp (& GS SA)
 ALL -> R					- GS
-R -> ALL					- | GS HJ
+R -> ALL					- WaterJump
 ALL -> T					- GS
 
 Butterfly_Room - 7D5EC
@@ -1452,7 +1458,7 @@ R -> L						- GS
 Spring_Ball - 7D6D0
 L
 SPB
-L -> SPB					- | (& GS (| B PB)) SPB
+L -> SPB					- | (& GS BlowUp) SPB
 SPB -> L					- & GS SPB
 
 Botwoon_Energy_Farm - 7D6FD
@@ -1484,9 +1490,9 @@ E
 BS1
 BS2
 (BS1 BS2) -> ALL			- X
-L -> R						- | (& GS (| B PB SPB SB)) (& HJ SPB)
-L -> E						- & MB (| GS HJ)
-R -> (E L BS1 BS2)			- | (& HJ SPB) (& GS (| B PB SPB))
+L -> R						- | (& GS (| MorphJump SB)) (& HJ SPB)
+L -> E						- & MB WaterJump
+R -> (E L BS1 BS2)			- | (& HJ SPB) (& GS MorphJump)
 
 Draygon_Save - 7D81A
 L
@@ -1521,7 +1527,7 @@ L1							- Draygon
 L2
 R1
 R2
-ALL <-> R2					- & MB (| GS HJ)
+ALL <-> R2					- & MB WaterJump
 ALL -> (L1 R1)				- | GS G
 R1 -> L1					- | GS G
 
@@ -1548,7 +1554,7 @@ L -> R						- GS
 Cactus_Alley - 7DA2B
 L
 R
-L -> R						- & GS (| B PB SPB)
+L -> R						- & GS MorphJump
 R -> L						- & GS MB
 
 Draygon - 7DA60
@@ -1572,25 +1578,27 @@ EB
 L
 R
 
+KillMetroids = & IB BlowUp (| M S)
+
 Metroid_1 - 7DAE1
-L							- & IB (| B PB) (| M S) GS
+L							- & KillMetroids GS
 R
-ALL <-> ALL					- & IB (| B PB) (| M S) GS
+ALL <-> ALL					- & KillMetroids GS
 
 Metroid_2 - 7DB31
-R1							- & IB (| B PB) (| M S)
+R1							- KillMetroids
 R2
-ALL <-> ALL					- & IB (| B PB) (| M S)
+ALL <-> ALL					- KillMetroids
 
 Metroid_3 - 7DB7D
 L
 R
-ALL <-> ALL					- & IB (| B PB) (| M S)
+ALL <-> ALL					- KillMetroids
 
 Metroid_4 - 7DBCD
 L
-B							- & IB (| B PB) (| M S)
-ALL <-> ALL					- & IB (| B PB) (| M S)
+B							- KillMetroids
+ALL <-> ALL					- KillMetroids
 
 Blue_Hoppers - 7DC19
 T

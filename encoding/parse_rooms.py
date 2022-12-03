@@ -19,7 +19,7 @@ from encoding.constraints import *
 from data_types.constraintgraph import *
 from encoding import sm_global
 
-def make_room(room_defn):
+def make_room(room_defn, library):
     # room defn is a list of strings, which are the lines of this room definition
     room_name, room_address = room_defn[0].split(" - ")
     graph = ConstraintGraph()
@@ -36,7 +36,7 @@ def make_room(room_defn):
     edge_lines = []
     all_nodes = []
     for line in room_defn[1:]:
-        parsed_line = parse_line(line, all_nodes)
+        parsed_line = parse_line(line, library, all_nodes)
         if parsed_line[0]:
             all_nodes.append(parsed_line[1][0])
             node_lines.append(parsed_line[1])
@@ -79,17 +79,17 @@ def make_room(room_defn):
     room = Room(room_name, int(room_address, 16), graph, door_dict, item_nodes)
     return room
 
-def parse_line(line, all_nodes=[]):
+def parse_line(line, library, all_nodes=[]):
     """Categorizes and parses an item definition or edge definition line. The syntax is above"""
     # edge lines have "->" present ALWAYS
     edge_line = line.split("->")
     assert len(edge_line) <= 2, "TOO MANY ARROWS: " + line
     if len(edge_line) == 1:
-        return (True, parse_node_line(line))
+        return (True, parse_node_line(line, library))
     elif len(edge_line) == 2:
-        return (False, parse_edge_line(line, all_nodes))
+        return (False, parse_edge_line(line, all_nodes, library))
 
-def parse_node_line(line):
+def parse_node_line(line, library):
     """Helper function for parse_line - returns a tuple of node_name, constraint_set."""
     name = ""
     constraint = MinSetSet()
@@ -107,7 +107,7 @@ def parse_node_line(line):
 
     return name, constraint
 
-def parse_edge_line(line, all_nodes):
+def parse_edge_line(line, all_nodes, library):
     """Helper function for parse_line - returns a tuple of (all affected edges), constraint_set."""
     back = False
     left, right = line.split("->")
@@ -152,7 +152,7 @@ def parse_edge_line(line, all_nodes):
     if str_constraint == "X":
         constraint = None
     else:
-        constraint = parse_constraint(str_constraint)
+        constraint = parse_constraint(str_constraint, library)
     return edges, constraint
 
 def parse_node_name(node_name, constraint):
@@ -181,36 +181,44 @@ def parse_node_name(node_name, constraint):
     else:
         return None
 
+def parse_constraintdef(line, library):
+    l, r = line.split("=")
+    l = l.strip()
+    r = r.strip()
+    c = parse_constraint(r, library)
+    return l, c
+
 def parse_rooms(room_file):
     # open the file
     f = open(room_file, "r")
-    # read the lines to create the room definitions
-    room_defs = []
+    # For holding constraint definitions
+    current_library = default_library
+    # Parse each room definition
+    # Key - room name
+    # Value - room graph and door dictionary
+    rooms = {}
     current_room = []
+    # Read the lines to create the room definitions
     for line in f.readlines():
         # remove unnecessary characters
         line = line.strip()
-        # blank line means new room
-        if len(line) == 0:
-            room_defs.append(current_room)
-            current_room = []
-        # skip comments
-        elif line[0] == "#":
-            continue
-        else:
-            current_room.append(line)
-    # append the last room
-    room_defs.append(current_room)
-
-    # parse each room definition
-    # key - room name
-    # value - room graph and door dictionary
-    rooms = {}
-    for room_def in room_defs:
-        # if we got a room without any data somehow, chuck it
-        if len(room_def) >= 1:
-            room = make_room(room_def)
+        # Blank line means new room
+        if len(line) == 0 and len(current_room) >= 1:
+            room = make_room(current_room, current_library)
             rooms[room.name] = room
+            current_room = []
+        # Skip comments
+        elif len(line) == 0 or line[0] == "#":
+            continue
+        elif "=" in line and len(current_room) == 0:
+            name, constraint = parse_constraintdef(line, current_library)
+            current_library[name] = constraint
+        elif len(line) > 0:
+            current_room.append(line)
+    # Create the last room
+    if len(current_room) >= 1:
+        room = make_room(current_room, current_library)
+        rooms[room.name] = room
     f.close()
     return rooms
 
