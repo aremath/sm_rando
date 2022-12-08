@@ -1,4 +1,5 @@
 import random
+from typing import Dict, Set, Tuple
 
 from world_rando.coord import Coord, Rect
 from world_rando.concrete_map import Path, ConcreteMap, MapTile, get_path, euclidean, path_concat
@@ -71,13 +72,14 @@ def map_gen(dimensions, graph, settings):
     down_es = set([n for n in graph.nodes if graph.nodes[n].data == NodeType.ELEVATOR_DOWN])
     # Find a placement for nodes, and initialize it with the areas for those nodes
     node_locs, cmap, bboxes = node_place(graph, dimensions, up_es, down_es, settings)
-    node_info = {node: (loc, fixed_cmaps.node_to_fixedmap(node, graph.nodes[node].data)) for node, loc in node_locs.items()}
+    #TODO: NodeData
+    node_info: Dict[str, Tuple[Coord, FixedMap]] = {node: (loc, fixed_cmaps.node_to_fixedmap(node, graph.nodes[node].data)) for node, loc in node_locs.items()}
     rnodes = list(graph.nodes.keys())
     random.shuffle(rnodes)
     # Holds all the paths, along with their constraints (TODO: the constraints)
     #TODO: can get unlucky with elevator placement of multiple elevators
     #   See output/error.png
-    paths = []
+    paths: List[Path] = []
     for node in rnodes:
         for edge in graph.nodes[node].edges:
             # Special case - edges from MB start from the escape point!
@@ -109,11 +111,12 @@ def map_gen(dimensions, graph, settings):
             else:
                 assert False, "Cannot find path: " + str(closest) + ", " + str(node_locs[edge.terminal])
             path = path_concat(to_closest, to_end)
-            paths.append(Path(node, edge.terminal, path, edge.data))
+            t = edge.terminal
+            paths.append(Path(node, graph.nodes[node].data, t, graph.nodes[t].data, path, edge.data))
     # partition the map into random rooms
     room_size = len(cmap) // settings["room_size"]
     #_, rooms = cmap.random_rooms(room_size)
-    rooms = cmap.random_rooms_alt(room_size, bboxes)
+    rooms: Dict[Coord, Set[Coord]] = cmap.random_rooms_alt(room_size, bboxes)
     #TODO: Each room tries to grab the map tiles that are inside its bounding box!
     #TODO: Or could use a budgeted cellular automaton to fill in "corner" spaces with map tiles...
     #TODO: Phantoon's room winds up in rooms, as do elevators, etc...

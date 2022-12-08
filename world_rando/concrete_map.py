@@ -3,14 +3,17 @@ import collections
 import heapq
 import random
 from enum import Enum
+from typing import Dict, Set, List
 
 from world_rando.coord import Coord, Rect
 
 class Path(object):
 
-    def __init__(self, start_node, end_node, coord_path, itemsets):
+    def __init__(self, start_node, start_type, end_node, end_type, coord_path, itemsets):
         self.start_node = start_node
+        self.start_type = start_type
         self.end_node = end_node
+        self.end_type = end_type
         self.coord_path = coord_path
         self.itemsets = itemsets
 
@@ -219,7 +222,7 @@ class ConcreteMap(object):
             self.room_walls(partitions[mean])
         return paths, partitions
 
-    def random_rooms_alt(self, n, implicit_bboxes):
+    def random_rooms_alt(self, n: int, implicit_bboxes: List[Rect]) -> Dict[Coord, Set[Coord]]:
         """
         Partition the rooms randomly by merging with neighbors
         Each partition merges with a neighboring partition until the desired number of
@@ -227,6 +230,7 @@ class ConcreteMap(object):
         Respects bounding boxes for rooms, so that each room's bounding box is rectangular.
         """
         tile_set = self.non_fixed()
+        #TODO: make magic numbers like this part of settings
         rooms = merging_partition(tile_set, n, 24, implicit_bboxes)
         for s in rooms.values():
             self.room_walls(s)

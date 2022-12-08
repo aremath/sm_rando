@@ -28,7 +28,7 @@ class Room(object):
 
         #TODO: why are we doing this here?
         self.up_scroll = 0x70
-        self.down_Scroll = 0xa0
+        self.down_scroll = 0xa0
         # Filled later
         self.level = None
         self.converter = None
@@ -38,18 +38,21 @@ class Room(object):
         #Produce a ROM room from this
         pass
 
-    def viz_cmap(self, directory):
+    def viz_cmap(self, directory, map_tiles):
         fname = directory + "/room" + str(self.room_id) + "_cmap.png"
-        map_viz(self.cmap, fname, "encoding/map_tiles")
+        map_viz(self.cmap, fname, map_tiles)
 
     def viz_graph(self, directory):
         fname = directory + "/room" + str(self.room_id) + "_graph"
         self.graph.visualize(fname)
 
     #TODO...
-    def viz_level(self, directory):
+    def viz_level(self, directory, room_tiles):
         fname = directory + "/room" + str(self.room_id) + "_level.png"
-        room_viz(self.level, fname, "encoding/room_tiles")
+        room_viz(self.level, fname, room_tiles)
+
+    def __repr__(self):
+        return f"Room: {self.room_id}\n{self.graph}"
 
 class Door(object):
     """
@@ -112,8 +115,8 @@ class Level(object):
         for c in other.itercoords():
             nc = c + pos
             if self.in_bounds(nc) and nc in self:
-                # other can be put onto self by being made /more specific/
-                # if the specified are of self is a refinement of the entire
+                # Other can be put onto self by being made /more specific/
+                # If the specified area of self is a refinement of the entire
                 # other pattern, then it is a match.
                 if not self[nc].is_subtile(other[c]):
                     return False
@@ -163,6 +166,13 @@ class Level(object):
                     assert False, "Collision in compose: " + str(c_mod)
                 elif collision_policy == "overwrite":
                     new_tiles[c_mod] = t
+                # If the tile can be refined, refine it. Otherwise, overwrite
+                #TODO: TileFunctions?
+                elif collision_policy == "try_refine":
+                    if self[c_mod].is_subtile(t):
+                        continue
+                    else:
+                        new_tiles[c_mod] = t
                 # Favor self in conflicts where self is a subtile of other.
                 # Otherwise error
                 elif collision_policy == "refine":
@@ -191,10 +201,21 @@ class Level(object):
             t = self[c]
             level1 += t.level1_bytes()
             bts += t.bts_bytes()
-            #TODO l2
+            #TODO Layer 2
         size_bytes = int.to_bytes(len(level1), 2, byteorder="little")
         assert len(size_bytes) == 2, "Level too large!"
         return size_bytes + level1 + bts + level2
+
+    def __repr__(self):
+        level_s = []
+        for y in range(0, self.dimensions.y):
+            line = []
+            for x in range(0, self.dimensions.x):
+                line += str(self[Coord(x, y)].tile_type)
+            line = "|".join(line)
+            level_s.append(line)
+        return "\n".join(level_s)
+
                 
     def itercoords(self):
         """
@@ -358,6 +379,14 @@ class Type(object):
         else:
             return Type(self.index, self.bts)
 
+    def __repr__(self):
+        if self.index == 0:
+            return " "
+        elif self.index == 1 or self.index == 8:
+            return "#"
+        else:
+            return "@"
+
 #
 # Conversion to ROM data types
 #
@@ -374,10 +403,10 @@ class ObjNamesConvert(rd.ObjNames):
         self.plm_id = plm_id
 
     # Automatic tracking and assignment of PLM IDs
-    def create(self, constructor, *args, replace=None):
+    def create(self, constructor, *args, replace=None, obj_name=None):
         if constructor is rd.PLM:
             args = (*args, self.plm_id)
-        obj = super().create(constructor, *args, replace=replace)
+        obj = super().create(constructor, *args, replace=replace, obj_name=obj_name)
         if constructor is rd.PLM:
             self.plm_id += 1
         return obj
@@ -397,6 +426,7 @@ def convert_rooms(rooms, parsed_rooms=None):
     # (rather than the object itself)
     default_converter = Converter()
     for room in rooms:
+        #print(room.room_id)
         # Can do this even though rooms are interlinked because of the shared room header pointer naming format
         if room.converter is None:
             _ = default_converter.convert_roomheader(room, obj_names)
@@ -416,6 +446,22 @@ def get_room_pointer(room):
     rid = room_id_f.format(area_index, room.room_id)
     return room_header_name_f.format(rid)
 
+# 0   Right
+# 1   Left
+# 2   Down
+# 3   Up
+# 4+  Door spawns a closing door cap
+# For now, always spawning a closing door cap
+def get_door_orientation(direction):
+    if direction == Coord(1,0):
+        return 4
+    elif direction == Coord(-1,0):
+        return 5
+    elif direction == Coord(0, 1):
+        return 6
+    elif direction == Coord(0, -1):
+        return 7
+
 class Converter(object):
     """
     Class with static methods that convert generated data structures to the rom_tools format
@@ -430,17 +476,17 @@ class Converter(object):
     # RoomHeader
     def convert_roomheader(self, room, obj_names):
         statechooser = self.convert_statechooser(room, obj_names)
-        doorlist = convert_door_list(room.doors, obj_names)
+        doorlist = self.convert_door_list(room.doors, obj_names)
         #TODO
         room_index = 0
         area_index = room.region.region_id
         map_x, map_y = room.pos
         width, height = room.size
-        CRE_bitset = 0 # Refer to rom_tools/rom_data_structures.
+        CRE_bitset = set() # Refer to rom_tools/rom_data_structures.
         # Room Header
         roomheader = obj_names.create(rd.RoomHeader, room_index, area_index, map_x, map_y, width, height,
                 room.up_scroll, room.down_scroll, CRE_bitset, doorlist.name, statechooser.name,
-                name=get_room_pointer(room))
+                obj_name=get_room_pointer(room))
         return roomheader
 
     #TODO: this can become more complex
@@ -454,6 +500,7 @@ class Converter(object):
 
     # RoomState
     def convert_roomstate(self, room, obj_names):
+        print(f"Room: {room.room_id}")
         fx = self.convert_fx(room, obj_names)
         enemylist = self.convert_enemies([], obj_names)
         enemytypes = self.convert_enemytypes([], obj_names)
@@ -467,10 +514,10 @@ class Converter(object):
         music_track = 0
         layer2_scroll_x = 0
         layer2_scroll_y = 0
-        special_xray = 0
-        main_asm = 0
-        background_index = 0
-        setup_asm = 0
+        special_xray = None
+        main_asm = None
+        background_index = None
+        setup_asm = None
         room_state = obj_names.create(rd.RoomState, level.name,
                 tileset, music_data, music_track, fx.name, enemylist.name, enemytypes.name,
                 layer2_scroll_x, layer2_scroll_y, scrolls.name, special_xray, main_asm,
@@ -515,7 +562,8 @@ class Converter(object):
     def convert_item(self, item, obj_names):
         #TODO: just have item_definitions be a big dict
         ids = item_definitions.make_item_definitions()
-        print(item.item_type)
+        print(f"Item: {item.item_type}, {item.graphic}")
+        #print(item.item_type)
         item_id = int.from_bytes(ids[item.item_type][item.graphic], byteorder="little")
         ix, iy = item.room_pos
         # PID assigned automatically by special create
@@ -524,8 +572,9 @@ class Converter(object):
 
     # Level Data
     def convert_level(self, level, obj_names):
+        #print(level)
         lbytes = level.to_bytes()
-        larray = leveldata_utils.level_array_from_bytes(level_bytes, level.dimensions)
+        larray = leveldata_utils.level_array_from_bytes(lbytes, level.dimensions)
         level = obj_names.create(rd.LevelData, lbytes, larray, None)
         return level
 
@@ -543,26 +592,27 @@ class Converter(object):
 
     # DoorList
     def convert_door_list(self, doors, obj_names):
-        doors = []
+        new_doors = []
         for door in doors:
             #TODO: door.destination is just the ID without the region??
             # IDs should be unique across multiple regions anyways...
-            #TODO: door "tiles" don't make sense when the door transitions between regions though.
+            #TODO: door.tiles doesnt make sense when the door transitions between regions though.
             # Get the pointer to what will be the target room
             dest_id = door.destination
-            dest_region = ...
+            #TODO: Door needs to have this info ahead of time
+            dest_region = 0
             dest_rid = room_id_f.format(dest_region, dest_id)
             room_ptr = room_header_name_f.format(dest_rid)
             d = self.convert_door(door, room_ptr, obj_names)
-            doors.append(d)
-        doorlist = obj_names.create(rd.DoorList, [door.name for door in doors])
+            new_doors.append(d)
+        doorlist = obj_names.create(rd.DoorList, [door.name for door in new_doors])
         return doorlist
 
     # Door
     #TODO: elevator properties
     def convert_door(self, door, room_ptr, obj_names):
         elevator_properties = 0
-        orientation = door.direction
+        orientation = get_door_orientation(door.direction)
         #TODO: appropriate defaults for orientation
         xlow = 0
         ylow = 0
@@ -588,15 +638,18 @@ class DetailCopyConverter(Converter):
         room_name = get_room_pointer(room)
         doorlist = self.convert_door_list(room.doors, obj_names)
         map_x, map_y = room.pos
-        replace = [None, None, room.region.area_index, map_x, map_y, None, None, None,
+        #fields = ["room_index", "area_index", "map_x", "map_y", "width", "height", "scroll_up",
+        #        "scroll_down", "CRE_bitset", "door_list", "state_chooser"]
+        replace = [None, room.region.region_id, map_x, map_y, None, None, None,
                 None, None, doorlist, None]
         # Bring in the room+dependencies from the other namespace
-        rh = obj_names.copy_from(self.replace_header, replace=replace, new_name=room_name)
+        rh = obj_names.copy_obj(self.replace_header, replace=replace, new_name=room_name)
         return rh
 
     # Save door properties from each door as well
+    #TODO: allocate the new door_list on top of the old one using old_address and old_size?
     def convert_door_list(self, doors, obj_names):
-        doors = []
+        new_doors = []
         # This requires doors are listed in the same order as the original room!
         for door, old_door in zip(doors, self.replace_header.door_list.l):
             #TODO: door.destination is just the ID without the region??
@@ -604,18 +657,22 @@ class DetailCopyConverter(Converter):
             #TODO: door "tiles" don't make sense when the door transitions between regions though.
             # Get the pointer to what will be the target room
             dest_id = door.destination
-            dest_region = ...
+            #print(dest_id)
+            #print(d)
+            dest_region = 0
             dest_rid = room_id_f.format(dest_region, dest_id)
             room_ptr = room_header_name_f.format(dest_rid)
             d = self.convert_door(door, room_ptr, old_door, obj_names)
-            doors.append(d)
-        doorlist = obj_names.create(rd.DoorList, [door.name for door in doors])
+            new_doors.append(d)
+        doorlist = obj_names.create(rd.DoorList, [door.name for door in new_doors])
         return doorlist
 
     # Door
+    # Use the old door info
+    #TODO: want to use the old door info for doors that go INTO this room...
     def convert_door(self, door, room_ptr, old_door, obj_names):
         elevator_properties = old_door.elevator_properties
-        orientation = old_door.direction
+        orientation = old_door.orientation
         xlow = old_door.x_pos_low
         ylow = old_door.y_pos_low
         xhigh = old_door.x_pos_high

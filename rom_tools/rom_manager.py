@@ -305,8 +305,12 @@ class RomManager(object):
                 self.memory.mark_filled(obj.old_address, obj.old_size)
         return obj_names
 
+    def clear_memory(self):
+        self.memory = Memory(self)
+        self.memory.setup()
+
     def compile(self, obj_names):
-        # Kind of hacky
-        all_saves = [obj for name, obj in obj_names.items() if name.startswith("save_station")]
+        all_saves = [obj for obj in obj_names.values() if isinstance(obj, rom_data_structures.SaveStation)]
+        print(f"Saves: {all_saves}")
         rom_data_structures.compile_from_savestations(all_saves, obj_names, self)
 

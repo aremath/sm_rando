@@ -32,6 +32,7 @@ region_map = bidict({
                     7: "Debug",
                 })
 
+#TODO: use Region to determine map address on the ROM 
 class Region(object):
     
     def __init__(self, name, region_id=None, size=Coord(54,30), required_nodes=None, partition_weight=None):
@@ -75,7 +76,7 @@ default_regions = [Region(name) for name in sm_global.regions.keys()]
 
 global_settings_d = {
     # Which regions to generate - A region that does not appear in this table will not be generated.
-    "regions"   :   default_regions
+    "regions"   :   default_regions,
     }
 
 abstract_map_settings_d = {
@@ -134,7 +135,13 @@ room_gen_settings_d = {
     "patterns"                  :   "encoding/patterns",
     }
 
-default_setting_list = [global_settings_d, abstract_map_settings_d, concrete_map_settings_d, room_gen_settings_d]
+output_settings_d = {
+    "output": "output",
+    "map_tiles": "encoding/map_tiles",
+    "room_tiles": "encoding/room_tiles"
+    }
+
+default_setting_list = [global_settings_d, abstract_map_settings_d, concrete_map_settings_d, room_gen_settings_d, output_settings_d]
 
 def global_check(g_set):
     regs = g_set["regions"]
@@ -146,13 +153,13 @@ def concrete_check(c_set):
         assert (size.x <= 64  and size.y <= 32), f"{region} has invalid size: {size}"
 
 # Need to register the check/fix functions here
-check_fns = [global_check, None, concrete_check, None]
+check_fns = [global_check, None, concrete_check, None, None]
 
 class WorldGenSettings(object):
 
-    def __init__(self, global_settings= None, abstract_map_settings=None, concrete_map_settings=None, room_gen_settings=None):
+    def __init__(self, global_settings=None, abstract_map_settings=None, concrete_map_settings=None, room_gen_settings=None, output_settings=None):
         # If a single setting is unspecified, use defaults
-        new_setting_list = [global_settings, abstract_map_settings, concrete_map_settings, room_gen_settings]
+        new_setting_list = [global_settings, abstract_map_settings, concrete_map_settings, room_gen_settings, output_settings]
         for i in range(len(new_setting_list)):
             if new_setting_list[i] is None:
                 new_setting_list[i] = {}
@@ -164,11 +171,12 @@ class WorldGenSettings(object):
             if f is not None:
                 f(news)
             sets.append(news)
-        gs, amaps, cmaps, rgens = sets
+        gs, amaps, cmaps, rgens, outgens = sets
         self.global_settings = gs
         self.abstract_map_settings = amaps
         self.concrete_map_settings = cmaps
         self.room_gen_settings =  rgens
+        self.output_settings = outgens
 
 default_settings = WorldGenSettings()
 

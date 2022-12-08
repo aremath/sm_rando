@@ -26,6 +26,7 @@ class NodeType(IntEnum):
 def abstract_map(settings, gsettings):
     """puts it all together to make an abstract map with regions and elevators"""
     order = item_order.order(settings["required_nodes"], settings["node_ordering"])
+    print(order)
     graph = order_graph(order)
     #TODO: add items before or after partition?
     # after is probably better...

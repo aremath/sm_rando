@@ -48,7 +48,7 @@ class FutureBytes(object):
         self.banks = banks
 
     def resolve(self):
-        assert hasattr(self.obj, "address")
+        assert hasattr(self.obj, "address"), f"Attempt to resolve pointer to an unallocated object: {self.obj}"
         assert self.obj.address is not None
         # Make sure that the pointer we got actually goes to the banks we expect
         assert self.obj.address.bank in self.banks
@@ -59,13 +59,16 @@ class FutureBytes(object):
         else:
             return self.obj.address.as_snes_bytes(self.size)
 
+    def __repr__(self):
+        return f"FutureBytes({self.obj}, {self.size}, {self.banks})"
+
 def byte_size(byte_obj):
     if type(byte_obj) is bytes:
         return len(byte_obj)
     elif type(byte_obj) is FutureBytes:
         return byte_obj.size
     else:
-        raise TypeError
+        raise TypeError(f"Cannot find the byte size for an object of type {type(byte_obj)}")
 
 def bytes_size(b_list):
     #print("Getting size of: {}".format(b_list))
@@ -161,15 +164,21 @@ def parse_engine(obj_def, address, obj_names, rom, data):
         total_size += size
     return objs, total_size
 
-def compile_engine(obj_def, objs, rom):
+def compile_engine(obj_def, start_obj, rom):
+    print(f"Compiling {start_obj.name}")
+    objs = start_obj.list
+    fieldnames = start_obj.fields
+    assert len(fieldnames) == len(objs)
     # Unzip to list of compilers
     if len(obj_def) == 0:
         compilers = []
     else:
         compilers = list(zip(*obj_def))[1]
     all_bytes = []
-    for compiler, obj in zip(compilers, objs):
+    for field, compiler, obj in zip(fieldnames, compilers, objs):
+        print(f"Compiling: {start_obj.name}.{field}")
         b = compiler(obj, rom)
+        assert b is not None, "Compiler returned nothing. Might have a direct shared dependency?"
         # Want to get a flat list of bytes / FutureBytes
         if type(b) is list:
             all_bytes.extend(b)
@@ -269,6 +278,7 @@ def pointer_def(constructor, ptr_size, banks, invalid_bytes=None, invalid_ok=Fal
         # in a different iteration -> object will be allocated later
         if obj_bytes is not None:
             # Size of the object on the other end of the pointer
+            print(obj_bytes)
             obj_size = bytes_size(obj.bytes)
             # Register the real value
             # Skip addrs if it's preallocated
@@ -282,8 +292,8 @@ def pointer_def(constructor, ptr_size, banks, invalid_bytes=None, invalid_ok=Fal
                 obj.address = old_address
             else:
                 #print(banks)
-                addr = rom.memory.allocate(obj_size, banks)
-                print("Allocating compiled object {} of size {} at {}. Old size: {}".format(obj.name, obj_size, addr, obj.old_size))
+                addr, bank = rom.memory.allocate(obj_size, banks)
+                print(f"Allocating compiled object {obj.name} of size {obj_size} at {addr} in {bank}. Old size: {obj.old_size}")
                 obj.address = addr
         return FutureBytes(obj, ptr_size, banks)
 
@@ -336,6 +346,9 @@ def compile_wrapper(func):
         if hasattr(obj, "bytes"):
             return
         # Register so that it won't be processed twice.
+        #print(func.__name__)
+        #print(obj)
+        #TODO
         #print("Compiling: {}".format(obj.name))
         obj.bytes = None
         obj.bytes = func(obj, rom)
@@ -354,7 +367,7 @@ def mk_default_fns(constructor, obj_def=None):
 
     @compile_wrapper
     def compiler(obj, rom):
-        return compile_engine(obj_def(), obj.list, rom)
+        return compile_engine(obj_def(), obj, rom)
 
     return parser, compiler
 
@@ -512,13 +525,35 @@ class ObjNames(MutableMapping):
     def __delitem__(self, k):
         return self.d.__delitem__(k)
 
+    def get_new_name(self, constructor):
+        obj_name = constructor.name_def.format(self.new_obj_id)
+        self.new_obj_id += 1
+        return obj_name
+
+    #TODO: an argument can be made that these kinds of "direct" objects shouldn't even have an
+    # entry in obj_names...
+    def get_indirect_name(self, obj):
+        """
+        Helper for copy_obj. When copying a dependent object, we need to know whether a
+        new object should be created. It is problematic if two RoomHeaders share the same
+        StateChooser, for example, because the compilation strategy relies on a layer of
+        ROM-level indirection between any kind of shared objects. That is, there is a
+        pointer_def in between any kind of shared data. For the StateChooser example, even
+        if two StateChoosers are the same, they need to actually live on the ROM in different
+        locations, because they're part of the RoomHeader, rather than being pointed to.
+        copy_def should automatically create new objects if a copy must be made, but not if not.
+        """
+        if type(obj).direct:
+            return self.get_new_name(type(obj))
+        else:
+            return obj.name
+
     # TODO: delete which auto unallocates from rom.memory
     def create(self, constructor, *args, replace=None, obj_name=None):
         """ Register a new object of the given type by instantiating it
         with *args """
         if obj_name is None:
-            obj_name = constructor.name_def.format(self.new_obj_id)
-            self.new_obj_id += 1
+            obj_name = self.get_new_name(constructor)
         # Use replace to allocate the new object on top of an existing object
         if replace is not None:
             old_address = replace.old_address
@@ -531,47 +566,76 @@ class ObjNames(MutableMapping):
         self[obj_name] = obj
         return obj
 
-    def copy_obj(self, obj, replace=None, new_name=None):
+    def copy_obj(self, obj, replace=None, new_name=None, keep_allocation=True):
         """
         Move a name from other to self, and also take along all other names it depends on.
         If replace is not None, then some pointers will be replaced before allocation.
         """
         assert obj.obj_names != self, "Copying an object from the same place!"
         assert isinstance(obj, RomObject)
-        # We're already done
-        if obj.name in self:
-            return obj
-        constructor = type(obj)
+        # Even if obj.name is in self, we might want to add a second copy
         if new_name is None:
             new_name = obj.name
+        # We're already done
+        if new_name in self:
+            return obj
+        constructor = type(obj)
         # Use object's getattr to avoid the standard pointer dereferencing
         args = [object.__getattribute__(obj, name) for name in obj.fields]
+        dependencies = []
         # Do the replacement (need to use string pointers)
-        if replace is not None:
-            assert len(replace) == len(args)
-            new_args = []
-            for o, r in zip(args, replace):
-                if r is None:
-                    new_args.append(o)
+        # Don't bypass the loop, we need it to accumulate dependencies
+        if replace is None:
+            replace = [None] * len(args)
+        assert len(replace) == len(args)
+        new_args = []
+        dependency_names = []
+        for old, replace, field in zip(args, replace, obj.fields):
+            if replace is None:
+                dependency_name = None
+                # Now we WANT the dereferencing
+                dep = obj.__getattribute__(field)
+                if isinstance(dep, RomObject):
+                    dependencies.append(dep)
+                    dependency_name = self.get_indirect_name(dep)
+                    dependency_names.append(dependency_name)
+                # Also find dependencies in lists
+                if isinstance(dep, list) and len(dep) > 0 and isinstance(dep[0], RomObject):
+                    new_ptr_list = []
+                    for ldep in dep:
+                        if isinstance(ldep, RomObject):
+                            dependencies.append(ldep)
+                            ldep_name = self.get_indirect_name(ldep)
+                            dependency_names.append(ldep_name)
+                            new_ptr_list.append(ldep_name)
+                    assert len(new_ptr_list) == len(dep)
+                    dependency_name = new_ptr_list
+                if dependency_name is None:
+                    new_args.append(old)
                 else:
-                    new_args.append(r)
-            args = new_args
+                    new_args.append(dependency_name)
+            else:
+                new_args.append(replace)
+        args = new_args
         new_obj = constructor(new_name, None, None, self, *args)
+        # Transfer allocation info
+        if keep_allocation and hasattr(obj, "old_address"):
+            new_obj.old_address = obj.old_address
+        if keep_allocation and hasattr(obj, "old_size"):
+            new_obj.old_size = obj.old_size
         self[new_name] = new_obj
         # Now recursively add dependencies
-        # Now we WANT the dereferencing
-        new_attrs = [new_obj.__getattribute__(name) for name in obj.fields]
-        for attr in new_attrs:
-            if isinstance(attr, RomObject):
-                # Replace and new_name only for the top-level object
-                _ = self.copy_obj(attr)
+        print(dependencies, dependency_names)
+        for dep, name in zip(dependencies, dependency_names):
+            # Replace and new_name only for the top-level object
+            _ = self.copy_obj(dep, new_name=name)
         return new_obj
 
     # Return the addresses of the RoomHeader objects for use with SMILE RF
     def room_mdb(self):
         # Do not include uncompiled rooms
-        rooms = filter(lambda x: type(x) is RoomHeader, self.values())
-        rooms2 = filter(lambda x: hasattr(x, "address"), rooms)
+        rooms = list(filter(lambda x: type(x) is RoomHeader, self.values()))
+        rooms2 = list(filter(lambda x: hasattr(x, "address"), rooms))
         if len(rooms) != len(rooms2):
             print("Warning: obj_names has uncompiled room headers!")
         # Remove 0x and convert hex letters to upper case
@@ -583,6 +647,9 @@ class ObjNames(MutableMapping):
 class RomObject(object):
     name_def = None
     fields = []
+    # Whether this class is going to be directly present inside another RomObject,
+    # or pointed to indirectly
+    direct = False
 
     def __init__(self, name, old_address, old_size, obj_names, *args):
         self.name = name
@@ -604,6 +671,20 @@ class RomObject(object):
 
     # Override getattribute to allow implicit indexing
     def __getattribute__(self, name):
+        """
+        Override getattribute to allow implicit indexing.
+        This means that getattr will automatically do a table lookup for obj_names.
+        This makes the syntax much easier to work with.
+        For example, instead of:
+        obj_names[obj_names[room_header.door_list].l]
+        we write:
+        room_header.door_list.l
+        Unfortunately this comes at the cost of creating some hard-to-debug errors
+        """
+        # Allow access to "fields"
+        #NOTE: this gets hairy if you make a field named 'fields', so please do not do that.
+        if name == "fields":
+            return object.__getattribute__(self, name)
         default_attr = object.__getattribute__(self, name)
         # If it's a string, dereference via obj_names
         # Allow self.name as a self-reference that will return a string
@@ -639,7 +720,7 @@ class SaveStation(RomObject):
     Save Stations. The roots of the parsing / compilation process.
     """
     name_def = "save_station_{}"
-    fields = ["room", "door", "save_x", "save_y", "samus_x", "samus_y"]
+    fields = ["room", "door", "door_bts", "save_x", "save_y", "samus_x", "samus_y"]
 
     # Definitions
     # These are functions to avoid circular dependency because the parsers are
@@ -651,6 +732,7 @@ class SaveStation(RomObject):
         return [
         pointer_def(RoomHeader, 2, banks=[0x8F]),
         pointer_def(Door, 2, banks=[0x83]),
+        int2_fns, # Door BTS (unused)
         int2_fns, # Save X position, pixels
         int2_fns, # Save Y position, pixels
         int2_fns, # Samus X position, pixels
@@ -711,6 +793,7 @@ class StateChooser(RomObject):
     name_def = "state_chooser_{}"
     #TODO: merge into one list?
     fields = ["conditions", "default"]
+    direct = True
 
     @staticmethod
     def parse_definition():
@@ -729,6 +812,10 @@ class RoomState(RomObject):
     fields = ["level_data", "tileset", "music_data", "music_track", "fx", "enemy_list",
                 "enemy_types", "layer2_scroll_x", "layer2_scroll_y", "scrolls",
                 "special_xray", "main_asm", "plms", "background_index", "setup_asm"]
+    #TODO: This "direct" thing is a bit of a hack
+    # Need a better way to figure out if an object is "pointed to"
+    # RoomStates can theoretically be sometimes shared or sometimes direct
+    direct = True
 
     @staticmethod
     def parse_definition():
@@ -786,13 +873,14 @@ def door_parser(address, obj_names, rom, data):
         return parse_engine(Door.parse_definition(), address, obj_names, rom, data)
 
 #TODO: can combine these pointers!
+#   but, it's overall like 20-30 bytes per rom...
 @compile_wrapper
 def door_compiler(obj, rom):
     # Only need to check the to_room, since you can't normally have a blank to_room.
     if obj.to_room is None:
         return [b"\x00\x00"]
     else:
-        return compile_engine(Door.parse_definition(), obj.list, rom)
+        return compile_engine(Door.parse_definition(), obj, rom)
 
 Door.fns = (door_parser, door_compiler)
 
@@ -821,6 +909,7 @@ class FXEntry(RomObject):
     fields = ["door", "liquid_y", "liquid_target_y", "liquid_speed", "liquid_timer",
                 "layer3_type", "default_layer_blend", "layer3_blend", "liquid_options",
                 "palette_fx_bits", "animated_tiles_bits", "palette_blend"]
+    direct = True
 
     @staticmethod
     def parse_definition():
@@ -871,7 +960,7 @@ def fx_compiler(obj, rom):
     if len(obj.fx_l) == 0 and obj.default_fx is None:
         return [b"\xff\xff"]
     else:
-        return compile_engine(FX.parse_definition(), obj.list, rom)
+        return compile_engine(FX.parse_definition(), obj, rom)
 
 FX.fns = (fx_parser, fx_compiler)
 
@@ -893,6 +982,7 @@ class Enemy(RomObject):
     name_def = "enemy_{}"
     fields = ["enemy_id", "x_pos", "y_pos", "init_param", "properties1", "properties2",
                 "parameter1", "parameter2"]
+    direct = True
 
     @staticmethod
     def parse_definition():
@@ -925,6 +1015,7 @@ EnemyTypes.fns = mk_default_fns(EnemyTypes)
 class EnemyType(RomObject):
     name_def = "enemy_type_{}"
     fields = ["enemy_id", "palette_index"]
+    direct = True
 
     @staticmethod
     def parse_definition():
@@ -989,6 +1080,7 @@ PLMList.fns = mk_default_fns(PLMList)
 class PLM(RomObject):
     name_def = "PLM_{}"
     fields = ["plm_id", "x_pos", "y_pos", "parameter"]
+    direct = True
 
     @staticmethod
     def parse_definition():
@@ -1063,6 +1155,7 @@ def scrolls_compiler(obj, rom):
             b = int.to_bytes(int(obj.array[x][y]), 1, byteorder="little")
             scroll_bytes.extend(b)
     # Convert back to bytestring
+    print("Scroll_bytes", bytes(scroll_bytes))
     return [bytes(scroll_bytes)]
 
 Scrolls.fns = (scrolls_parser, scrolls_compiler)

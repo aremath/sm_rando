@@ -70,7 +70,7 @@ class Bank(object):
         self.extent_list.append(extent)
 
     def __repr__(self):
-        return str(self.extent_list)
+        return f"{hex(self.bank)}: {str(self.extent_list)}"
 
     #TODO: can use a fancier algorithm to decide where to find the space...
     def get_place(self, size):
@@ -140,17 +140,17 @@ class Memory(object):
         """Try to allocate space for <data> in one of the given <banks>."""
         address = None
         assert len(banks) > 0
+        banks = [self.banks[b] for b in banks]
         for bank in banks:
-            bank = self.banks[bank]
             try:
                 address = bank.get_place(size)
             except AllocationError:
                 continue
         # No place in any of the banks was found
         if address is None:
-            raise AllocationError
+            raise AllocationError(f"No Memory Address could be found for {size} in {banks}")
         else:
-            return address
+            return address, bank
 
     def allocate_and_write(self, data, banks):
         """Try to allocate <data> in one of the <banks>, then

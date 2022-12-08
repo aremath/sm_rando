@@ -18,6 +18,7 @@ from world_rando.coord import *
 from world_rando.util import *
 
 from world_rando.concrete_map import bfs, bfs_partition
+from world_rando.item_order_graph import NodeType
 
 # Room Generation:
 
@@ -57,11 +58,18 @@ def room_graphs(rooms, tile_rooms, paths):
         # Add nodes for the items at the start and end of this path
         gstart = rooms[room_start].graph
         if start not in gstart.nodes:
-            rooms[room_start].items.append(Item(start, path[0] - rooms[room_start].pos))
+            print(start)
+            if path_obj.start_type == NodeType.ITEM:
+                #TODO: this is jank
+                i = start.rstrip("0123456789")
+                rooms[room_start].items.append(Item(i, path[0] - rooms[room_start].pos))
             gstart.add_node(start)
         gend = rooms[room_end].graph
         if end not in gend.nodes:
-            rooms[room_end].items.append(Item(end, path[-1] - rooms[room_end].pos))
+            print(end)
+            if path_obj.end_type == NodeType.ITEM:
+                i = end.rstrip("0123456789")
+                rooms[room_end].items.append(Item(i, path[-1] - rooms[room_end].pos))
             gend.add_node(end)
         current_room = room_start
         current_node = start
@@ -98,22 +106,22 @@ def room_graphs(rooms, tile_rooms, paths):
         # Link the final current node with end
         gend.update_edge(current_node, end, items)
 
-def make_rooms(room_tiles, cmap, paths, node_info, region, settings):
-    patterns = pattern.load_patterns(settings["patterns"])
+def make_rooms(room_tiles, cmap, paths, node_info, region, settings, out_settings):
     rooms = room_setup(room_tiles, cmap, region)
     # Tile to room
     tile_rooms = reverse_list_dict(room_tiles)
     # Set up fixed rooms
     for node, info in node_info.items():
         loc, fmap = info
-        fmap.mk_room(loc, rooms, tile_rooms)
+        fmap.mk_room(loc, rooms, tile_rooms, region)
     room_graphs(rooms, tile_rooms, paths)
     # ... generate map data etc ...
+    patterns = pattern.load_patterns(settings["patterns"])
     for i, r in rooms.items():
         print("BEGIN: Generating room " + str(i))
         if r.level is None:
             r.level = level_of_cmap(r)
-            make_subrooms(r, settings, patterns)
+            make_subrooms(r, patterns, settings, out_settings)
         # ...
     return rooms
 
@@ -146,8 +154,8 @@ def find_item_loc(item, room, subroom_state, patterns, placement_chances):
             setup_pattern_r = patterns["chozo_statue_setup_l"]
             setup_pattern_l = patterns["chozo_statue_setup_r"]
             # Pattern is the actual pattern that is written to produce the desired item loc.
-            pattern_l = patterns["chozo_statue_l"]
-            pattern_r = patterns["chozo_statue_r"]
+            pattern_r = patterns["chozo_statue_l"]
+            pattern_l = patterns["chozo_statue_r"]
             # Pattern offset is where (relative to the setup pattern match) the pattern should be placed.
             pattern_offset_r = Coord(1,0)
             # Rel obstacle is a rect which are the non-cuttable squares of the pattern relative to
@@ -234,7 +242,8 @@ def find_item_loc(item, room, subroom_state, patterns, placement_chances):
                 obstacle_rect = rel_obstacle.translate(pattern_placement)
                 target_rect = rel_target.translate(pattern_placement)
                 # Actually make the necessary level edit
-                room.level = room.level.compose(pattern, collision_policy="overwrite", offset=pattern_placement)
+                print(pattern)
+                room.level = room.level.compose(pattern, collision_policy="try_refine", offset=pattern_placement)
                 # Tell the item where it is in the room and what its graphics should be.
                 item.room_pos = item_placement
                 item.graphic = item_graphic
@@ -283,12 +292,12 @@ def mk_door_obstacles(room):
         obstacles.append(door_obstacle)
     return obstacles
 
-def make_subrooms(room, settings, patterns):
+def make_subrooms(room, patterns, settings, out_settings):
     """
     Create the subrooms for a room
     """
     # DEBUG: view the map
-    room.viz_cmap("./output/")
+    room.viz_cmap(out_settings["output"], out_settings["map_tiles"])
     start_subroom = Subroom(set([t for t in room.level.tiles if room.level.tiles[t].tile_type == Type(0x0,0x0)]))
     door_obstacles = mk_door_obstacles(room)
     subroom_state = SubroomState(start_subroom, [], door_obstacles)
@@ -302,12 +311,13 @@ def make_subrooms(room, settings, patterns):
     # Fill the walls so that the item generation will know where to look
     subroom_state.mk_adj_walls(room.level)
     # DEBUG: look at the level data
-    room.viz_level("./output/")
+    room.viz_level(out_settings["output"], out_settings["room_tiles"])
     # Generate item locations
     print("Generating item locations")
     placement_chances = settings["item_placement_chances"]
     for i in room.items:
         print("Item: " + i.item_type)
+        #TODO: Find loc for arbitrary nodes using item_order_graph.NodeType
         find_item_loc(i, room, subroom_state, patterns, placement_chances)
     #TODO: Reconsider this stuff in light of the new architecture
     # Generate the graph

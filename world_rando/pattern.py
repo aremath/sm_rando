@@ -1,6 +1,7 @@
 import os
+from pathlib import Path
 
-from world_rando.room_dtypes import *
+from world_rando.room_dtypes import Texture, Type, Tile, Level
 from world_rando.coord import Coord, Rect
 
 #TODO: more advanced DSL that can handle things like input for door id and size...
@@ -57,15 +58,21 @@ def find_flips(entry):
         assert False, "Bad Entry!"
     return main_entry, flips
 
-#BUG: this is empty!
 def load_patterns(path):
     # Get all the filenames in path
     fnames = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     patterns = {}
     for f in fnames:
-        name, ext = f.split(".")
-        if ext == "txt":
+        p = Path(f)
+        name = p.stem
+        ext = p.suffix
+        if ext == ".txt":
             p = parse_pattern(os.path.join(path, f))
+            print(name)
+            print(p)
+            print()
+            print(p.reflect(Coord(1,0)))
+            print()
             #TODO: create a flag that can be written in the file for whether to include a flip
             patterns[name + "_l"] = p
             patterns[name + "_r"] = p.reflect(Coord(1,0))

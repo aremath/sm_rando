@@ -35,7 +35,8 @@ def mk_area(pos, dims, area):
     else:
         return None
 
-def default_mk_room(loc, rooms, tile_rooms):
+# tile_rooms: Dict(Coord, Room)
+def default_mk_room(loc, rooms, tile_rooms, region):
     return
 
 def mk_copyconverter(room_name):
@@ -59,19 +60,19 @@ boss_rooms = {
 boss_item_rooms = {
     "Kraid"         :   rhs.format("0x7a6e2"),
     "Draygon"       :   rhs.format("0x7d9aa"),
-    "Ridley"        :   rhs.format("0x7B698"),
+    "Ridley"        :   rhs.format("0x7b698"),
 }
 
 
 # Functions for instantiating rooms for a boss area
 def mk_single_mker(boss_name, boss_loc):
     bo_dir = -boss_loc
-    def mker(loc, rooms, tile_rooms):
+    def mker(loc, rooms, tile_rooms, region):
         outside = tile_rooms[loc]
         boss_id = f"{boss_name}_Boss"
         boss_id_to_outside = Door(loc + boss_loc, bo_dir, boss_id, outside, f"{boss_name}_bo")
         outside_to_boss_id = Door(loc, -bo_dir, outside, boss_id, f"{boss_name}_ob")
-        boss_room = Room(None, Coord(1,1), boss_id, loc + boss_loc)
+        boss_room = Room(None, Coord(1,1), boss_id, loc + boss_loc, region)
         boss_room.converter = mk_copyconverter(boss_rooms[boss_name])
         boss_room.doors.append(boss_id_to_outside)
         rooms[outside].doors.append(outside_to_boss_id)
@@ -91,7 +92,7 @@ def mk_item_mker(boss_name, boss_size, item_size, boss_loc, item_loc, ob_dir=Non
     ob_loc = Coord(0,0)
     bo_dir = -ob_dir
     bo_loc = ob_loc + ob_dir
-    def mker(loc, rooms, tile_rooms):
+    def mker(loc, rooms, tile_rooms, region):
         outside = tile_rooms[loc]
         boss_id = f"{boss_name}_Boss"
         item_id = f"{boss_name}_Item"
@@ -99,12 +100,15 @@ def mk_item_mker(boss_name, boss_size, item_size, boss_loc, item_loc, ob_dir=Non
         i_to_b =  Door(loc + ib_loc, ib_dir, item_id, boss_id, f"{boss_name}_ib")
         b_to_outside = Door(loc + bo_loc, bo_dir, boss_id, outside, f"{boss_name}_bo")
         outside_to_b = Door(loc + ob_loc, ob_dir, outside, boss_id, f"{boss_name}_ob")
-        boss_room = Room(None, boss_size, boss_id, loc + boss_loc)
+        boss_room = Room(None, boss_size, boss_id, loc + boss_loc, region)
         #TODO: how to specify what should be kept and what should be replaced?
         boss_room.converter = mk_copyconverter(boss_rooms[boss_name])
+        boss_room.level = "TODO"
         boss_room.doors.append(b_to_i)
         boss_room.doors.append(b_to_outside)
-        item_room = Room(None, item_size, item_id, loc + item_loc)
+        item_room = Room(None, item_size, item_id, loc + item_loc, region)
+        #TODO: None is a signal to generate the level
+        # Fill with invalid stuff
         item_room.level = item_id
         item_room.converter = mk_copyconverter(boss_item_rooms[boss_name])
         item_room.doors.append(i_to_b)
@@ -320,7 +324,8 @@ mk_golden_torizo = mk_item_mker("Golden_Torizo", Coord(2,2), Coord(1,1), Coord(1
 golden_torizo_room = FixedMap(golden_torizo_tiles, golden_torizo_bboxes, mk_golden_torizo)
 
 # Elevator Down
-
+#TODO: need this to go from left or right to use existing elevator rooms
+#   For now, can just use the room above caterpillar rooms, and replace its PLMs
 elevator_down_tiles = [
         (Coord(0,0), MapTile(_walls=set([down]))),
         (Coord(0,1), MapTile(TileType.elevator_main_down,_fixed=True,_walls=set([left,right,up]))),
@@ -335,7 +340,8 @@ elevator_down_bboxes = [
 elevator_down_room = FixedMap(elevator_down_tiles, elevator_down_bboxes, extend=4)
 
 # Elevator Up
-
+#TODO: There's no existing elevator down room that doesn't dump you out directly in the region
+#   What to do about that...?
 elevator_up_tiles = [
         (Coord(0,0), MapTile(_walls=set([up]))),
         (Coord(0,-1), MapTile(TileType.elevator_main_down,_fixed=True,_walls=set([left,right,down]))),
@@ -352,17 +358,51 @@ elevator_up_room = FixedMap(elevator_up_tiles, elevator_up_bboxes, extend=-3)
 # Save Point
 #TODO: How to allow save points to have either left or right doors, but not up / down doors?
 #   Eventually, save points will have two fixedmaps, and the search will be responsible for choosing one of them
-save_point_tiles = [
+# Layout: [] S
+save_point_r_tiles = [
         (Coord(1,0), MapTile(_fixed=True,_save=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
         (Coord(0,0), MapTile(_walls=set([Coord(1,0)])))
         ]
 
-save_point_bboxes = [
+save_point_r_bboxes = [
         Rect(Coord(1,0), Coord(2,1))
         ]
 
+# Layout: S []
+save_point_l_tiles = [
+        (Coord(-1,0), MapTile(_fixed=True,_save=True,_walls=set([Coord(-1,0),Coord(0,-1),Coord(1,0),Coord(0,1)]))),
+        (Coord(0,0), MapTile(_walls=set([Coord(1,0)])))
+        ]
+
+save_point_l_bboxes = [
+        Rect(Coord(-1,0), Coord(0,1))
+        ]
+
+#TODO: mk_save_mker for l and r
+#TODO: 2-way saves like upper norfair / draygon
+def mk_save_point_l(loc, rooms, tile_rooms, region):
+    save_d = Coord(-1, 0)
+    save_id = loc + save_d
+    # Unique per save_point
+    save_name = f"save_{save_id}"
+    outside = tile_rooms[loc]
+    print(f"SAVE POINT: {outside}")
+    s_to_outside = Door(loc + save_d, -save_d, save_name, outside, f"{save_name}_out")
+    outside_to_s = Door(loc, save_d, outside, save_name, f"{save_name}_in")
+    save_room = Room(None, Coord(1,1), save_name, loc + save_d, region)
+    save_room.level = "TODO"
+    save_room.doors.append(s_to_outside)
+    rooms[outside].doors.append(outside_to_s)
+    # Copy Crateria Save Point
+    save_room.converter = mk_copyconverter(rhs.format("0x793d5"))
+    rooms[save_name] = save_room
+
 #TODO: mk_save_point
-save_point_room = FixedMap(save_point_tiles, save_point_bboxes)
+# mk_copyconverter
+save_point_l_room = FixedMap(save_point_l_tiles, save_point_l_bboxes, mk_save_point_l)
+save_point_r_room = FixedMap(save_point_r_tiles, save_point_r_bboxes)
+
+#TODO: mk_start with a custom startconverter that always takes the first savestation slot
 
 # Item - Is this a fixedmap, or something else?
 item_tiles = [
@@ -394,7 +434,7 @@ def node_to_fixedmap(node, node_type):
         return fixed_maps[node]
     #TODO: Ship?
     elif node_type == NodeType.SAVE or node_type == NodeType.SHIP:
-        return save_point_room
+        return save_point_l_room
     #TODO - save points, reserves, map stations, etc?
     else:
         return item_room

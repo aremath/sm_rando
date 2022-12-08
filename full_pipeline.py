@@ -19,6 +19,7 @@ if __name__ == "__main__":
     new_obj_names = generate.reify_rooms(room_info, parsed_rooms)
     print("Compiling rooms")
     rom_m.compile(new_obj_names)
+    rom_m.save_and_close()
     with open("output/mdb.txt") as f:
         f.write(new_obj_names.mdb)
 
