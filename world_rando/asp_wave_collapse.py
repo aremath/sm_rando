@@ -111,16 +111,19 @@ def rel_fixed_tiles(rect, fixed_tiles):
 def get_mapping(level_from, level_to):
     """ Compute a mapping from one array to another """
     assert level_from.shape == level_to.shape
+    if np.all(level_from == level_to):
+        #print("same data")
+        return None
     m = {}
     for x in range(level_from.shape[0]):
         for y in range(level_from.shape[1]):
             from_t = level_from[x,y]
             to_t = level_to[x,y]
-            m[from_t] = to_t
+            m[tuple(from_t)] = to_t
     return m
 
 def map_tiles(level_from, mapping):
-    return np.vectorize(mapping.get)(level_from)
+    return np.vectorize(lambda x: np.array(mapping.get))(level_from)
 
 #OLD:
 #new = np.empty_like(level_from)
@@ -138,27 +141,32 @@ def get_state_functions(room_header):
     """
     default_level_data = room_header.state_chooser.default.level_data
     fns = []
+    print(room_header)
     for state in [s.state for s in room_header.state_chooser.conditions]:
         # No need if they share level data
         if state.level_data is default_level_data:
             continue
-        default_dims = default_level_data.level_array.layer1.shape
-        state_dims = state.level_data.level_array.layer1.shape
+        default_dims = Coord(*default_level_data.level_array.layer1.shape)
+        state_dims = Coord(*state.level_data.level_array.layer1.shape)
         d_bits = bit_array_from_bytes(default_level_data.level_bytes, default_dims)
-        s_bits = bit_array_from_bytes(state.level_data.level_array, state_dims)
+        s_bits = bit_array_from_bytes(state.level_data.level_bytes, state_dims)
         bit_fn = get_mapping(d_bits, s_bits)
-        fns.append(state, bit_fn)
+        fns.append((state, bit_fn))
     return fns
 
 def level_from_bits(bits):
     new_bytes = bytes_from_bit_array(bits)
+    c = Coord(*bits.shape[:-1])
     new_arrays = level_array_from_bytes(new_bytes, Coord(*bits.shape[:-1]))
     return new_bytes, new_arrays
 
-def transform_level_data(fn_entry, default_level_bits):
+def transform_level_data(fn_entry, default_level_bits, keep_allocation):
     state, bit_fn = fn_entry
     new_bits = map_tiles(bit_fn, default_level_bits)
-    old_level_data = state.level_data
+    if keep_allocation:
+        old_level_data = state.level_data
+    else:
+        old_level_data = None
     new_leveldata = state.obj_names.create(LevelData, *level_from_bits(new_bits), None, replace=old_level_data)
     # Fix up pointer for that state
     state.level_data = new_leveldata.name
@@ -289,15 +297,22 @@ def wfc_level_data(room_header, auto_rect=False, rects=None, extra_similarity=0,
     level = level_from_bits(level_bits)
     return level, fns
 
-def create(room_header, level, fns):
+def create(room_header, level, fns, keep_allocation=True):
     #TODO: instead of create, assign to the existing level data
-    old_level_data = room_header.state_chooser.default.level_data
+    if keep_allocation:
+        old_level_data = room_header.state_chooser.default.level_data
+    else:
+        old_level_data = None
     wfc_level_data = room_header.obj_names.create(LevelData, *level, None, replace=old_level_data)
     # Fix up default pointer
     room_header.state_chooser.default.level_data = wfc_level_data.name
     # Use the fns to compute new per-state level data and register it
     for entry in fns:
-        transform_level_data(entry, level_bits)
+        state, fn = entry
+        if fn is not None:
+            transform_level_data(entry, level_bits, keep_allocation)
+        else:
+            state.level_data = wfc_level_data.name
 
 class Context():
 

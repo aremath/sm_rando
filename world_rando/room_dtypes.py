@@ -649,9 +649,11 @@ class DoorConverter(object):
         elevator_properties = 0
         orientation = get_door_orientation(door.direction)
         #TODO: appropriate defaults for orientation
+        #TODO: assumes that the world is Euclidean
+        #TODO: warning / error for non-Euclidean worlds (use conversion_info)
         room_pos = conversion_info.rooms[door.destination].pos
         pos_in_room = door.pos + door.direction - room_pos
-        #print(pos_in_room)
+        #print(room_pos, pos_in_room)
         # Where to spawn the door cap
         xhigh, yhigh = pos_in_room
         xlow, ylow = find_door_cap_pos(pos_in_room, door.direction)
@@ -681,7 +683,8 @@ class RoomCopyConverter(RoomConverter):
         replace = [None, room.region.region_id, map_x, map_y, None, None, None,
                 None, None, doorlist, None]
         # Bring in the room+dependencies from the other namespace
-        rh = conversion_info.obj_names.copy_obj(replace_header, replace=replace, new_name=room_name)
+        # Don't keep allocation, to prevent multiple copies of the same object from being allocated at the same location
+        rh = conversion_info.obj_names.copy_obj(replace_header, replace=replace, new_name=room_name, keep_allocation=False)
         return rh
 
 #TODO: may want to be able to configure a DoorCopyConverter to keep

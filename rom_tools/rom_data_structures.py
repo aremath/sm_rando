@@ -158,7 +158,7 @@ def parse_engine(obj_def, address, obj_names, rom, data):
             new_data = None
         #print("Using {} at {}".format(parser.__name__, address))
         obj, size = parser(address, obj_names, rom, new_data)
-        #print("Got: {}, Size: {} using {} at {}\n".format(obj, size, parser.__name__, address))
+        #print("Got: {}, Size: {} from {} at {}\n".format(obj, size, parser.__name__, address))
         objs.append(obj)
         address += Address(size)
         total_size += size
@@ -251,7 +251,7 @@ def pointer_def(constructor, ptr_size, banks, invalid_bytes=None, invalid_ok=Fal
             assert ptr_size == 2
             address = Address(address_int, mode="snes")
             address = address + Address((bank << 16) + 0x8000, mode="snes")
-        #print(hex(address.as_pc))
+        #print(f"Pointer to {hex(address.as_pc)}")
         name = constructor.name_def.format(address)
         parser(address, obj_names, rom, data)
         return name, ptr_size
@@ -369,6 +369,7 @@ def mk_default_fns(constructor, obj_def=None):
 
     @compile_wrapper
     def compiler(obj, rom):
+        #print(f"Compiling a {constructor}")
         return compile_engine(obj_def(), obj, rom)
 
     return parser, compiler
@@ -420,7 +421,7 @@ def mk_enum_fns(under_fns, enum):
         for e in enum:
             if e == p:
                 return e, n
-        assert False, "No Matching Enum Entry"
+        assert False, f"No matching enum entry for {p}"
     def enum_compiler(obj, rom):
         # Can simply call the under-parser for an IntEnum
         return under_compiler(obj, rom)
@@ -512,6 +513,7 @@ class ObjNames(MutableMapping):
         self.d = {}
         self.new_obj_id = 0
 
+    #TODO: Suggestions in KeyError
     def __getitem__(self, k):
         return self.d[k]
 
@@ -780,6 +782,7 @@ RoomHeader.fns = mk_default_fns(RoomHeader)
 class StateChoice(RomObject):
     name_def = "state_condition_{}"
     fields = ["state_condition", "state"]
+    direct = True
 
     @staticmethod
     def parse_definition():
@@ -844,6 +847,8 @@ class RoomState(RomObject):
 
 RoomState.fns = mk_default_fns(RoomState)
 
+#TODO: rename x_pos_low and y_pos_low
+# They control where to spawn the door cap, not where to spawn Samus!
 class Door(RomObject):
     name_def = "door_{}"
     #TODO: instead of low / high, is this door cap position and screen position?

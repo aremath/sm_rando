@@ -69,6 +69,7 @@ def mk_single_mker(boss_name, boss_loc):
         boss_id = f"{boss_name}_Boss"
         boss_id_to_outside = Door(loc + boss_loc, bo_dir, boss_id, outside, f"{boss_name}_bo")
         outside_to_boss_id = Door(loc, -bo_dir, outside, boss_id, f"{boss_name}_ob")
+        #TODO: DoorCopyConverter
         boss_room = Room(None, Coord(1,1), boss_id, loc + boss_loc, region)
         boss_room.converter = RoomCopyConverter(boss_rooms[boss_name])
         boss_room.doors.append(boss_id_to_outside)
@@ -95,8 +96,10 @@ def mk_item_mker(boss_name, boss_size, item_size, boss_loc, item_loc, ob_dir=Non
         item_id = f"{boss_name}_Item"
         b_to_i = Door(loc + bi_loc, bi_dir, boss_id, item_id, f"{boss_name}_bi")
         i_to_b =  Door(loc + ib_loc, ib_dir, item_id, boss_id, f"{boss_name}_ib")
+        #TODO: DoorCopyConverter
         b_to_outside = Door(loc + bo_loc, bo_dir, boss_id, outside, f"{boss_name}_bo")
         outside_to_b = Door(loc + ob_loc, ob_dir, outside, boss_id, f"{boss_name}_ob")
+        #TODO: DoorCopyConverter
         boss_room = Room(None, boss_size, boss_id, loc + boss_loc, region)
         #TODO: how to specify what should be kept and what should be replaced?
         boss_room.converter = RoomCopyConverter(boss_rooms[boss_name])
