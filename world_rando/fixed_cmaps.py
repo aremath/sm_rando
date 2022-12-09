@@ -2,7 +2,7 @@ from functools import reduce
 
 from world_rando.coord import *
 from world_rando.concrete_map import *
-from world_rando.room_dtypes import Room, Door, Converter, DetailCopyConverter
+from world_rando.room_dtypes import Room, Door, RoomCopyConverter, DoorCopyConverter
 from world_rando.item_order_graph import NodeType
 
 #TODO: how to make sure we generate the Kraid and Draygon item rooms?
@@ -39,9 +39,6 @@ def mk_area(pos, dims, area):
 def default_mk_room(loc, rooms, tile_rooms, region):
     return
 
-def mk_copyconverter(room_name):
-    return lambda p: DetailCopyConverter(room_name, p)
-
 rhs = "room_header_{}"
 boss_rooms = {
     "Kraid"         :   rhs.format("0x7a59f"),
@@ -63,7 +60,7 @@ boss_item_rooms = {
     "Ridley"        :   rhs.format("0x7b698"),
 }
 
-
+#TODO: may need to make DoorCopyConverters for the mentioned doors
 # Functions for instantiating rooms for a boss area
 def mk_single_mker(boss_name, boss_loc):
     bo_dir = -boss_loc
@@ -73,7 +70,7 @@ def mk_single_mker(boss_name, boss_loc):
         boss_id_to_outside = Door(loc + boss_loc, bo_dir, boss_id, outside, f"{boss_name}_bo")
         outside_to_boss_id = Door(loc, -bo_dir, outside, boss_id, f"{boss_name}_ob")
         boss_room = Room(None, Coord(1,1), boss_id, loc + boss_loc, region)
-        boss_room.converter = mk_copyconverter(boss_rooms[boss_name])
+        boss_room.converter = RoomCopyConverter(boss_rooms[boss_name])
         boss_room.doors.append(boss_id_to_outside)
         rooms[outside].doors.append(outside_to_boss_id)
         rooms[boss_id] = boss_room
@@ -102,7 +99,7 @@ def mk_item_mker(boss_name, boss_size, item_size, boss_loc, item_loc, ob_dir=Non
         outside_to_b = Door(loc + ob_loc, ob_dir, outside, boss_id, f"{boss_name}_ob")
         boss_room = Room(None, boss_size, boss_id, loc + boss_loc, region)
         #TODO: how to specify what should be kept and what should be replaced?
-        boss_room.converter = mk_copyconverter(boss_rooms[boss_name])
+        boss_room.converter = RoomCopyConverter(boss_rooms[boss_name])
         boss_room.level = "TODO"
         boss_room.doors.append(b_to_i)
         boss_room.doors.append(b_to_outside)
@@ -110,7 +107,7 @@ def mk_item_mker(boss_name, boss_size, item_size, boss_loc, item_loc, ob_dir=Non
         #TODO: None is a signal to generate the level
         # Fill with invalid stuff
         item_room.level = item_id
-        item_room.converter = mk_copyconverter(boss_item_rooms[boss_name])
+        item_room.converter = RoomCopyConverter(boss_item_rooms[boss_name])
         item_room.doors.append(i_to_b)
         #TODO: Add gadora PLM to outside_room
         #TODO: How to tell outside room about using gadora tiles near the gadora??
@@ -389,16 +386,16 @@ def mk_save_point_l(loc, rooms, tile_rooms, region):
     print(f"SAVE POINT: {outside}")
     s_to_outside = Door(loc + save_d, -save_d, save_name, outside, f"{save_name}_out")
     outside_to_s = Door(loc, save_d, outside, save_name, f"{save_name}_in")
+    outside_to_s.converter = DoorCopyConverter("door_0x1899a")
     save_room = Room(None, Coord(1,1), save_name, loc + save_d, region)
     save_room.level = "TODO"
     save_room.doors.append(s_to_outside)
     rooms[outside].doors.append(outside_to_s)
     # Copy Crateria Save Point
-    save_room.converter = mk_copyconverter(rhs.format("0x793d5"))
+    save_room.converter = RoomCopyConverter(rhs.format("0x793d5"))
     rooms[save_name] = save_room
 
-#TODO: mk_save_point
-# mk_copyconverter
+#TODO: mk_save_point_r
 save_point_l_room = FixedMap(save_point_l_tiles, save_point_l_bboxes, mk_save_point_l)
 save_point_r_room = FixedMap(save_point_r_tiles, save_point_r_bboxes)
 
@@ -426,6 +423,7 @@ fixed_maps = {
 }
 
 def node_to_fixedmap(node, node_type):
+    #TODO: elevator mkers
     if node_type == NodeType.ELEVATOR_UP:
         return elevator_up_room
     elif node_type == NodeType.ELEVATOR_DOWN:

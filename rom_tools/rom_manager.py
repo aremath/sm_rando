@@ -14,6 +14,8 @@ from .compress import compress
 from . import rom_data_structures
 
 # Addresses of the maps for the different regions
+# https://patrickjohnston.org/bank/82#f9717
+# https://patrickjohnston.org/bank/B5
 region_map_locs = { # hidden |  tiles
     "Wrecked_Ship" : (Address(0x11a27), Address(0x1ab000)),
     "Maridia"      : (Address(0x11b27), Address(0x1ac000)),

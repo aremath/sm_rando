@@ -121,6 +121,7 @@ def make_rooms(room_tiles, cmap, paths, node_info, region, settings, out_setting
         print("BEGIN: Generating room " + str(i))
         if r.level is None:
             r.level = level_of_cmap(r)
+            #print(r.level)
             make_subrooms(r, patterns, settings, out_settings)
         # ...
     return rooms
@@ -263,6 +264,7 @@ def find_item_loc(item, room, subroom_state, patterns, placement_chances):
 #TODO: doors should generate their own obstacle when they are created?
 # same with their own pattern?
 #TODO: doors should have a map_pos and a room_pos just like items
+#TODO: read thickness from settings!
 def mk_door_obstacles(room):
     obstacles = []
     for door in room.doors:
@@ -298,8 +300,14 @@ def make_subrooms(room, patterns, settings, out_settings):
     """
     # DEBUG: view the map
     room.viz_cmap(out_settings["output"], out_settings["map_tiles"])
-    start_subroom = Subroom(set([t for t in room.level.tiles if room.level.tiles[t].tile_type == Type(0x0,0x0)]))
+    empty_tiles = set([t for t in room.level.tiles if room.level.tiles[t].tile_type == Type(0x0, 0x0)])
+    # Filter out the air spaces inside doors (if any)
     door_obstacles = mk_door_obstacles(room)
+    obstacle_set = reduce(lambda x, y: x | y, [o.obstacle_set for o in door_obstacles])
+    main_empty = empty_tiles - obstacle_set
+    n_components = len(find_components(main_empty))
+    assert n_components == 1, f"Room has {n_components} components"
+    start_subroom = Subroom(main_empty)
     subroom_state = SubroomState(start_subroom, [], door_obstacles)
     # Partition into subrooms avoiding doors
     print("Creating subrooms")
@@ -425,7 +433,7 @@ class SubroomState(object):
         # The tiles that make up both subrooms
         new_tiles = s_tiles - adj.tiles
         components = find_components(new_tiles)
-        assert len(components) == 2, "Adj does not create exactly two regions"
+        assert len(components) == 2, f"Adj does not create exactly two regions: {len(components)}"
         s1_tiles, s2_tiles = components
         #TODO: some metric besides size?
         if min_size is not None:
@@ -549,7 +557,9 @@ class SubroomState(object):
             for a in adj_group:
                 adj_components.remove(a)
         # Split on each adjacency
+        print([adj.tiles for adj in adjacencies])
         for adj in adjacencies:
+            print(adj.tiles)
             self.split_subroom_unknown(adj, min_size)
 
     def choose_subroom(self, metric):

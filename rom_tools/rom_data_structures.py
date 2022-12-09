@@ -165,7 +165,7 @@ def parse_engine(obj_def, address, obj_names, rom, data):
     return objs, total_size
 
 def compile_engine(obj_def, start_obj, rom):
-    print(f"Compiling {start_obj.name}")
+    #print(f"Compiling {start_obj.name}")
     objs = start_obj.list
     fieldnames = start_obj.fields
     assert len(fieldnames) == len(objs)
@@ -176,7 +176,7 @@ def compile_engine(obj_def, start_obj, rom):
         compilers = list(zip(*obj_def))[1]
     all_bytes = []
     for field, compiler, obj in zip(fieldnames, compilers, objs):
-        print(f"Compiling: {start_obj.name}.{field}")
+        #print(f"Compiling: {start_obj.name}.{field}")
         b = compiler(obj, rom)
         assert b is not None, "Compiler returned nothing. Might have a direct shared dependency?"
         # Want to get a flat list of bytes / FutureBytes
@@ -270,15 +270,17 @@ def pointer_def(constructor, ptr_size, banks, invalid_bytes=None, invalid_ok=Fal
             if hasattr(obj, "ptr_bytes"):
                 return obj.ptr_bytes
             # Otherwise, it was actually valid and we can convert to an Address
-            else:
+            elif obj.old_address is not None:
                 old_address = Address(obj.old_address, mode="snes")
+            else:
+                old_address = obj.old_address
         else:
             old_address = obj.old_address
         # If it's None, then we're still inside the compile for that object
         # in a different iteration -> object will be allocated later
         if obj_bytes is not None:
             # Size of the object on the other end of the pointer
-            print(obj_bytes)
+            #print(obj_bytes)
             obj_size = bytes_size(obj.bytes)
             # Register the real value
             # Skip addrs if it's preallocated
@@ -625,7 +627,7 @@ class ObjNames(MutableMapping):
             new_obj.old_size = obj.old_size
         self[new_name] = new_obj
         # Now recursively add dependencies
-        print(dependencies, dependency_names)
+        #print(dependencies, dependency_names)
         for dep, name in zip(dependencies, dependency_names):
             # Replace and new_name only for the top-level object
             _ = self.copy_obj(dep, new_name=name)
@@ -1155,7 +1157,7 @@ def scrolls_compiler(obj, rom):
             b = int.to_bytes(int(obj.array[x][y]), 1, byteorder="little")
             scroll_bytes.extend(b)
     # Convert back to bytestring
-    print("Scroll_bytes", bytes(scroll_bytes))
+    #print("Scroll_bytes", bytes(scroll_bytes))
     return [bytes(scroll_bytes)]
 
 Scrolls.fns = (scrolls_parser, scrolls_compiler)

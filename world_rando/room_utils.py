@@ -223,7 +223,9 @@ def mk_left_door(level, pos, door_id, size):
     level[pos + Coord(size-1,2)] = Tile(Texture(0x2C, (1,1)), Type(0x0D, 0xFE))
     level[pos + Coord(size-1,3)] = Tile(Texture(0x0C, (1,1)), Type(0x0D, 0xFD))
 
-#TODO: add corners
+#TODO: Make the top border of the room 3-high
+# Allow different wall thicknesses for different directions
+#TODO: have this return the door rectangles for mk_door_obstacles
 def level_of_cmap(room, wall_thickness=2):
     # Level has a 16x16 tile for every maptile
     #level = room_dtypes.Level(cmap.dimensions * Coord(16,16))
@@ -234,7 +236,7 @@ def level_of_cmap(room, wall_thickness=2):
     # Make walls
     for w_pos, tile in cmap.items():
         for direction in tile.walls:
-            mk_wall(level, w_pos, direction, wall_thickness)
+            mk_wall(level, w_pos, direction, thickness=wall_thickness)
     # Make Corners
     for pos in cmap_rect:
         if pos not in cmap.tiles:
@@ -261,7 +263,7 @@ def level_of_cmap(room, wall_thickness=2):
             mk_default_rect(level, r.scale(16))
     # Make doors
     for i, door in enumerate(doors):
-        mk_door(level, door.pos - room.pos, door.direction, i)
+        mk_door(level, door.pos - room.pos, door.direction, i, size=wall_thickness)
     # Rest is air
     level.missing_defaults(mk_default_air)
     return level

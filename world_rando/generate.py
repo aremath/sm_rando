@@ -78,10 +78,11 @@ def reify_rooms(room_info, parsed_rooms):
     print("Converting Rooms to ROM format")
     rooms = []
     # Collect the rooms
+    all_room_d = {}
     for room_d in room_info.values():
-        for room in room_d.values():
-            rooms.append(room)
-    return convert_rooms(rooms, parsed_rooms)
+        all_room_d.update(room_d)
+    assert len(all_room_d) == sum([len(d) for d in room_info.values()])
+    return convert_rooms(all_room_d, parsed_rooms)
 
 def visualize_abstract_maps(settings, abstract_map_info):
     _, g, rsg, _ = abstract_map_info
