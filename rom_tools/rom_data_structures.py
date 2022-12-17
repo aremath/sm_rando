@@ -1,6 +1,7 @@
 from functools import reduce, wraps
 import inspect
 from enum import IntEnum
+from typing import Any, Callable, ClassVar, Iterator, Optional, Type
 import numpy as np
 from collections.abc import MutableMapping
 
@@ -14,7 +15,7 @@ from . import leveldata_utils
 #TODO: A way to use an ObjNames where some objects already have bytes
 
 # https://stackoverflow.com/questions/1389180/automatically-initialize-instance-variables
-def auto_init(func):
+def auto_init(func: Callable[..., Any]) -> Callable[..., Any]:
         """
         Automatically assigns the parameters of a class.
         """
@@ -505,38 +506,40 @@ state_condition_fns = (parse_state_condition, compile_state_condition)
 # Scroll    enum
 # Special X-Ray blocks
 
-class ObjNames(MutableMapping):
+class ObjNames(MutableMapping[str, "RomObject"]):
     """ Glorified dict that keeps track of IDs to
     allow for the creation of new objects with unique names. """
+    d: dict[str, "RomObject"]
+    new_obj_id: int
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.d = {}
         self.new_obj_id = 0
 
-    #TODO: Suggestions in KeyError
-    def __getitem__(self, k):
+    # TODO: Suggestions in KeyError
+    def __getitem__(self, k: str) -> "RomObject":
         return self.d[k]
 
-    def __setitem__(self, k, v):
+    def __setitem__(self, k: str, v: "RomObject") -> None:
         self.d[k] = v
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return self.d.__iter__()
     
-    def __len__(self):
+    def __len__(self) -> int:
         return self.d.__len__()
 
-    def __delitem__(self, k):
+    def __delitem__(self, k: str) -> None:
         return self.d.__delitem__(k)
 
-    def get_new_name(self, constructor):
+    def get_new_name(self, constructor: "Type[RomObject]") -> str:
         obj_name = constructor.name_def.format(self.new_obj_id)
         self.new_obj_id += 1
         return obj_name
 
-    #TODO: an argument can be made that these kinds of "direct" objects shouldn't even have an
+    # TODO: an argument can be made that these kinds of "direct" objects shouldn't even have an
     # entry in obj_names...
-    def get_indirect_name(self, obj):
+    def get_indirect_name(self, obj: "RomObject") -> str:
         """
         Helper for copy_obj. When copying a dependent object, we need to know whether a
         new object should be created. It is problematic if two RoomHeaders share the same
@@ -553,7 +556,11 @@ class ObjNames(MutableMapping):
             return obj.name
 
     # TODO: delete which auto unallocates from rom.memory
-    def create(self, constructor, *args, replace=None, obj_name=None):
+    def create(self,
+               constructor: "Type[RomObject]",
+               *args: Any,
+               replace: "Optional[RomObject]" = None,
+               obj_name: Optional[str] = None) -> "RomObject":
         """ Register a new object of the given type by instantiating it
         with *args """
         if obj_name is None:
@@ -570,7 +577,11 @@ class ObjNames(MutableMapping):
         self[obj_name] = obj
         return obj
 
-    def copy_obj(self, obj, replace=None, new_name=None, keep_allocation=True):
+    def copy_obj(self,
+                 obj: "RomObject",
+                 replace: Optional[list[Optional[str]]] = None,
+                 new_name: Optional[str] = None,
+                 keep_allocation=True) -> "RomObject":
         """
         Move a name from other to self, and also take along all other names it depends on.
         If replace is not None, then some pointers will be replaced before allocation.
@@ -636,9 +647,9 @@ class ObjNames(MutableMapping):
         return new_obj
 
     # Return the addresses of the RoomHeader objects for use with SMILE RF
-    def room_mdb(self):
+    def room_mdb(self) -> str:
         # Do not include uncompiled rooms
-        rooms = list(filter(lambda x: type(x) is RoomHeader, self.values()))
+        rooms: list[RoomHeader] = list(filter(lambda x: isinstance(x, RoomHeader), self.values()))
         rooms2 = list(filter(lambda x: hasattr(x, "address"), rooms))
         if len(rooms) != len(rooms2):
             print("Warning: obj_names has uncompiled room headers!")
@@ -650,7 +661,7 @@ class ObjNames(MutableMapping):
 
 class RomObject(object):
     name_def = None
-    fields = []
+    fields: ClassVar[list[str]] = []
     # Whether this class is going to be directly present inside another RomObject,
     # or pointed to indirectly
     direct = False

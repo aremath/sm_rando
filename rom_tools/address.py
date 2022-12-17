@@ -1,10 +1,13 @@
+from typing import Literal
 from . import byte_ops
 
 class Address(object):
+    pc_addr: int
+
     """Address Class that handles conversions
        this way we don't have to remember which 'kind' of address we have
        just which kind we want to use"""
-    def __init__(self, addr, mode="pc", bank=None):
+    def __init__(self, addr: int, mode: Literal["pc", "snes"] = "pc", bank: None = None) -> None:
         if mode == "pc":
             self.from_pc(addr)
         elif mode == "snes":
@@ -15,32 +18,32 @@ class Address(object):
     def __repr__(self):
         return hex(self.as_pc)
 
-    def __gt__(self, other):
+    def __gt__(self, other: "Address") -> bool:
         return self.as_pc > other.as_pc
 
-    def __eq__(self, other):
-        return self.as_pc == other.as_pc
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Address) and (self.as_pc == other.as_pc)
 
-    def __le__(self, other):
+    def __le__(self, other: "Address") -> bool:
         return self.as_pc <= other.as_pc
 
-    def __lt__(self, other):
+    def __lt__(self, other: "Address") -> bool:
         return self.as_pc < other.as_pc
 
-    def __ge__(self, other):
+    def __ge__(self, other: "Address") -> bool:
         return self.as_pc >= other.as_pc
 
-    def __add__(self, other):
+    def __add__(self, other: "Address") -> "Address":
         return Address(self.as_pc + other.as_pc)
 
     # Hashable as its actual address
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.pc_addr)
 
-    def from_snes(self,addr):
+    def from_snes(self, addr: int) -> None:
         self.pc_addr = byte_ops.snes_to_pc(addr)
 
-    def from_pc(self,addr):
+    def from_pc(self, addr: int) -> None:
         self.pc_addr = addr
 
     @property
@@ -48,31 +51,31 @@ class Address(object):
         return self.pc_addr
 
     @property
-    def as_snes(self):
+    def as_snes(self) -> int:
         sn = byte_ops.pc_to_snes(self.pc_addr)
         return sn
     
-    def as_snes_bytes(self, nbytes):
+    def as_snes_bytes(self, nbytes: int) -> bytes:
         assert (nbytes == 2 or nbytes == 3), "Can't produce a " + str(nbytes) + "-byte pointer!"
         sn = byte_ops.pc_to_snes(self.pc_addr)
         b = sn.to_bytes(3, byteorder='little')
         return b[:nbytes]
     
     @property
-    def bank(self):
+    def bank(self) -> int:
         return (byte_ops.pc_to_snes(self.pc_addr) & 0xff0000) >> 16
     
-    def copy(self):
+    def copy(self) -> "Address":
         return Address(self.pc_addr)
 
-    def copy_increment(self,inc):
+    def copy_increment(self, inc: int) -> "Address":
         ad = self.as_pc + inc
         return Address(ad)
 
-    def __int__(self):
+    def __int__(self) -> int:
         return self.pc_addr
 
-def mk_future(i):
+def mk_future(i: int) -> "FutureAddress":
     return FutureAddress(real_addr=Address(i))
 
 class FutureAddress(object):
