@@ -3,6 +3,7 @@ from hashlib import md5
 from os import stat, remove, rename
 from collections import defaultdict
 from pathlib import Path
+from typing import Any, Iterable, Literal, Union
 
 from . import byte_ops
 from . import areamap
@@ -25,7 +26,7 @@ region_map_locs = { # hidden |  tiles
     "Tourian"      : (Address(0x11c27), Address(0x1ad000))
 }
 
-def _checksum(filename):
+def _checksum(filename: str) -> str:
     """ md5sums a file """
     with open(filename, 'rb') as file:
         m = md5()
@@ -36,7 +37,7 @@ def _checksum(filename):
             m.update(data)
     return m.hexdigest()
 
-def _file_length(filename):
+def _file_length(filename: str) -> int:
     statinfo = stat(filename)
     return statinfo.st_size
 
@@ -47,7 +48,7 @@ class RomManager(object):
        Also *eventually* will be able to detect if your rom is `pure` and apply
        some necessary patches auto-magically"""
 
-    def __init__(self,clean_name,new_name):
+    def __init__(self, clean_name: str, new_name: str) -> None:
         assert clean_name != new_name, "The new rom name cannot be the same as the clean rom name!"
         #TODO: assert that clean_name refers to an actual file,
         # and that new_name does not refer to an existing file
@@ -56,7 +57,7 @@ class RomManager(object):
         self.memory = Memory(self)
         self.memory.setup()
 
-    def load_rom(self, clean_name, new_name, mod=True):
+    def load_rom(self, clean_name: str, new_name: str, mod: bool = True) -> None:
         """Opens the files associated with the clean rom and the modded rom"""
 
         pure_rom_sum = '21f3e98df4780ee1c667b84e57d88675'
@@ -86,7 +87,7 @@ class RomManager(object):
         if mod:
             self.mod_rom()
 
-    def mod_rom(self):
+    def mod_rom(self) -> None:
         """
         Mod the ROM with various patches (see comments)
         """
@@ -121,7 +122,7 @@ class RomManager(object):
         #TODO: find out what is wrong with this
         #self.apply_ips(patches_path / "no_sand_bs.ips")
 
-    def set_escape_timer(self, time):
+    def set_escape_timer(self, time: int) -> None:
         # Change escape timer
         # First, convert to minutes, seconds:
         minutes = time // 60
@@ -133,7 +134,7 @@ class RomManager(object):
         self.write_to_new(Address(0x0001e21), second_bytes)
         self.write_to_new(Address(0x0001e22), minute_bytes)
 
-    def decapitate_rom(self, filename):
+    def decapitate_rom(self, filename: str) -> None:
         """ Removes the header from the rom """
         tmpname = filename + ".tmp"
         with open(filename, 'rb') as src:
@@ -143,46 +144,62 @@ class RomManager(object):
         remove(filename)
         rename(tmpname, filename)
 
-    def save_and_close(self):
+    def save_and_close(self) -> None:
         """ Saves all changes to the rom, for now that just closes it"""
+        assert self.clean_rom and self.new_rom, "roms weren't open"
         self.clean_rom.close()
         self.new_rom.close()
         self.clean_rom = None
         self.new_rom = None
 
-    def write_to_new(self, offset, data):
+    def write_to_new(self, offset: Address, data: bytes) -> None:
         """Write data to offset in the new rom"""
+        assert self.new_rom, "no rom loaded"
         self.new_rom.seek(offset.as_pc)
         self.new_rom.write(data)
 
-    def read_from_new(self, offset, n_bytes):
+    def read_from_new(self, offset: Address, n_bytes: int) -> bytes:
         """Read n bytes from the new rom at offset"""
+        assert self.new_rom, "no rom loaded"
         self.new_rom.seek(offset.as_pc)
         r = self.new_rom.read(n_bytes)
         return r
 
-    def read_from_clean(self, offset, n_bytes):
+    def read_from_clean(self, offset: Address, n_bytes: int) -> bytes:
         """Read n bytes from the clean rom at offset"""
+        assert self.clean_rom, "no rom loaded"
         self.clean_rom.seek(offset.as_pc)
         r = self.clean_rom.read(n_bytes)
         return r
 
-    def read_array(self, offset, array_width, array_height, element_size, rom="clean"):
+    def read_array(self,
+                   offset: Address,
+                   array_width: int,
+                   array_height: int,
+                   element_size: int,
+                   rom: Literal["clean", "new"] = "clean") -> dict[int, dict[int, bytes]]:
         if rom == "clean":
             read = self.read_from_clean
         elif rom == "new":
             read = self.read_from_new
         else:
             assert False, "Bad rom option"
-        #TODO: is dict really the best option?
-        array = defaultdict(dict)
+        # TODO: is dict really the best option?
+        array: dict[int, dict[int, bytes]] = defaultdict(dict)
         for x in range(array_width):
             for y in range(array_height):
                 array_offset = (y * array_width + x) * element_size
+                # TODO: FIXME: Address doesn't know how to add to int
                 array[x][y] = read(offset + array_offset, element_size)
         return array
 
-    def read_list(self, offset, element_size, list_length, rom="clean", check_length=True, compressed=True):
+    def read_list(self,
+                  offset: Address,
+                  element_size: int,
+                  list_length: int,
+                  rom: Literal["clean", "new"] = "clean",
+                  check_length: bool = True,
+                  compressed: bool = True) -> list[bytes]:
         if rom == "clean":
             read = self.read_from_clean
         elif rom == "new":
@@ -202,18 +219,19 @@ class RomManager(object):
         # Either way, the total amount of data has to be a multiple of the element size
         else:
             assert len(data) % element_size == 0
-        l = []
+        l: list[bytes] = []
         for i in range(0, total_size, element_size):
             l.append(data[i:i+element_size])
         return l
 
-    def smart_place_map(self, am, area):
+    def smart_place_map(self, am: areamap.AreaMap, area: str) -> None:
         """ uses the lookup dictionary in areamap.py to translate
             a string area name into the addresses for placeMap()"""
         t = areamap.areamap_locs[area]
+        # TODO: FIXME: place_map needs Address, not int (because write_to_new needs Address)
         self.place_map(am, t[1], t[0])
 
-    def place_map(self, am, mapaddr, hiddenaddr):
+    def place_map(self, am: areamap.AreaMap, mapaddr: Address, hiddenaddr: Address) -> None:
         """When passed an areamap object, and the addresses to put the data in
            writes the relevant data to the rom. maybe one day an aditional
            "smart" version that knows these locations ahead of time will exist
@@ -223,17 +241,17 @@ class RomManager(object):
         self.write_to_new(mapaddr, mapdata)
         self.write_to_new(hiddenaddr, hiddendata)
 
-    def place_cmap(self, cmap_ts, mapaddr, hiddenaddr):
+    def place_cmap(self, cmap_ts: dict[tuple[int, int], tuple[int, int, int]], mapaddr: Address, hiddenaddr: Address) -> None:
         """Uses the output from map_viz.cmap_to_tuples to create an amap then place it"""
         amap = areamap.tuples_to_amap(cmap_ts)
         mapdata = amap.map_to_bytes()
-        #TODO: why does hidden data corrupt the map?
-        #hiddendata = amap.hiddenToBytes()
+        # TODO: why does hidden data corrupt the map?
+        # hiddendata = amap.hiddenToBytes()
         self.write_to_new(mapaddr, mapdata)
-        #self.write_to_new(hiddenaddr, hiddendata)
+        # self.write_to_new(hiddenaddr, hiddendata)
 
     # Thanks to the main SM item rando for this
-    def apply_ips(self, ips_file, offset=5):
+    def apply_ips(self, ips_file: Union[str, Path], offset: int = 5) -> None:
         ips = open(ips_file, "rb")
         while True:
             ips.seek(offset)
@@ -246,7 +264,7 @@ class RomManager(object):
             ips_length = int.from_bytes(ips_length_b, byteorder='big')
             # Update offset past the end of the bytes we just read
             offset += 5
-            
+
             # 0 is the code for - get a new length then write one byte that many times
             if ips_length == 0:
                 ips.seek(offset)
@@ -264,19 +282,19 @@ class RomManager(object):
                 offset += ips_length
         ips.close()
 
-    def apply_patches(self, patches):
+    def apply_patches(self, patches: Iterable[tuple[Address, bytes]]) -> None:
         for address, data in patches:
             self.write_to_new(address, data)
 
-    def save_table_entries(self, address):
+    def save_table_entries(self, address: Address) -> list[Address]:
         save_station_size = Address(14)
-        addrs = []
+        addrs: list[Address] = []
         while self.read_from_clean(address, 2) != b"\x00\x00":
             addrs.append(address)
             address += save_station_size
         return addrs
 
-    def parse(self):
+    def parse(self) -> None:
         # Vanilla Savestations
         crateria_save_table = Address(0x0044c5, mode="pc")
         crateria_savestations = self.save_table_entries(crateria_save_table)
@@ -296,22 +314,22 @@ class RomManager(object):
         tourian_save_table = Address(0x004a2f, mode="pc")
         tourian_savestations = self.save_table_entries(tourian_save_table)
         assert len(tourian_savestations) == 2
-        #TODO: what about Ceres?
+        # TODO: what about Ceres?
         all_saves = crateria_savestations + brinstar_savestations + norfair_savestations + \
-                wrecked_ship_savestations + maridia_savestations + tourian_savestations
+            wrecked_ship_savestations + maridia_savestations + tourian_savestations
         obj_names = rom_data_structures.parse_from_savestations(all_saves, self)
         # Register the objects with the memory model so that we don't allocate new levels
         # on top of existing ones
         for obj in obj_names.values():
-            if type(obj.old_address) is Address:
+            if isinstance(obj.old_address, Address):
                 self.memory.mark_filled(obj.old_address, obj.old_size)
         return obj_names
 
-    def clear_memory(self):
+    def clear_memory(self) -> None:
         self.memory = Memory(self)
         self.memory.setup()
 
-    def compile(self, obj_names):
+    def compile(self, obj_names: dict[Any, rom_data_structures.ObjNames]) -> None:
         all_saves = [obj for obj in obj_names.values() if isinstance(obj, rom_data_structures.SaveStation)]
         print(f"Saves: {all_saves}")
         rom_data_structures.compile_from_savestations(all_saves, obj_names, self)

@@ -15,3 +15,4 @@ abstraction_validation/ram.bin
 abstraction_validation/blue_brinstar_elevator.state
 abstraction_validation/blue_brinstar.bk2
 foo
+.venv*

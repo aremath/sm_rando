@@ -2,13 +2,17 @@
 # i is the int from which to get bits (one byte)
 # n is the number of bits to get
 # p is where to start getting them from (indexed from 0 is the high bit of i)
+from typing import Callable, Sequence
+
+
 def get_n_bits(i, n, p):
     end = (8 - n - p)
     assert end >= 0
     mask = (2**n - 1) << end
     return (i & mask) >> end
 
-def decompress_with_size(src, debug=False):
+
+def decompress_with_size(src: Sequence[int], debug: bool = False) -> tuple[bytes, int]:
     dst = b""
     index = 0
     while True:
@@ -35,6 +39,7 @@ def decompress_with_size(src, debug=False):
         # Arg is adjusted by 1 since ex. direct_copy 0 copies 1 byte
         adj_n = n + 1
         # Find the alg to use
+        cmd: Callable[[int, int, Sequence[int], bytes, bool], tuple[bytes, int]]
         if cmd_code == 0:
             cmd = direct_copy
         elif cmd_code == 1:
@@ -58,7 +63,7 @@ def decompress_with_size(src, debug=False):
         dst += new
     return dst, index
 
-def decompress(src, debug=False):
+def decompress(src: Sequence[int], debug: bool = False) -> bytes:
     dst, index = decompress_with_size(src, debug=debug)
     return dst
 

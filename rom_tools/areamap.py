@@ -5,7 +5,7 @@
 default_map_size = 0x800
 default_hidden_size = 0x100
 
-areamapLocs = {
+areamap_locs = {
 #"area":(hiddenbitsAddrs, tilesAddrs) pc addresses
 "crateria":(0x011727,0x1a9000),
 "brinstar":(0x011827,0x1a8000),
@@ -94,8 +94,9 @@ class AreaMap(object):
         assert len(bytes(l)) == default_hidden_size
         return bytes(l)
 
-#TODO: hidden problems
-def tuples_to_amap(cmap_tuples):
+# TODO: hidden problems
+# TODO: TODO: verify: some guessing on the typing of cmap_tuples
+def tuples_to_amap(cmap_tuples: dict[tuple[int, int], tuple[int, int, int]]) -> AreaMap:
     """takes a dict with key - xy, value - (hflip, vflip, index) and creates the appropriate amap"""
     amap = AreaMap()
     # The map is represented on the ROM as two 32x32 arrays instead of one 64x64 array.
@@ -103,9 +104,9 @@ def tuples_to_amap(cmap_tuples):
         for x in range(32):
             for y in range(32):
                 cmap_x = x + (submap * 32)
-                cmap_y = y - 1 #offset
+                cmap_y = y - 1  # offset
                 cmap_vs = (cmap_x, cmap_y)
-                #print(cmap_vs, submap)
+                # print(cmap_vs, submap)
                 if cmap_vs in cmap_tuples:
                     index = x + (y*32) + (submap * 0x400) #TODO: index out of range problems?
                     new_tile = MapTile()

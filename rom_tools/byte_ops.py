@@ -24,7 +24,7 @@ def assert_valid_pc(addr):
     else:
         return addr
 
-def pc_to_snes(addr):
+def pc_to_snes(addr: int) -> int:
     """ Converts a PC address to a lorom address."""
     assert_valid_pc(addr)
     a = ((addr << 1) & 0x7f0000) + 0x800000
@@ -33,7 +33,7 @@ def pc_to_snes(addr):
     assert_valid_snes(snes)
     return snes
 
-def snes_to_pc(addr):
+def snes_to_pc(addr: int) -> int:
     assert_valid_snes(addr)
     """Converts a lorom address to a PC address."""
     assert_valid_snes(addr)
