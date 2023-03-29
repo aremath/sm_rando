@@ -47,16 +47,16 @@ class RomManager(object):
        Also *eventually* will be able to detect if your rom is `pure` and apply
        some necessary patches auto-magically"""
 
-    def __init__(self,clean_name,new_name):
+    def __init__(self, clean_name, new_name, mod=True):
         assert clean_name != new_name, "The new rom name cannot be the same as the clean rom name!"
         #TODO: assert that clean_name refers to an actual file,
         # and that new_name does not refer to an existing file
-        self.load_rom(clean_name, new_name)
+        self.load_rom(clean_name, new_name, mod)
         # Create a memory model for the new ROM
         self.memory = Memory(self)
         self.memory.setup()
 
-    def load_rom(self, clean_name, new_name, mod=True):
+    def load_rom(self, clean_name, new_name, mod):
         """Opens the files associated with the clean rom and the modded rom"""
 
         pure_rom_sum = '21f3e98df4780ee1c667b84e57d88675'

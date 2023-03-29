@@ -629,6 +629,8 @@ class LevelState(object):
             pixel_xy = xy - self.origin
             if xy in tint_pos:
                 pixels[pixel_xy] = tint_color
+            if xy in self.items:
+                pixels[pixel_xy] = item_color
             else:
                 pixels[pixel_xy] = abstract_to_color[self[xy]]
         return i

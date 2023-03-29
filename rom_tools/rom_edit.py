@@ -281,32 +281,34 @@ def make_starting_items(items, rom):
                 print(item_def + " requires an amount!")
         else:
             print(item_def + " is not supported as a starting item!")
-    # setup for writing the codes
+    # setup for writing the bitmasks
     rom.write_to_new(Address(0xb2fd), b"\x20\x20\xef")
     rom.write_to_new(Address(0xef20), b"\xA9\x00\x00\x8D\xA2\x09\x8D\xA4\x09\xA9\x00\x00\x8D\xA6\x09\x8D\xA8\x09\x60")
-    make_start_beams(beam_list, rom)
-    make_start_items(item_list, rom)
+    bb = make_beam_bitmask(beam_list)
+    rom.write_to_new(Address(0xef2a), bb)
+    ib = make_item_bitmask(item_list)
+    rom.write_to_new(Address(0xef21), ib)
     make_start_ammo(ammo_list, rom)
 
 # helper function for make_starting_items
 # sets the beam bitmask
-def make_start_beams(beams, rom):
+def make_beam_bitmask(beams):
     # beams is a list of str which indicates what beams to start with
     total_code = 0
     for beam in beams:
         total_code += beam_codes[beam]
     code_bytes = total_code.to_bytes(2, byteorder='little')
-    rom.write_to_new(Address(0xef2a), code_bytes)
+    return code_bytes
 
 #TODO: this naming scheme is a little strange
 # helper function for make_starting_items
 # sets the item bitmask
-def make_start_items(items, rom):
+def make_item_bitmask(items):
     total_code = 0
     for item in items:
         total_code += item_codes[item]
     code_bytes = total_code.to_bytes(2, byteorder='little')
-    rom.write_to_new(Address(0xef21), code_bytes)
+    return code_bytes
 
 # helper function for make_starting_items
 # sets the starting ammo amounts

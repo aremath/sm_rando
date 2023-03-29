@@ -54,10 +54,10 @@ class Selector(object):
     def select(self, cells):
         return random.choice(cells)
 
-#TODO: parameterize instead of a constant.
 class SoftminSelector(Selector):
 
     def __init__(self, weight_fun, temp):
+        #TODO: rename "temp"
         # Cache cell distance for faster computation
         self.cache = cachedict(weight_fun)
         self.temp = temp

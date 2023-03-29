@@ -151,10 +151,10 @@ def get_item_locations(plms):
     item_locations = {}
     plm_to_item = mk_plm_to_item(item_definitions.make_item_definitions())
     for plm in plms.l:
-        print(hex(plm.plm_id))
+        #print(hex(plm.plm_id))
         if plm.plm_id in plm_to_item:
             iset = plm_to_item[plm.plm_id]
-            c = Coord(plm.xpos, plm.ypos)
+            c = Coord(plm.x_pos, plm.y_pos)
             item_locations[c] = iset
     return item_locations
 
