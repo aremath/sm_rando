@@ -55,6 +55,7 @@ class LevelArrays(object):
         self.bts = bts
         self.layer2 = layer2
 
+#TODO: VFlip is actually HFlip
 def tile_of_bytes(b, layer1=True):
     assert len(b) == 2
     i = int.from_bytes(b, byteorder="little")

@@ -10,7 +10,7 @@ def rule_search(start_state, rules, goal_state, max_rules=10000):
         goal_position = goal_state.position
     print("Search to reach {} from {}".format(goal_position, start_state.samus.position))
     offers = {}
-    finished = set()
+    finished = set([start_state])
     entry_count = 0
     h = [(0, entry_count, start_state)]
     #TODO: is this the right thing to count / variable name?

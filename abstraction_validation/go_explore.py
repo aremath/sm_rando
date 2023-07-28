@@ -90,7 +90,7 @@ class MarkovSelector(Selector):
 #TODO: StateSelector
 #TODO: (long term) - Atlas that contains all of these external settings
 #TODO: state-level / ram-level predicate
-def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, cell_ok=lambda x: True,  goal=lambda s: False, cell_selector=Selector(), action_selector=Selector(), global_pos=False, seed=None):
+def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, cell_ok=lambda x: True,  goal=lambda s: False, cell_selector=Selector(), action_selector=Selector(), global_pos=False, seed=None, laundry=None):
     if seed is not None:
         random.seed(seed)
     #  Graph of Real State, with actions on edges
@@ -103,7 +103,10 @@ def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, ce
     graph.add_node(initial_state, ram=ram)
     initial_cell = abstractify_state(ram, global_pos)
     print(initial_cell)
-    atlas[initial_cell] = set([initial_state])
+    if laundry is not None:
+        atlas[initial_cell] = set([laundry(initial_state)])
+    else:
+        atlas[initial_cell] = set([initial_state])
     log = [(0, initial_cell)]
     n_frames = 0
     cell = None
@@ -115,7 +118,7 @@ def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, ce
         state = random.choice(list(atlas[cell]))
         #TODO make action selector also choose the number of steps
         action = action_selector.select(actions)
-        emu.set_state(state)
+        emu.set_state(bytes(state))
         n_steps = random.randint(1, max_step_size)
         for _  in range(n_steps):
             #TODO: Check goal in here
@@ -131,5 +134,8 @@ def go_explore(initial_state, actions, emu, gamedata, n_steps, max_step_size, ce
             graph.add_edge(state, next_state, action=(action, n_steps))
             if next_cell not in atlas:
                 log.append((t+1, next_cell))
-            atlas[next_cell].add(next_state)
+            if laundry is not None:
+                atlas[next_cell].add(laundry(next_state))
+            else:
+                atlas[next_cell].add(next_state)
     return atlas, graph, cell, initial_cell, log, n_frames

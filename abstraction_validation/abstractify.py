@@ -33,13 +33,53 @@ def from_bitflag(flag, flag_dict):
             items.append(v)
     return item_set.ItemSet(items)
 
-#TODO: bosses defeated - info not obtained by current data collection!
+#$079F: Area index
+#{
+#    0: Crateria
+#    1: Brinstar
+#    2: Norfair
+#    3: Wrecked Ship
+#    4: Maridia
+#    5: Tourian
+#    6: Ceres
+#    7: Debug
+#}
+
+# Bosses defeated - info not obtained by current data collection!
 #         $7E:D828..2F: Boss bits. Indexed by area
 #        {
 #            1: Area boss (Kraid, Phantoon, Draygon, both Ridleys)
 #            2: Area mini-boss (Spore Spawn, Botwoon, Crocomire, Mother Brain)
 #            4: Area torizo (Bomb Torizo, Golden Torizo)
 #        }
+# Region -> (Boss, Miniboss, Torizo)
+boss_info = {
+    "Crateria": (None, None, None), # Bomb_Torizo is here, but not an item definition
+    "Brinstar": ("Kraid", "Spore_Spawn", None),
+    "Norfair": ("Ridley", "Crocomire", "Golden_Torizo"),
+    "Wrecked_Ship": ("Phantoon", None, None),
+    "Maridia": ("Draygon", "Botwoon", None),
+    "Tourian": (None, "Mother_Brain", None), # Yes, Mother Brain is a miniboss
+    #"Ceres": ("Ceres_Ridley", None, None), # Ceres_Ridley is an item definition, but causes problems
+    "Ceres": (None, None, None), # Ceres_Ridley is an item definition, but causes problems
+    "Debug": (None, None, None)
+}
+
+def abstractify_boss_info(frame, offset=0xd7c0):
+    frame8 = frame.view("uint8")
+    items = []
+    # Process relevant events
+    if frame8[offset + 0x61] & 0x20:
+        items.append("Shaktool")
+    if frame8[offset + 0x61] & 0x10:
+        items.append("Drain")
+    # Process boss bits
+    for i, (region, info) in enumerate(boss_info.items()):
+        info_bits = frame8[offset + 0x68 + i]
+        for j in range(3):
+            if info_bits & 2**j and info[j] is not None:
+                items.append(info[j])
+    return item_set.ItemSet(items)
 
 def abstractify_items(frame):
     items = from_bitflag(frame[0x09a4 // 2], item_bits)

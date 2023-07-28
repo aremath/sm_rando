@@ -73,6 +73,8 @@ def iter_all_states(x_range, y_range, xvs, yvs, item_sets):
         s = SamusState(pos, v, i, p)
         yield s
 
+#TODO: export a networkx graph building function
+
 def make_kripke(initial_state, final_state, level, rules):
     # Check the level for no blank tiles
     for i in np.nditer(level.level):
@@ -105,6 +107,7 @@ def make_kripke(initial_state, final_state, level, rules):
         new_states = [r.apply(ss) for r in rules]
         for r, (next_state, err) in zip(rules, new_states):
             if next_state is not None:
+                next_samus = next_state.samus
                 next_samus = next_state.samus
                 # As a sanity check, ensure that you can't go out of bounds by applying rules
                 if next_samus not in all_valid_states:
@@ -189,7 +192,6 @@ def verify(test, rules, spec, output=None, inner_spec=None):
             out_image.save(out_path)
             # Pretty print it
             out_pretty = level.pretty_print(path, "../encoding/levelstate_tiles")
-            out_path = output / "counterexample_pretty.png"
             out_pretty.save(out_path)
         return False, k, path
 

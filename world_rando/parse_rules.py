@@ -357,16 +357,16 @@ def parse_statefunction(name, level_image, d):
     pose_final = pose_str[d["a_pose"]]
     items_initial = parse_items(d["items"])
     sfunction = SamusFunction(vf, items_initial, item_locations, pose_initial, pose_final, rel_pos)
-    #TODO: certain (i.e. the first of each rule) IntermediateStates hold the sfunction so that samus' state
+    #TODO: certain (i.e. the first of each rule) IntermediateStates hold the sfunction so that Samus' state
     # can be inferred within the rule
     #TODO: verify by checking that the inferred end state is the same as the end state achieved through function
     # composition
     i_states = []
     for xy in r.iter_direction(scan_direction):
         s_t = samus_tiles(xy, pose_final)
-        level_t = [index_level(level, t) for t in s_t]
-        #If samus is here through the rule
-        if all([t == AbstractTile.AIR for t in level_t]):
+        # If Samus is here through the rule
+        #TODO: Does Samus really never enter item cells?
+        if all([index_level(level, t) == AbstractTile.AIR and t not in item_locations for t in s_t]):
             # Note the position, nearby airs, and nearby walls
             all_adj = get_all_adj(xy, pose_final)
             walls = get_all(level, all_adj, AbstractTile.SOLID)

@@ -299,4 +299,4 @@ Ceres_1_R					<>	Ceres_2_L
 Ceres_2_R					<>	Ceres_3_L
 Ceres_3_R					<>	Ceres_4_L
 Ceres_4_R					<>	Ceres_Ridley_L
-Ceres_Entrance_T    		<>	Landing_Site_L2
+#Ceres_Entrance_T    		<>	Landing_Site_L2 # Commented out because it causes issues (Landing_Site_L2 shouldn't have two destinations)

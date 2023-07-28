@@ -3,12 +3,16 @@ import numpy as np
 import cv2
 from enum import IntEnum
 from pathlib import Path
+from collections import namedtuple
+
 from world_rando.coord import Coord, Rect
 from world_rando.util import pairwise
-from data_types.item_set import ItemSet
+from data_types.item_set import ItemSet, item_mapping
 
 Infinity = float("inf")
 TERMINAL_VELOCITY = 1
+# Arbitrary
+MAX_VERTICAL_SPEED = -15
 
 #TODO: move from "is" to ==
 
@@ -87,6 +91,32 @@ abstract_to_image = {
     #TODO
     AbstractTile.DOOR : "tile_air.png"
     }
+
+def to_conj(it):
+    it2 = [i for i in it if len(i) > 0]
+    if len(it2) == 0:
+        return ""
+    if len(it2) == 1:
+        return it2[0]
+    return "(" + " & ".join(it2) + ")"
+
+def to_disj(it):
+    it2 = [i for i in it if len(i) > 0]
+    if len(it2) == 0:
+        return ""
+    if len(it2) == 1:
+        return it2[0]
+    return "(" + " | ".join(it2) + ")"
+
+def itemset_as_tla(itemset, when="prev"):
+    assert when == "prev" or when == "next"
+    if len(itemset) == 0:
+        return ""
+    cs = []
+    for i in itemset:
+        clause = f"{i}_prev = 1"
+        cs.append(clause)
+    return to_conj(cs)
 
 class SamusPose(IntEnum):
     STAND = 0
@@ -232,6 +262,37 @@ class VelocitySet(object):
         h = velocity.vh in self.horizontal_set
         return v and h
 
+    def as_tla(self, when="prev"):
+        clauses = []
+        assert (when == "prev" or when == "next")
+        vvset = self.vertical_set
+        vhset = self.horizontal_set.interval
+        vvmin = vvset.left
+        if vvmin < MAX_VERTICAL_SPEED:
+            vvmin = MAX_VERTICAL_SPEED
+        vvmax = vvset.right
+        if vvmax > TERMINAL_VELOCITY:
+            vvmax = TERMINAL_VELOCITY
+        vhcap = int(max(velocity_maxima.values()))
+        vhmin = vhset.left
+        if vhmin < -vhcap:
+            vhmin = -vhcap
+        vhmax = vhset.right
+        if vhmax > vhcap:
+            vhmax = vhcap
+        vvc1 = f"vv_{when} >= {vvmin}"
+        vvc2 = f"vv_{when} <= {vvmax}"
+        vhc1 = f"vh_{when} >= {vhmin}"
+        vhc2 = f"vh_{when} <= {vhmax}"
+        type_clauses = []
+        for t in self.horizontal_set.types:
+            tc = f"vt_{when} = {t}"
+            type_clauses.append(tc)
+        type_clause = " | ".join(type_clauses)
+        type_clause = f"({type_clause})"
+        clauses = [vvc1, vvc2, vhc1, vhc2, type_clause]
+        return to_conj(clauses)
+
     def shift(self, velocity):
         v = vertical_set.shift(velocity.vv)
         h = horizontal_set.shift(velocity.vh)
@@ -254,6 +315,8 @@ class VelocitySet(object):
     def horizontal_flip(self):
         return VelocitySet(self.vertical_set.copy(), self.horizontal_set.horizontal_flip())
 
+VClauses = namedtuple("VClauses", ["domain", "vv", "vh", "vt"])
+
 class VelocityFunction(object):
 
     def __init__(self, domain, vertical_b, horizontal_b, vadd):
@@ -273,6 +336,54 @@ class VelocityFunction(object):
             return start_vel + self.vadd
         else:
             return None
+
+    def as_tla(self):
+        # vv is vertical velocity
+        # vh is horizontal velocity
+        # vt is the TYPE of horizontal velocity
+        # DOMAIN
+        # Conditions on vv_prev, vh_prev, and vt_prev
+        domain_clause = self.domain.as_tla()
+        domain_clause = f"({domain_clause})"
+
+        # RANGE
+        # Conditions on vv_next, vh_next, and vt_next
+        start_vv = "vv_prev"
+        start_vh = "vh_prev"
+        start_vt = "vt_prev"
+        if self.vertical_behavior == VBehavior.LOSE:
+            start_vv = "0"
+        if self.horizontal_behavior == VBehavior.LOSE:
+            vh_max = velocity_maxima[VType.RUN]
+            start_vh = "0"
+            start_vt = f"{VType.RUN}"
+        else:
+            vh_max = max([velocity_maxima[t] for t in self.domain.horizontal_set.types])
+        # Vertical clause
+        vv_clause = f"vv_next = {start_vv} + {self.vadd.vv}"
+        # Handle terminal velocity. vv_next will be either vv_prev + vadd, or whatever the max (or min) is
+        if self.vadd.vv > 0:
+            vv_clause_p2 = f"vv_prev = {TERMINAL_VELOCITY} & vv_next = {TERMINAL_VELOCITY}"
+        elif self.vadd.vv < 0:
+            vv_clause_p2 = f"vv_prev = {MAX_VERTICAL_SPEED} & vv_next = {MAX_VERTICAL_SPEED}"
+        else:
+            vv_clause_p2 = ""
+        vv_clause = to_disj([vv_clause, vv_clause_p2])
+        # Horizontal clause
+        vh_clause = f"vh_next = {start_vh} + {self.vadd.vh.value}"
+        # Terminal velocity for vh.
+        if self.vadd.vh.value > 0:
+            velocity_maxima
+            vh_clause_p2 = f"vh_prev = {vh_max} & vv_next = {vh_max}"
+        elif self.vadd.vh.value < 0:
+            vh_clause_p2 = f"vh_prev = -{vh_max} & vv_next = -{vh_max}"
+        else:
+            vh_clause_p2 = ""
+        vh_clause = to_disj([vh_clause, vh_clause_p2])
+        # Type clause
+        vt_clause = f"vt_next = {start_vt}"
+        clauses = VClauses(domain_clause, vv_clause, vh_clause, vt_clause)
+        return clauses
 
     @property
     def image(self):
@@ -431,7 +542,7 @@ any_interval = Interval(-Infinity, Infinity)
 any_velocity = VelocitySet(any_interval, HVelocitySet(any_velocity_type, any_interval))
 
 # The requirements to treat blocks as solid
-# Cannot treat a tile as solid if either it is not in this data structure, or samus does not meet one of
+# Cannot treat a tile as solid if either it is not in this data structure, or Samus does not meet one of
 # the necessary requirements
 block_solid_requirements = {
         AbstractTile.SOLID : [(any_velocity, ItemSet([]), any_pose)],
@@ -484,7 +595,7 @@ def tile_is_air(samus_state, tile_type):
 
 def tile_is_solid(samus_state, tile_type):
     if tile_type not in block_solid_requirements:
-        return False
+        return False #TODO: should this be return True? Look at the comment above block_solid_requirements
     requirements = block_solid_requirements[tile_type]
     if requirements == "Reciprocal":
         return not tile_is_air(samus_state, tile_type)
@@ -497,8 +608,56 @@ def tile_matches(samus_state, tile_type, as_what):
     assert as_what in [AbstractTile.SOLID, AbstractTile.AIR]
     if as_what == AbstractTile.SOLID:
         return tile_is_solid(samus_state, tile_type)
-    else:
+    elif as_what == AbstractTile.AIR:
         return tile_is_air(samus_state, tile_type)
+    else:
+        assert False, f"Invalid tile coercion: {as_what}"
+
+def mk_pose_clause(poses):
+    if poses == any_pose:
+        return ""
+    pose_eqs = []
+    for p in poses:
+        pose_eqs.append(f"pose_next = {p}")
+    pose_clause = " | ".join(pose_eqs)
+    pose_clause = f"({pose_clause})"
+    return pose_clause
+
+def mk_reqs_clause(requirements):
+    rcs = []
+    for vset, iset, poses in requirements:
+        pose_clause = mk_pose_clause(poses)
+        if vset == any_velocity:
+            vel_clause = ""
+        else:
+            vel_clause = vset.as_tla(when="next")
+        items_clause = itemset_as_tla(iset)
+        rc = to_conj([pose_clause, vel_clause, items_clause])
+        rcs.append(rc)
+    return to_disj(rcs)
+
+def tla_solid_coercion(tile_type):
+    if tile_type not in block_solid_requirements:
+        return None # True? (which would be "")
+    requirements = block_solid_requirements[tile_type]
+    if requirements == "Reciprocal":
+        return "~" + tla_air_coercion(tile_type)
+    else:
+        return mk_reqs_clause(requirements)
+
+def tla_air_coercion(tile_type):
+    if tile_type not in block_air_requirements:
+        return None
+    requirements = block_air_requirements[tile_type]
+    return mk_reqs_clause(requirements)
+
+def tla_tile_coercion(tile_type, as_what):
+    if as_what == AbstractTile.SOLID:
+        return tla_solid_coercion(tile_type)
+    elif as_what == AbstractTile.AIR:
+        return tla_air_coercion(tile_type)
+    else:
+        assert False, f"Invalid tile coercion: {as_what}"
 
 pose_hitboxes = {
     SamusPose.STAND: [Coord(0,0), Coord(0,1), Coord(0,2)],
@@ -738,6 +897,37 @@ class LevelState(object):
         assert False
         return LevelState(o, d, self.liquid_type, self.liquid_level, self.items)
 
+def tla_collide(conflict_ds, inter_pos, inter_pose, original_vs):
+    for d, clause in conflict_ds.items():
+        # Landing on the ground
+        vv, vh, vt = original_vs
+        if d == Coord(0, 1):
+            vt = f"vt_next = {VType.RUN}"
+            vh = f"vh_next = 0"
+            vv = f"vv_next = 0"
+            vc = to_conj([vt, vh, vv, clause])
+            # Any non-morph pose leaves you standing
+            pos = inter_pos
+            if inter_pose == SamusPose.SPIN:
+                pose = SamusPose.STAND
+                pos = inter_pos + Coord(0, -1)
+            elif inter_pose != SamusPose.MORPH:
+                pose = SamusPose.STAND
+            else:
+                pose = SamusPose.MORPH
+            yield (vc, pos, pose)
+        # Colliding with the ceiling
+        elif d == Coord(0, -1):
+            vv = f"vv_next = 0"
+            vc = to_conj([vt, vh, vv, clause])
+            yield (vc, inter_pos, inter_pose)
+        # Colliding with a wall (kill horizontal velocity)
+        else:
+            vt = f"vt_next = {VType.RUN}"
+            vh = f"vh_next = 0"
+            vc = to_conj([vt, vh, vv, clause])
+            yield (vc, inter_pos, inter_pose)
+
 class SamusState(object):
 
     def __init__(self, position, velocity, items, pose):
@@ -840,6 +1030,14 @@ class SearchState(object):
         level = self.level.horizontal_flip()
         return SearchState(samus, level)
 
+SFClauses = namedtuple("SFClauses", ["pos_prev", "pos_next", "pose_prev", "pose_next", "item", "vel"])
+
+def mk_pos_clause(pos, when="prev"):
+    assert when == "prev" or when == "next"
+    x = f"x_{when} = {pos.x}"
+    y = f"y_{when} = {pos.y}"
+    return to_conj([x,y])
+
 class SamusFunction(object):
     def __init__(self, vfunction, required_items, gain_items, before_pose, after_pose, after_position):
         # before_position is always (0,0), after_position is relative
@@ -882,6 +1080,42 @@ class SamusFunction(object):
             pose = self.after_pose
         position = samus_state.position + self.after_position
         return SamusState(position, v, items, pose), None
+
+    def as_tla(self, position, item_locations):
+        # POSITION
+        #TODO: don't need to include x_prev
+        pos_prev = mk_pos_clause(position)
+        after_pos = position + self.after_position
+        pos_next = mk_pos_clause(after_pos, "next")
+
+        # ITEMS
+        # items_unchanged macro using let in
+        item_clauses = []
+        item_clauses.append(itemset_as_tla(self.required_items))
+        gained_items = ItemSet()
+        for g in self.gain_items:
+            rel_position = g + position
+            if rel_position not in item_locations:
+                return None, "Required item does not exist"
+            # Add the item picked up from that location
+            gained_items |= item_locations[rel_position]
+        for g in gained_items:
+            clause = f"{g}_next = 1"
+            item_clauses.append(clause)
+        # For any item that is not gained, it must remain constant
+        #TODO: Items unchanged operator
+        for i in item_mapping:
+            if not (i in gained_items):
+                clause = f"{i}_prev = {i}_next"
+                item_clauses.append(clause)
+        item_clause = to_conj(item_clauses)
+        # VELOCITY
+        vclause = self.vfunction.as_tla()
+        #vclause = f"({vclause})"
+        # POSE
+        pose_prev = f"pose_prev = {self.before_pose}"
+        pose_next = f"pose_next = {self.after_pose}"
+        return SFClauses(pos_prev, pos_next, pose_prev, pose_next, item_clause, vclause)
 
     def horizontal_flip(self):
         vnew = self.vfunction.horizontal_flip()
@@ -946,14 +1180,26 @@ def level_check_and_make(level, origin, tile, tile_type, samus_state):
     l = get_tile(level, origin, tile)
     if l is None:
         return None
-    if l == AbstractTile.UNKNOWN:
-        level[tile] = tile_type
-        return "ok"
     # Don't need to overwrite if there's already a tile that matches
     if tile_matches(samus_state, l, tile_type):
         return "ok"
+    if l == AbstractTile.UNKNOWN:
+        level[tile] = tile_type
+        return "ok"
     else:
         return None
+
+def tla_tile_clause(level, origin, tile, tile_type):
+    l = get_tile(level, origin, tile)
+    if l is None:
+        return None
+    if l == AbstractTile.UNKNOWN:
+        #TODO: probably don't want TLA check to do be able to edit the level...
+        assert False, f"Abstract tile in tla mode: {tile}"
+        level[tile] = tile_type
+        return ""
+    else:
+        return tla_tile_coercion(l, tile_type)
 
 def level_check(level, origin, tile, tile_type, samus_state):
     l = get_tile(level, origin, tile)
@@ -975,6 +1221,16 @@ def get_tile(level, origin, tile):
     except IndexError:
         return None
 
+def samus_occupies_air_tla(pos, pose, origin, level_array):
+    clauses = []
+    for t in samus_tiles(pos, pose):
+        ok = tla_tile_clause(level_array, origin, t, AbstractTile.AIR)
+        # Could not coerce the tiles samus occupies to air
+        if ok is None:
+            return None
+        clauses.append(ok)
+    return to_conj(clauses)
+
 class LevelFunction(object):
 
     def __init__(self, liquid_type, liquid_interval, state_list):
@@ -982,6 +1238,7 @@ class LevelFunction(object):
         self.liquid_interval = liquid_interval
         self.state_list = state_list
 
+    #TODO: version that does not copy the levelstate for a level that is not modified
     def apply(self, state, debug=False):
         # Convenience variables
         sl = state.level
@@ -990,7 +1247,7 @@ class LevelFunction(object):
         # Get absolute interval from relative
         l_i = self.liquid_interval.shift(state.samus.position.y)
         # Cannot apply if liquid does not match
-        if state.level.liquid_level not in l_i:
+        if self.liquid_type != LiquidType.NONE and state.level.liquid_level not in l_i:
             return None, "Liquid level does not match!"
         # If the liquidtype is none, that means that ANY liquidtype is acceptable
         # within the designated interval
@@ -1060,6 +1317,149 @@ class LevelFunction(object):
         level = LevelState(sl.origin.copy(), level_array, sl.liquid_type, sl.liquid_level, sl.items, sl.doors)
         return SearchState(intermediate_samus, level), None
 
+    #TODO: version that does not copy the levelstate for a level that is not modified
+    def as_tla(self, pos, level, debug=False):
+        # Convenience variables
+        origin = level.origin
+        # Check liquid interval compatibility
+        # Get absolute interval from relative
+        #TODO: How to create a "branch" where Samus has gravity if we are applying a rule where grav is required?
+        l_i = self.liquid_interval.shift(pos.y)
+        # Cannot apply if liquid does not match
+        if self.liquid_type != LiquidType.NONE and level.liquid_level not in l_i:
+            return None
+        # If the liquidtype is none, that means that ANY liquidtype is acceptable
+        # within the designated interval
+        if self.liquid_type != LiquidType.NONE and level.liquid_type != self.liquid_type:
+            print(level.liquid_type)
+            print(self.liquid_type)
+            return None
+        # Copy level state for editing
+        #TODO: Version without copying that cannot edit
+        level_array = np.copy(level.level)
+        level_array.flags.writeable = True
+        # Now envision each intermediate state sequentially
+        key_states = [s for s in self.state_list if s.samusfunction is not None]
+        if len(key_states) > 1:
+            assert False, "Cannot convert compound rule to TLA"
+        assert self.state_list[0].samusfunction is not None, "No initial keystate!"
+        # Get state requirements based on the samsufunction (without regard to level design)
+        sf = self.state_list[0].samusfunction
+        inter_pose = sf.after_pose
+        sf_clauses = sf.as_tla(pos, level.items)
+        # Can happen if you try to invoke an item pickup rule at the wrong location
+        if sf_clauses[0] is None:
+            return None
+        # Unpack clauses from the statefunction
+        pos_prev_c, pos_next_c, pose_prev_c, pose_next_c, item_c, v_clauses = sf_clauses
+        domain_c, vv_c, vh_c, vt_c = v_clauses
+        # Nexts and v_nexts may change based on the outcome of applying the rule
+        preconditions = to_conj([pos_prev_c, pose_prev_c, domain_c, item_c])
+        path_conditions = []
+        inter_invalid = False
+        possible_outcomes = []
+        for n,i_state in enumerate(self.state_list):
+            # Get the intermediate absolute samus state from relative
+            inter_pos = i_state.pos + pos
+            pos_clause = mk_pos_clause(inter_pos, "next")
+            if debug:
+                print(f"Iteration {n}")
+                print(inter_pos)
+                print(pos_clause)
+                print(f"Walls: {i_state.walls}")
+                print(f"Airs: {i_state.airs}")
+            in_air = samus_occupies_air_tla(inter_pos, inter_pose, origin, level_array)
+            # Could not coerce the tiles indicated as airs to air
+            # Samus is definitely (not just possibly) going to collide here
+            if in_air is None:
+                inter_invalid = True
+            walls_present = []
+            # Check and create necessary solids
+            for rel_t in i_state.walls:
+                g_t = rel_t + inter_pos
+                ok = tla_tile_clause(level_array, origin, g_t, AbstractTile.SOLID)
+                # Could not coerce the tiles indicated as walls to solid
+                if ok is None:
+                    inter_invalid = True
+                    break
+                walls_present.append(ok)
+            walls_present = to_conj(walls_present)
+            path_conditions.append(in_air)
+            path_conditions.append(walls_present)
+            if debug:
+                print(path_conditions)
+            if inter_invalid:
+                break
+            # Check nearby airs for partial application
+            # For each conflict, the conditions under which samus would collide)
+            conflict_ds = {}
+            for d, rel_ts in i_state.airs:
+                d_conflict = []
+                # Collect partial application conflicts
+                for rel_t in rel_ts:
+                    g_t = rel_t + inter_pos
+                    # There's a conflict if a required tile cannot be reconciled to air
+                    is_air = tla_tile_clause(level_array, origin, g_t, AbstractTile.AIR)
+                    # A tile that's impossible to coerce to air will always cause a collision
+                    if is_air is None:
+                        conflict_clause = ""
+                    # A tile that's always possible to coerce to air will never cause a collision
+                    elif len(is_air) == 0:
+                        continue
+                    # Other tiles that may or may not be coerced to air cause a conflict when they can't be
+                    else:
+                        conflict_clause = f"~({is_air})"
+                    d_conflict.append(conflict_clause)
+                # Any of the requirements failing causes a conflict
+                if len(d_conflict) > 0:
+                    conflict_ds[d] = to_disj(d_conflict)
+            # Either there is a conflict in one of the directions, or no conflicts
+            if debug:
+                print(conflict_ds)
+            # Use path_conditions to produce an intermediate state
+            # Append to valid_inters
+            # All possible collision outcomes, along with their constraints
+            collide_outcomes = tla_collide(conflict_ds, inter_pos, inter_pose, (vv_c, vh_c, vt_c))
+            # Collision detection on the outgoing states
+            for clause, collide_pos, pose in collide_outcomes:
+                in_air = samus_occupies_air_tla(collide_pos, pose, origin, level_array)
+                # Impossible collision - Samus would occupy something
+                if in_air is None:
+                    continue
+                pos_clause = mk_pos_clause(collide_pos, when="next")
+                pose_clause = f"pose_next = {pose}"
+                outcome = to_conj([pos_clause, pose_clause, in_air, clause, to_conj(path_conditions)])
+                possible_outcomes.append(outcome)
+            # For Samus to advance to the next state, she must not have collided
+            # This prevents moving through multiple blocks of the same type from creating multiple outcomes
+            for clause in conflict_ds.values():
+                if len(clause) > 0:
+                    path_conditions.append(f"~({clause})")
+                # If the conflict_d condition is empty, then the collision always happens and the rest of the rule cannot be applied.
+                else:
+                    inter_invalid = True
+            if inter_invalid:
+                break
+        #TODO: Think about this further -- the loop may terminate early
+        # End State (rule fully applied successfully, or aborted mid-rule)
+        if not inter_invalid:
+            pos_clause = mk_pos_clause(inter_pos, when="next")
+            assert pos_clause == pos_next_c, f"Final positions do not match {pos_clause} -- {pos_next_c}"
+            pose_clause = f"pose_next = {inter_pose}"
+            assert pose_clause == pose_next_c, f"Final poses do not match {pose_clause} -- {pose_next_c}"
+            v_clause = to_conj([vv_c, vh_c, vt_c])
+            end_state = to_conj([pos_clause, pose_clause, v_clause, to_conj(path_conditions)])
+            possible_outcomes.append(end_state)
+        if debug:
+            print("Outcomes:")
+            for i,o in enumerate(possible_outcomes):
+                print(f"Outcome {i}: {o}")
+        if len(possible_outcomes) > 0:
+            all_end_states = to_disj(possible_outcomes)
+            return f"{preconditions} & {all_end_states}"
+        else:
+            return None
+
     def horizontal_flip(self):
         l = self.liquid_type
         i = self.liquid_interval.copy()
@@ -1096,6 +1496,7 @@ class LevelFunction(object):
 
 class StateFunction(object):
 
+    #TODO: Fix the names please!
     def __init__(self, name, state_function, level_transition, cost):
         self.name = name
         self.state_function = state_function
