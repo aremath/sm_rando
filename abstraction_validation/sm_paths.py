@@ -182,154 +182,157 @@ class Context(object):
 
 #TODO: temporary until push changes for sm_rando
 def get_item_locations(plms):
-	item_locations = {}
-	plm_to_item = mk_plm_to_item(make_item_definitions())
-	for plm in plms.l:
-		if plm.plm_id in plm_to_item:
-			iset = plm_to_item[plm.plm_id]
-			c = Coord(plm.x_pos, plm.y_pos)
-			item_locations[c] = iset
-	return item_locations
+        item_locations = {}
+        plm_to_item = mk_plm_to_item(make_item_definitions())
+        for plm in plms.l:
+                if plm.plm_id in plm_to_item:
+                        iset = plm_to_item[plm.plm_id]
+                        c = Coord(plm.x_pos, plm.y_pos)
+                        item_locations[c] = iset
+        return item_locations
 
 def get_door_positions(level_arrays, ignore_locs):
-	# Find the door positions
-	doors = defaultdict(list)
-	for i, j in np.ndenumerate(level_arrays.layer1):
-		if i in ignore_locs:
-			continue
-		if j.tile_type == 9:
-			door_id = level_arrays.bts[i]
-			doors[door_id].append(Coord(*i))
-	return doors
+        # Find the door positions
+        doors = defaultdict(list)
+        for i, j in np.ndenumerate(level_arrays.layer1):
+                if i in ignore_locs:
+                        continue
+                if j.tile_type == 9:
+                        door_id = level_arrays.bts[i]
+                        doors[door_id].append(Coord(*i))
+        return doors
 
 def get_door_averages(doors):
-	# Find the door average position
-	door_a = {}
-	for i, cs in doors.items():
-		cxa = sum([c.x for c in cs]) / len(cs)
-		cxy = sum([c.y for c in cs]) / len(cs)
-		c_a = Coord(cxa, cxy)
-		door_a[i] = c_a
-	return door_a
+        # Find the door average position
+        door_a = {}
+        for i, cs in doors.items():
+                cxa = sum([c.x for c in cs]) / len(cs)
+                cxy = sum([c.y for c in cs]) / len(cs)
+                c_a = Coord(cxa, cxy)
+                door_a[i] = c_a
+        return door_a
 
 def get_door_directions(doors, door_a, level_arrays):
-	sand_tindices = [280, 528, 640]
-	# Find the direction for each door
-	door_d = {}
-	ls = []
-	rs = []
-	ts = []
-	bs = []
-	for d, a in door_a.items():
-		#print(d, a)
-		# Left door
-		if a.x % 16 == 0:
-			if len(doors[d]) == 1:
-				door_d[d] = "LMB{}"
-			else:
-				door_d[d] = "L{}"
-			ls.append(d)
-		# Right door
-		elif a.x % 16 == 15:
-			if len(doors[d]) == 1:
-				door_d[d] = "RMB{}"
-			else:
-				door_d[d] = "R{}"
-			rs.append(d)
-		# Top door
-		elif a.y % 16 == 0:
-			if level_arrays.layer1[doors[d][0]].texture.texture_index in sand_tindices:
-				door_d[d] == "TS{}"
-			elif len(doors[d]) == 2:
-				door_d[d] = "EB{}"
-			else:
-				door_d[d] = "T{}"
-			ts.append(d)
-		# Bottom door
-		elif a.y % 16 == 15:
-			if level_arrays.layer1[doors[d][0]].texture.texture_index in sand_tindices:
-				door_d[d] = "BS{}"
-			elif len(doors[d]) == 2:
-				door_d[d] = "ET{}"
-			else:
-				door_d[d] = "B{}"
-			bs.append(d)
-		else:
-			# Elevator
-			if len(doors[d]) == 2:
-				pass
-			else:
-				assert False, f"No direction found for door {d}!"
-	return (ls, rs, ts, bs), door_d
+        sand_tindices = [280, 528, 640]
+        # Find the direction for each door
+        door_d = {}
+        ls = []
+        rs = []
+        ts = []
+        bs = []
+        for d, a in door_a.items():
+                #print(d, a)
+                # Left door
+                if a.x % 16 == 0:
+                        if len(doors[d]) == 1:
+                                door_d[d] = "LMB{}"
+                        else:
+                                door_d[d] = "L{}"
+                        ls.append(d)
+                # Right door
+                elif a.x % 16 == 15:
+                        if len(doors[d]) == 1:
+                                door_d[d] = "RMB{}"
+                        else:
+                                door_d[d] = "R{}"
+                        rs.append(d)
+                # Top door
+                elif a.y % 16 == 0:
+                        if level_arrays.layer1[doors[d][0]].texture.texture_index in sand_tindices:
+                                door_d[d] == "TS{}"
+                        elif len(doors[d]) == 2:
+                                door_d[d] = "EB{}"
+                        else:
+                                door_d[d] = "T{}"
+                        ts.append(d)
+                # Bottom door
+                elif a.y % 16 == 15:
+                        if level_arrays.layer1[doors[d][0]].texture.texture_index in sand_tindices:
+                                door_d[d] = "BS{}"
+                        elif len(doors[d]) == 2:
+                                door_d[d] = "ET{}"
+                        else:
+                                door_d[d] = "B{}"
+                        bs.append(d)
+                else:
+                        # Elevator
+                        if len(doors[d]) == 2:
+                                pass
+                        else:
+                                assert False, f"No direction found for door {d}!"
+        return (ls, rs, ts, bs), door_d
 
 def compute_name_positions(door_lists, doors, door_a, door_d):
-	# Sort everything and compute positions
-	ls, rs, ts, bs = door_lists
-	ls = sorted(ls, key = lambda d: door_a[d].y)
-	rs = sorted(rs, key = lambda d: door_a[d].y)
-	ts = sorted(ts, key = lambda d: door_a[d].x)
-	bs = sorted(bs, key = lambda d: door_a[d].x)
-	name_posns = {}
-	def convert_names(ls):
-		for i,l in enumerate(ls):
-			f = i + 1
-			if len(ls) == 1:
-				f = ""
-			name_posns[door_d[l].format(f)] = door_a[l]
-	convert_names(ls)
-	convert_names(rs)
-	convert_names(ts)
-	convert_names(bs)
-	return name_posns
+        # Sort everything and compute positions
+        ls, rs, ts, bs = door_lists
+        ls = sorted(ls, key = lambda d: door_a[d].y)
+        rs = sorted(rs, key = lambda d: door_a[d].y)
+        ts = sorted(ts, key = lambda d: door_a[d].x)
+        bs = sorted(bs, key = lambda d: door_a[d].x)
+        name_posns = {}
+        def convert_names(ls):
+                for i,l in enumerate(ls):
+                        f = i + 1
+                        if len(ls) == 1:
+                                f = ""
+                        name_posns[door_d[l].format(f)] = door_a[l]
+        convert_names(ls)
+        convert_names(rs)
+        convert_names(ts)
+        convert_names(bs)
+        return name_posns
 
 def get_all_item_positions(room_header):
-	item_posns = {}
-	for rs in [x.state for x in room_header.state_chooser.conditions] + [room_header.state_chooser.default]:
-		d = get_item_locations(rs.plms)
-		item_posns.update(d)
-	return item_posns
+        item_posns = {}
+        for rs in [x.state for x in room_header.state_chooser.conditions] + [room_header.state_chooser.default]:
+                d = get_item_locations(rs.plms)
+                item_posns.update(d)
+        return item_posns
 
 def get_item_names(item_positions):
-	item_d = defaultdict(list)
-	for k, v in item_positions.items():
-		assert len(v) == 1
-		item_str = item_str = v.to_list()[0]
-		item_d[item_str].append(k)
-	item_names = {}
-	for i, posns in item_d.items():
-		if len(posns) == 1:
-			item_names[i] = posns[0]
-		else:
-			#TODO: these may not actually refer to the same item!
-			# But there are very few rooms with the same type of item twice...
-			for j, p in enumerate(sorted(posns)):
-				item_names[f"{i}{j+1}"] = p
-	return item_names
+        item_d = defaultdict(list)
+        for k, v in item_positions.items():
+                assert len(v) == 1
+                item_str = item_str = v.to_list()[0]
+                item_d[item_str].append(k)
+        item_names = {}
+        for i, posns in item_d.items():
+                if len(posns) == 1:
+                        item_names[i] = posns[0]
+                else:
+                        #TODO: these may not actually refer to the same item!
+                        # But there are very few rooms with the same type of item twice...
+                        for j, p in enumerate(sorted(posns)):
+                                item_names[f"{i}{j+1}"] = p
+        return item_names
 
 #TODO items
-def get_global_locations(parsed, room, ignore_locs=[]):
-	room_header = parsed[f"room_header_{hex(room.mem_address)}"]
-	area_pos = area_offsets[room_header.area_index]
-	room_map_pos = Coord(room_header.map_x, room_header.map_y)
-	#print(area_pos, room_map_pos)
-	global_offset = (area_pos + room_map_pos).scale(16)
-	global_name_posns = {}
-	# PLMs
-	item_d = get_all_item_positions(room_header)
-	item_names = get_item_names(item_d)
-	for k,v in item_names.items():
-		global_name_posns[f"{room.name}_{k}"] = v + global_offset
-	# Doors
-	level_arrays = room_header.state_chooser.default.level_data.level_array
-	doors = get_door_positions(level_arrays, ignore_locs)
-	door_a = get_door_averages(doors)
-	#print(doors)
-	#print(door_a)
-	door_lists, door_d = get_door_directions(doors, door_a, level_arrays)
-	door_posns = compute_name_positions(door_lists, doors, door_a, door_d)
-	global_door_posns = {f"{room.name}_{k}": v + global_offset for k,v in door_posns.items()}
-	global_name_posns.update(global_door_posns)
-	return global_name_posns
+def get_locations(parsed, room, ignore_locs=[], is_global=True):
+        room_header = parsed[f"room_header_{hex(room.mem_address)}"]
+        area_pos = area_offsets[room_header.area_index]
+        room_map_pos = Coord(room_header.map_x, room_header.map_y)
+        #print(area_pos, room_map_pos)
+        if is_global:
+            global_offset = (area_pos + room_map_pos).scale(16)
+        else:
+            global_offset = Coord(0,0)
+        name_posns = {}
+        # PLMs
+        item_d = get_all_item_positions(room_header)
+        item_names = get_item_names(item_d)
+        for k,v in item_names.items():
+            name_posns[f"{room.name}_{k}"] = v + global_offset
+        # Doors
+        level_arrays = room_header.state_chooser.default.level_data.level_array
+        doors = get_door_positions(level_arrays, ignore_locs)
+        door_a = get_door_averages(doors)
+        #print(doors)
+        #print(door_a)
+        door_lists, door_d = get_door_directions(doors, door_a, level_arrays)
+        door_posns = compute_name_positions(door_lists, doors, door_a, door_d)
+        global_door_posns = {f"{room.name}_{k}": v + global_offset for k,v in door_posns.items()}
+        name_posns.update(global_door_posns)
+        return name_posns
 
 ignore_locs = {
     "West_Ocean": [(48,38), (48,39), (48,40), (48,41), (80,38), (80,39), (80,40), (80,41),
@@ -348,30 +351,33 @@ ignore_locs = {
 # West_Ocean
 # R4 -> R6 and L -> L2
 
-# Returns a mapping from node name to position
 def all_global_positions(rooms, parsed_rom):
-	all_global_positions = {}
-	for room_name, r in rooms.items():
-		if room_name in ignore_locs:
-			i = ignore_locs[room_name]
-		else:
-			i = []
-		d = get_global_locations(parsed_rom, r, i)
-		all_global_positions.update(d)
-		gp_nodes = set(d.keys())
-		r_nodes = set(r.graph.nodes)
-		if gp_nodes != r_nodes:
-			print(room_name, hex(r.mem_address))
-			print(f"\t Extra: {list(gp_nodes - r_nodes)}")
-			print(f"\t Missing: {list(r_nodes - gp_nodes)}")
-	return all_global_positions
+    return all_positions(rooms, parsed_rom, is_global=True)
+
+# Returns a mapping from node name to position
+def all_positions(rooms, parsed_rom, is_global=True):
+        all_positions = {}
+        for room_name, r in rooms.items():
+                if room_name in ignore_locs:
+                        i = ignore_locs[room_name]
+                else:
+                        i = []
+                d = get_locations(parsed_rom, r, i, is_global)
+                all_positions.update(d)
+                gp_nodes = set(d.keys())
+                r_nodes = set(r.graph.nodes)
+                if gp_nodes != r_nodes:
+                        print(room_name, hex(r.mem_address))
+                        print(f"\t Extra: {list(gp_nodes - r_nodes)}")
+                        print(f"\t Missing: {list(r_nodes - gp_nodes)}")
+        return all_positions
 
 def get_drop_table(design):
-	# (room, node) -> item_name
-	drop_table = {}
-	for room_name, room in design['Rooms'].items():
-		for node_name, item_name in room['Drops'].items():
-			drop_table[(symbol(room=room_name), symbol(node=node_name))] = item_name
+    # (room, node) -> item_name
+    drop_table = {}
+    for room_name, room in design['Rooms'].items():
+        for node_name, item_name in room['Drops'].items():
+            drop_table[(symbol(room=room_name), symbol(node=node_name))] = item_name
 
 def get_intervals(path, drop_table):
     intervals = {}
@@ -386,24 +392,24 @@ def get_intervals(path, drop_table):
     return intervals
 
 def get_intervals_dict(path, path_intervals):
-	i = {}
-	items = ItemSet()
-	for (start, end), item in path_intervals:
-		i[items] = path[start:end]
-		items = items | ItemSet([item])
-	return i
+        i = {}
+        items = ItemSet()
+        for (start, end), item in path_intervals:
+                i[items] = path[start:end]
+                items = items | ItemSet([item])
+        return i
 
 def get_annotated_path(path, path_intervals):
-	# [(node, itemset)]
-	apath = []
-	items = ItemSet()
-	for (start, end), item in path_intervals:
-		for p in path[start:end]:
-			apath.append(p, items)
-		items = items | ItemSet([item])
-	return apath
+        # [(node, itemset)]
+        apath = []
+        items = ItemSet()
+        for (start, end), item in path_intervals:
+                for p in path[start:end]:
+                        apath.append(p, items)
+                items = items | ItemSet([item])
+        return apath
 
 #TODO: use room information (player must be in the same room as the node that they are at)
 def map_state_to_node(state, node_positions):
-	ds = [(state.position.euclidean(p), k) for k, p in node_positions.items()]
-	return min(sorted(ds, key=lambda x: x[0]))
+        ds = [(state.position.euclidean(p), k) for k, p in node_positions.items()]
+        return min(sorted(ds, key=lambda x: x[0]))
