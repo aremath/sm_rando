@@ -181,7 +181,8 @@ def get_tile(index, sce_tile_table, cre_tile_table):
         return cre_tile_table[index]
     else:
         return sce_tile_table[index - 0x100]
-    
+
+#TODO: add level_image from LevelArray (+ include bg data)
 def level_image(level, sce_tile_table_images, cre_tile_table_images):
     l_image = Image.new("RGBA", (level.dimensions.x * 16, level.dimensions.y * 16), "black")
     for c in level.itercoords():
@@ -226,3 +227,7 @@ def layer1_image_from_tileset(rom, layer1, tileset_index):
     sce_tt_image = tile_images(sce_tile_table, sce_tile_sheet, cre_tile_sheet, sce_palette)
     return level_arrays_image(layer1, sce_tt_image, cre_tt_image)
 
+def image_from_state(room_state, rom):
+    tileset = room_state.tileset
+    layer1 = room_state.level_data.level_array.layer1
+    return layer1_image_from_tileset(rom, layer1, tileset)

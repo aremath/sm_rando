@@ -5,10 +5,10 @@ from world_rando import map_viz
 from rom_tools import rom_manager
 
 if __name__ == "__main__":
-    #sets = default_settings
+    sets = default_settings
     #sets = small_settings
-    sets = tiny_settings
-    random.seed(0)
+    #sets = tiny_settings
+    random.seed(1)
     abstract_map_info = generate.generate_abstract_map(sets)
     concrete_map_info = generate.generate_concrete_map(sets, abstract_map_info)
     rcmaps, _, _, _, extra_info = concrete_map_info
@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     # Ordinary output
     generate.print_stats(extra_info)
-    generate.visualize_abstract_maps(abstract_map_info)
+    generate.visualize_abstract_maps(sets, abstract_map_info)
     generate.visualize_concrete_maps(concrete_map_info)
     generate.mission_embeddings(concrete_map_info, abstract_map_info)
 

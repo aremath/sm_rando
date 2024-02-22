@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <style>
+      .leaflet-image-layer {
+        image-rendering: pixelated;
+      }
+    </style>
+    <title>Super Metroid Maps</title>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <main>
+      <div id="map" style="height: 1000px; background: #444"></div>
+    </main>
+    <script type="module">
+      import all_rooms from "./all_rooms.json" assert { type: "json" };
+
+      // Create the leaflet map
+      const base = {
+        width: 18432, // pixels
+        height: 16896, // pixels
+        pixelsPerDegree: 128,
+        offsetY: -14336,
+        offsetX: -1280,
+      };
+
+      // Convert from pixel xy coords to the map coords
+      // which expects y,x degrees
+      function pxy_to_loc(pxy) {
+        return [
+          (base.offsetY + base.height - pxy[1]) / base.pixelsPerDegree,
+          (base.offsetX + pxy[0]) / base.pixelsPerDegree,
+        ];
+      }
+      const bounds = [
+        [
+          base.offsetY / base.pixelsPerDegree,
+          base.offsetX / base.pixelsPerDegree,
+        ],
+        [
+          (base.offsetY + base.height) / base.pixelsPerDegree,
+          (base.offsetX + base.width) / base.pixelsPerDegree,
+        ],
+      ];
+      const padding = Math.min(base.width, base.height) / 2;
+      const maxBounds = [
+        [
+          (base.offsetY - padding) / base.pixelsPerDegree,
+          (base.offsetX - padding) / base.pixelsPerDegree,
+        ],
+        [
+          (base.offsetY + base.height + padding) / base.pixelsPerDegree,
+          (base.offsetX + base.width + padding) / base.pixelsPerDegree,
+        ],
+      ];
+
+      const map = L.map("map", {
+        maxBounds: maxBounds,
+        crs: L.CRS.Simple,
+      }).fitBounds(bounds);
+
+      L.tileLayer(
+        "https://bin0al.github.io/Super_Metroid_World_Map/Mapfiles/{z}/{x}/{y}.png",
+        {
+          minZoom: 3,
+          maxZoom: 8,
+          attribution:
+            '<a href="https://www.snesmaps.com/">Base Map from snesmaps.com</a>',
+          detectRetina: true,
+        }
+      ).addTo(map);
+
+      const area_names = {
+        0: "Crateria",
+        1: "Brinstar",
+        2: "Norfair",
+        3: "Wrecked Ship",
+        4: "Maridia",
+        5: "Tourian",
+        6: "Ceres",
+        7: "Debug",
+      };
+
+      // Area offsets in map tiles
+      const area_offsets = {
+        0: [3, 10],
+        1: [0, 28],
+        2: [31, 48],
+        3: [37, 0],
+        4: [28, 28],
+        5: [0, 10],
+        // Out of bounds
+        6: [0, -10],
+        7: [0, 0],
+      };
+      const crateria2_offset = [7, 0];
+      const crateria2_rooms = [
+        "East_Ocean",
+        "Forgotten_Highway",
+        "Crab_Maze",
+        "Crateria_Power_Door",
+        "Crateria_Maridia_Shaft",
+      ];
+
+      function mk_room_rect(room_name) {
+        const pixels_per_maptile = 256;
+        const room_info = all_rooms[room_name];
+        const r = room_info["Region"];
+
+        let rect_start_mt = room_info["Map_Pos"];
+        rect_start_mt = [
+          rect_start_mt[0] + area_offsets[r][0],
+          rect_start_mt[1] + area_offsets[r][1],
+        ];
+        if (crateria2_rooms.includes(room_name)) {
+          rect_start_mt[0] += crateria2_offset[0];
+          rect_start_mt[1] += crateria2_offset[1];
+        }
+
+        const start_pxy = [
+          rect_start_mt[0] * pixels_per_maptile,
+          rect_start_mt[1] * pixels_per_maptile,
+        ];
+
+        const end_pxy = [
+          start_pxy[0] + room_info["Extent"][0] * pixels_per_maptile,
+          start_pxy[1] + room_info["Extent"][1] * pixels_per_maptile,
+        ];
+
+        const rect = L.rectangle([pxy_to_loc(start_pxy), pxy_to_loc(end_pxy)], {
+          color: `hsl(${(360 * r) / 5}, 50%, 50%)`,
+        }).addTo(map);
+
+        rect.bindTooltip(
+          `${room_name.replaceAll("_", " ")}, ${area_names[r]}`
+        );
+
+        // rect.bindPopup(
+        //   `<img src="https://cdn.glitch.global/bd45ae5d-f912-438c-bc0b-3ee0a76d27c8/${room_name}.png" style="max-width: 256px; max-height: 256px;">`
+        // ); 
+        //rect.on('click', (event) => {
+        //  L.marker([event.latlng.lat, event.latlng.lng]).addTo(map);
+        //  
+        //  const rel_x = (event.containerPoint.x - event.target._pxBounds.min.x)/(event.target._pxBounds.max.x - event.target._pxBounds.min.x);
+        //  const rel_y = (event.containerPoint.y - event.target._pxBounds.min.y)/(event.target._pxBounds.max.y - event.target._pxBounds.min.y);
+          // todo: use room_info["Extent"] and such to get coordinates within the room
+          
+          // 
+          //const marker = L.marker([event.latlng.lat, event.latlng.lng]).addTo(map);
+          //marker.bindTooltip(JSON.stringify({room_name, rel_x, rel_y}));
+        //});
+      }
+
+      //Object.keys(all_rooms).forEach(mk_room_rect);
+
+
+      function pos_to_loc(pos) {
+        return pxy_to_loc([pos[0] * 16, pos[1] * 16])
+      }
+
+      // Track Player Position
+      // Arbitrary
+      const start_loc = pos_to_loc([285, 562]);
+      var player_marker = L.circle(start_loc, {
+      	radius: 0.2, color: `hsl(322, 50%, 50%)`,
+      }).addTo(map);
+
+      function updatepos() {
+      	//import player_pos from "./player_pos.json" assert { type: "json" };
+	const player_pos = fetch("./player_pos.json").then((response) => response.json())
+	.then((player_pos) => {
+	  //console.log(player_pos);
+	  const loc = pos_to_loc([player_pos["X"], player_pos["Y"]]);
+	  player_marker.setLatLng(loc); }
+	);
+      }
+      updatepos();
+
+      // Track the plan
+      var nlines = 20;
+      var next_step_pline;
+      var next_item_pline;
+      var remaining_pline;
+
+      function undrawLine(line) {
+      	if (line != null) {
+          line.removeFrom(map);
+	}
+      }
+
+      function pos_list_to_loc(pos_list) {
+      	return pos_list.map(pos_to_loc)
+      }
+
+      function updatelines() {
+	fetch("./lines.json").then((response) => response.json())
+	.then((new_lines) => {
+	  // Remove the current lines
+	  undrawLine(next_step_pline);
+	  undrawLine(next_item_pline);
+	  undrawLine(remaining_pline);
+	  // Convert to pxy
+	  const nps = pos_list_to_loc(new_lines["next_step"]);
+	  const npi = pos_list_to_loc(new_lines["next_item"]);
+	  const npr = pos_list_to_loc(new_lines["remaining_path"]);
+	  // Add the new lines
+	  next_step_pline = L.polyline(nps, {color: `hsla(56, 100%, 50%, 0.8)`}).addTo(map);
+	  next_item_pline = L.polyline(npi, {color: `hsla(104, 100%, 50%, 0.8)`}).addTo(map);
+	  remaining_pline = L.polyline(npr, {color: `hsla(0, 0%, 51%, 0.5)`}).addTo(map);
+	  }
+	);
+      }
+      updatelines();
+      setInterval(updatepos, 200);
+      setInterval(updatelines, 1000);
+
+    </script>
+  </body>
+</html>

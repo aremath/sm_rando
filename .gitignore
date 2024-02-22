@@ -15,3 +15,6 @@ abstraction_validation/ram.bin
 abstraction_validation/blue_brinstar_elevator.state
 abstraction_validation/blue_brinstar.bk2
 foo
+notebooks/lines.json
+notebooks/all_rooms.json
+notebooks/player_pos.json

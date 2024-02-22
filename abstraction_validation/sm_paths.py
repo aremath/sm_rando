@@ -307,7 +307,7 @@ def get_item_names(item_positions):
         return item_names
 
 #TODO items
-def get_locations(parsed, room, ignore_locs=[], is_global=True):
+def get_locations(parsed, room, ignore_locs=[], is_global=True, area_offsets=area_offsets):
         room_header = parsed[f"room_header_{hex(room.mem_address)}"]
         area_pos = area_offsets[room_header.area_index]
         room_map_pos = Coord(room_header.map_x, room_header.map_y)
@@ -321,6 +321,7 @@ def get_locations(parsed, room, ignore_locs=[], is_global=True):
         item_d = get_all_item_positions(room_header)
         item_names = get_item_names(item_d)
         for k,v in item_names.items():
+            #TODO fix name conflict with "Bombs" and "Bottom Entrance"
             name_posns[f"{room.name}_{k}"] = v + global_offset
         # Doors
         level_arrays = room_header.state_chooser.default.level_data.level_array
@@ -351,18 +352,18 @@ ignore_locs = {
 # West_Ocean
 # R4 -> R6 and L -> L2
 
-def all_global_positions(rooms, parsed_rom):
-    return all_positions(rooms, parsed_rom, is_global=True)
+def all_global_positions(rooms, parsed_rom, area_offsets=area_offsets):
+    return all_positions(rooms, parsed_rom, is_global=True, area_offsets=area_offsets)
 
 # Returns a mapping from node name to position
-def all_positions(rooms, parsed_rom, is_global=True):
+def all_positions(rooms, parsed_rom, is_global=True, area_offsets=area_offsets):
         all_positions = {}
         for room_name, r in rooms.items():
                 if room_name in ignore_locs:
                         i = ignore_locs[room_name]
                 else:
                         i = []
-                d = get_locations(parsed_rom, r, i, is_global)
+                d = get_locations(parsed_rom, r, i, is_global, area_offsets=area_offsets)
                 all_positions.update(d)
                 gp_nodes = set(d.keys())
                 r_nodes = set(r.graph.nodes)

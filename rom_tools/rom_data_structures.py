@@ -237,13 +237,22 @@ def pointer_def(constructor, ptr_size, banks, invalid_bytes=None, invalid_ok=Fal
             return None, ptr_size
         #print(address_bytes)
         #print(hex(address_int))
-        # If invalid pointers are ok, call the parser on the raw integer
-        # We will trust the parser to handle things properly
+        # For some data structures, invalid pointers have a special meaning
         if invalid_ok:
             if bank is None:
-                address = address_int
+                address_i = address_int
             else:
-                address = address_int + (bank << 16)
+                address_i = address_int + (bank << 16)
+            # If the pointer was valid, call the parser on the underlying address
+            try:
+                address = Address(address_i, mode="snes")
+            # If the pointer was invalid, create a new unique identifier for
+            # the resulting object, so that different outputs aren't shadowed
+            # Still need to send address_i as well, because the resulting data may depend on it
+            # Trust the sub-parser to handle things properly based on the type it receives for address
+            except IndexError:
+                address = (obj_names.get_new_uid(), address_i)
+                #print(address)
         elif bank is None:
             assert ptr_size == 3
             address = Address(address_int, mode="snes")
@@ -533,6 +542,11 @@ class ObjNames(MutableMapping):
         obj_name = constructor.name_def.format(self.new_obj_id)
         self.new_obj_id += 1
         return obj_name
+
+    def get_new_uid(self):
+        oid = self.new_obj_id
+        self.new_obj_id += 1
+        return oid
 
     #TODO: an argument can be made that these kinds of "direct" objects shouldn't even have an
     # entry in obj_names...
@@ -1111,18 +1125,22 @@ class Scrolls(RomObject):
 @parse_wrapper(Scrolls)
 def scrolls_parser(address, obj_names, rom, data):
     room_width, room_height = data
+    #print(room_width, room_height)
     n_scrolls = room_width * room_height
     scroll_array = np.zeros(data, dtype=int)
     # Scrolls are stored in column major order
     # If the address was an invalid pointer, scrolls can have a special meaning
-    try:
-        address = Address(address, mode="snes")
+    if type(address) is Address:
+        #print(f"Valid: {address}")
         scroll_bytes = rom.read_from_clean(address, n_scrolls)
-    except IndexError:
+    else:
+        my_id, address = address
         # An invalid scroll pointer has special behavior
         # The bottom row of scrolls is set to the low byte + 1
         # The rest of the scrolls are green
         low_byte = address & 0xff
+        #print(f"Invalid: {address}")
+        #print(f"Invalid: {low_byte}")
         greens = b"\x02" * room_width * (room_height - 1)
         others = int.to_bytes(low_byte + 1, 1, byteorder="little") * room_width
         scroll_bytes = greens + others
@@ -1137,6 +1155,8 @@ def scrolls_parser(address, obj_names, rom, data):
         # We will change the data here to be more consistent
         else:
             scroll_array[x][y] = ScrollValue.GreenScroll
+    assert scroll_array.shape == (room_width, room_height)
+    #print(scroll_array)
     return [scroll_array], len(scroll_bytes)
 
 @compile_wrapper

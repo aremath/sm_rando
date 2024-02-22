@@ -1,4 +1,4 @@
-f = io.open("ram_snes9x.bin", "wb")
+f = io.open("../output/ram_snes9x.bin", "wb")
 f:write("hello")
 f:flush()
 
@@ -29,7 +29,7 @@ local function write_file()
 end
 
 local function use_bridge()
-    bridge_fn = loadfile("snes9x_bridge.lua")
+    bridge_fn = loadfile("../output/snes9x_bridge.lua")
     if (bridge_fn ~= nil) then
         bridge_fn()
     end
@@ -37,7 +37,6 @@ end
 
 local function display_info()
     gamestate = memory.readword(ram_values.game_state_ptr)
-    gui.text(0, 10, tostring(gamestate), 0xffffffff)
     if gamestate == 8 then
         is_normal_gameplay = true
     else
@@ -45,11 +44,8 @@ local function display_info()
     end
 
     if is_normal_gameplay then
-        gui.text(0, 0, "Normal Gameplay", 0xffffffff)
         write_file()
         use_bridge()
-    else
-        gui.text(0, 0, "Not Normal Gameplay", 0xffffffff)
     end
 end
 

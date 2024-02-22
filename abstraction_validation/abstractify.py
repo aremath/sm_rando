@@ -149,11 +149,11 @@ area_offsets = {
 maptile_size = Coord(16, 16)
 
 # Global pos
-def abstractify_pos_global(frame):
+def abstractify_pos_global(frame, aoffset = area_offsets):
     frame8 = frame.view("uint8")
     # Area pos
     area_index = frame8[0x79f]
-    area_pos = maptile_size * area_offsets[area_index]
+    area_pos = maptile_size * aoffset[area_index]
     # Map pos
     map_x = frame8[0x07a1]
     map_y = frame8[0x07a3]

@@ -64,6 +64,7 @@ class ConstraintPattern(object):
         graph.add_edge(node_a, node_b, self.ab_items)
         graph.add_edge(node_b, node_a, self.ba_items)
 
+#TODO: subclass
 class DoorConstraintPattern(object):
 
     def __init__(self, ab_items, ba_items, a_pattern, b_pattern, a_adj_tiles, b_adj_tiles,

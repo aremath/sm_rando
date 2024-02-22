@@ -1032,6 +1032,13 @@ class SearchState(object):
 
 SFClauses = namedtuple("SFClauses", ["pos_prev", "pos_next", "pose_prev", "pose_next", "item", "vel"])
 
+def mk_items_unchanged():
+    item_clauses = []
+    for i in item_mapping:
+        clause = f"{i}_prev = {i}_next"
+        item_clauses.append(clause)
+    return f"items_unchanged == {to_conj(item_clauses)}"
+
 def mk_pos_clause(pos, when="prev"):
     assert when == "prev" or when == "next"
     x = f"x_{when} = {pos.x}"
@@ -1104,10 +1111,13 @@ class SamusFunction(object):
             item_clauses.append(clause)
         # For any item that is not gained, it must remain constant
         #TODO: Items unchanged operator
-        for i in item_mapping:
-            if not (i in gained_items):
-                clause = f"{i}_prev = {i}_next"
-                item_clauses.append(clause)
+        if len(gained_items) == 0:
+            item_clauses.append("items_unchanged")
+        else:
+            for i in item_mapping:
+                if not (i in gained_items):
+                    clause = f"{i}_prev = {i}_next"
+                    item_clauses.append(clause)
         item_clause = to_conj(item_clauses)
         # VELOCITY
         vclause = self.vfunction.as_tla()
