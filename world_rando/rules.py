@@ -1199,15 +1199,21 @@ def level_check_and_make(level, origin, tile, tile_type, samus_state):
     else:
         return None
 
+def tile_as_str(tile):
+    return f"is_solid_{tile.x}_{tile.y}"
+
 def tla_tile_clause(level, origin, tile, tile_type):
     l = get_tile(level, origin, tile)
     if l is None:
         return None
     if l == AbstractTile.UNKNOWN:
-        #TODO: probably don't want TLA check to do be able to edit the level...
-        assert False, f"Abstract tile in tla mode: {tile}"
-        level[tile] = tile_type
-        return ""
+        #TODO: Need to allow it to choose any available tile type based on the samusstate
+        if tile_type == AbstractTile.AIR:
+            return tile_as_str(tile) + " = 0"
+        elif tile_type == AbstractTile.SOLID:
+            return tile_as_str(tile) + " = 1"
+        else:
+            assert False, f"Invalid abstract tile in tla mode request: {tile}, {tile_type}"
     else:
         return tla_tile_coercion(l, tile_type)
 

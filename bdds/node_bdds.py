@@ -4,8 +4,13 @@ from bdds.bdd_core import *
 from abstraction_validation.sm_paths import *
 from abstraction_validation.abstractify import abstractify_state, abstractify_boss_info
 from encoding.parse_rooms import parse_rooms, parse_exits, dictify_rooms
+from data_types.constraintgraph import Item, Boss
 
 # CONTEXT STUFF
+
+def static_order_score(name):
+  var,tense,bit = name.rsplit('_', 2)
+  return (-int(var=="node_id"),-int(bit),var,tense)
 
 # Only encode node_id and items
 def mk_context_id(node_ids):
@@ -25,6 +30,8 @@ def mk_context_id(node_ids):
         shared_dict[f"{i}_temp"] = (0,1)
     context.declare(**shared_dict)
     context.define(mk_items_unchanged())
+    context.bdd.configure(reordering=False)
+    context.bdd.reorder({v:i for i,v in enumerate(sorted(context.bdd.vars, key=static_order_score))})
     return context
 
 # Need a list to instantiate prevs, nexts, etc. do NOT use default_context_id
@@ -34,13 +41,15 @@ default_context_id = mk_context_id([None])
 prev_to_temp = mk_replace(default_context_id, "prev", "temp")
 next_to_temp = mk_replace(default_context_id, "next", "temp")
 goal_to_next = mk_replace(default_context_id, "goal", "next")
+goal_to_prev = mk_replace(default_context_id, "goal", "prev")
 prev_to_next = mk_replace(default_context_id, "prev", "next")
 next_to_prev = mk_replace(default_context_id, "next", "prev")
 temps = [k for k in default_context_id.vars.keys() if k.endswith("_temp")]
 nexts = [k for k in default_context_id.vars.keys() if k.endswith("_next")]
 prevs = [k for k in default_context_id.vars.keys() if k.endswith("_prev")]
 goals = [k for k in default_context_id.vars.keys() if k.endswith("_goal")]
-
+pos_vars = ["node_id_prev", "node_id_next"]
+item_vars = list(set(prevs + nexts) - set(pos_vars))
 
 def mk_goal_satisfied_id(context):
     # Expression that holds when the goal is satisfied (for all possible goals)
@@ -52,6 +61,24 @@ def mk_goal_satisfied_id(context):
         goal_satisfied &= sat
     return goal_satisfied
 
+def mk_policy_id2(trans_pn, context, goal_bdd=None):
+    n = 0
+    if goal_bdd is not None:
+        solved_ng = goal_bdd
+    else:
+        solved_ng = mk_goal_satisfied_id(context)
+    policy_png = trans_pn & solved_ng
+    policy_last_png = None
+    while policy_png != policy_last_png:
+        policy_last_png = policy_png
+        solved_pg = context.exist(nexts, policy_png)
+        solved_ng = context.let(prev_to_next, solved_pg)
+        policy_png |= (trans_pn & ~solved_pg) & solved_ng
+        print(n)
+        n += 1
+    return policy_png
+
+#TODO simpler policy construction
 def mk_policy_id(trans_pn, context, goal_bdd=None, maxn=None):
     n = 0
     if maxn is None:
@@ -61,6 +88,7 @@ def mk_policy_id(trans_pn, context, goal_bdd=None, maxn=None):
     covered_ng = mk_goal_satisfied_id(context)
     if goal_bdd:
         covered_ng &= goal_bdd
+        #TODO covered_ng = goal_bdd
     covered_last_ng = context.false
     while covered_ng != covered_last_ng and n < maxn:
         # States with edges into a covered state
@@ -89,6 +117,52 @@ def get_reachable_id(trans_norule, context, start_bdd):
         print(n, covered_p.dag_size)
         n+=1
     return covered_p
+
+#TODO rename
+def determinize2(policy, context):
+    policy_det = policy & ~context.exist(temps, policy & context.let(next_to_temp,policy) & context.add_expr("node_id_temp < node_id_next"))
+    return policy_det
+
+def get_steps_id(policy, task_bdd, context):
+    steps = context.false
+    state_p = context.exist(goals, task_bdd)
+    goal_g = context.exist(prevs, task_bdd)
+    controller_pn = context.exist(goals, policy & goal_g)
+    goal_p = context.let(goal_to_prev, goal_g)
+    while state_p & goal_p == context.false:
+        edge_pn = state_p & controller_pn
+        state_p = context.let(next_to_prev, context.exist(prevs, edge_pn))
+        steps |= edge_pn
+    return steps
+
+def get_steps_id2(policy, task_bdd, context):
+    steps = context.false
+    # We are misuing node_id_temp and _goal as a timestep counter
+    state_p = context.exist(goals, task_bdd) & context.add_expr("node_id_temp = 0")
+    goal_g = context.exist(prevs, task_bdd)
+    controller_pn = context.exist(goals, policy & goal_g) & context.add_expr("node_id_goal = node_id_temp + 1")
+    goal_p = context.let(goal_to_prev, goal_g)
+    prevs2 = prevs + ["node_id_temp"]
+    next_to_prev2 = next_to_prev | {"node_id_goal": "node_id_temp"}
+    while state_p & goal_p == context.false:
+        edge_pn = state_p & controller_pn
+        state_p = context.let(next_to_prev2, context.exist(prevs2, edge_pn))
+        steps |= edge_pn
+    return steps
+
+def decode(sol, var, context):
+    val = 0
+    for i,b in enumerate(context.vars[var]['bitnames']):
+        val += sol[b]<<i
+    return val
+
+#TODO rename
+# Requires that policy be determinized (use determinize2)
+def get_edges(policy, task_bdd, context):
+    steps = get_steps_id2(policy, task_bdd, context)
+    steps = context.exist(item_vars + ["node_id_goal"], steps)
+    #TODO manual decoding
+    return [(decode(sol, "node_id_temp", context), decode(sol, "node_id_prev", context), decode(sol, "node_id_next", context)) for sol in context.bdd.pick_iter(steps)]
 
 # task_bdd is built by first creating a task expr, then existing off the nexts, then picking and cubing it.
 #TODO: is cube() faster?
@@ -148,10 +222,11 @@ class MapsInfo(object):
     def __init__(self, rooms_path, exits_path, bin_path, rom_manager):
         self.rom_manager = rom_manager
         self.bin_path = bin_path
-
         self.rooms = parse_rooms(rooms_path)
         self.exits = parse_exits(exits_path)
+        print("Parsing ROM...")
         self.parsed_rom = self.rom_manager.parse()
+        print("Building Dicts...")
         self.all_posns = all_global_positions(self.rooms, self.parsed_rom)
         # Fix up all_posns
         self.all_posns["Bomb_Torizo_B"]
@@ -162,6 +237,13 @@ class MapsInfo(object):
         self.node_ids_rev = {i:n for n,i in self.node_ids.items()}
         self.node_memaddrs = mk_node_memaddrs(self.rooms)
         self.context = mk_context_id(self.node_ids)
+        self.current_goal_node = "Landing_Site_End"
+        self.item_nodes = set([])
+        for r, room in self.rooms.items():
+            for node in room.graph.name_node.keys():
+                n = room.graph.name_node[node].data
+                if isinstance(n, Item) or isinstance(n, Boss):
+                    self.item_nodes.add(node)
 
     def read_state(self):
         ram_data = np.fromfile(self.bin_path, dtype="int16")
@@ -169,6 +251,9 @@ class MapsInfo(object):
 
     def estimate_state(self):
         ram_data = np.fromfile(self.bin_path, dtype="int16")
+        return self.estimate_state_from_ram(ram_data)
+
+    def estimate_state_from_ram(self, ram_data):
         abstate = abstractify_info(ram_data)
         current_room_a = ram_data.view("uint16")[0x79b // 2] >> 8
         current_room_b = (ram_data.view("uint16")[0x79c // 2] & 0x00ff) << 8
@@ -235,7 +320,7 @@ class MapsInfo(object):
         node_id = self.node_ids[node]
         current_nid = self.context.add_expr(f"node_id_prev = {node_id}")
         current_items = self.context.add_expr(self.mk_itemset_expr(items))
-        task_expr = self.context.add_expr("Mother_Brain_goal = 1 & node_id_goal = 2") & current_nid & current_items
+        task_expr = self.context.add_expr(f"node_id_goal = {self.node_ids[self.current_goal_node]}") & current_nid & current_items
         return task_expr
 
     def mk_task_concrete(self, state, policy):
@@ -265,3 +350,42 @@ class MapsInfo(object):
         path = get_path_concrete_id(policy, self.context.assign_from(task), self.context)
         return [self.node_ids_rev[i["node_id_prev"]] for i in path]
 
+    def get_edge_advice(self, state, policy):
+        task = self.mk_task_concrete(state, policy)
+        if task is None:
+            return None
+        edges = sorted(get_edges(policy, task, self.context))
+        return edges
+    # Yellow: current segment
+    # Green: segment up to the next item
+    # Grey: rest of the lines
+    # state_estimate is (node, itemset)
+    def generate_lines(self, state_estimate, policy):
+        path = self.get_path_advice(state_estimate, policy)
+        out = {
+            "next_step": [],
+            "next_item": [],
+            "remaining_path": [],
+        }
+        # The "path" only makes sense if there's at least two locations
+        if path is None or len(path) < 2:
+            return out
+        else:
+            # Filter down to nodes that we know the location of
+            #TODO: this has issues if there's an item node with an unknown location (e.g. a boss)
+            which_current = "next_step"
+            which_next = "next_step"
+            for node in path:
+                which_current = which_next
+                out[which_current].append(node)
+                # [a, b]
+                # [b, c, ... e]
+                # [e, ...]
+                # Desired behavior: if the next node is an item node, next_item should be empty.
+                if which_current == "next_step" and len(out["next_step"]) == 2:
+                    which_next = "next_item"
+                if which_current == "next_item" and node in self.item_nodes:
+                    which_next = "remaining_path"
+                if which_next != which_current:
+                    out[which_next].append(node)
+            return out

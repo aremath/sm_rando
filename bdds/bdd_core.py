@@ -1,13 +1,14 @@
 from omega.symbolic.fol import Context
 import itertools
 from tqdm import tqdm
+import os
 
 from world_rando.rules import *
 from data_types.item_set import item_mapping
 from world_rando.parse_rules import parse_rules, make_level_from_room
 from world_rando.coord import Coord
 
-rules, tests = parse_rules(["../encoding/rules/rules.yaml"])
+rules, tests = parse_rules([os.path.dirname(__file__) + "/../encoding/rules/rules.yaml"])
 
 # Theoretical max is probably 20x20
 MAX_LEVEL_SIZE = 20 * 16
@@ -95,8 +96,9 @@ def get_posns(trans, context):
     prev_posns = [(a["x_prev"], -a["y_prev"]) for a in context.pick_iter(posns)]
     return next_posns + prev_posns
 
-def mk_trans(room_header, context):
-    level = make_level_from_room(room_header)
+def mk_trans(room_header, context, level=None):
+    if level is None:
+        level = make_level_from_room(room_header)
     trans = context.false
     addr = int(room_header.old_address) & 0xffff
     room_same = context.add_expr(f"room_id_prev = {addr} & room_id_next = {addr}")
@@ -186,10 +188,10 @@ def mk_policy(trans_norule, context):
         n += 1
     return policy_png
 
-def determinize(policy, context):
-    fns = make_functions(policy, bits, policy.bdd)
-    deterministic_policy = context.bdd.add_expr(f"&".join([f"({k} <-> {v['function']})" for k,v in fns.items()]))
-    return deterministic_policy
+#def determinize(policy, context):
+#    fns = make_functions(policy, bits, policy.bdd)
+#    deterministic_policy = context.bdd.add_expr(f"&".join([f"({k} <-> {v['function']})" for k,v in fns.items()]))
+#    return deterministic_policy
 
 # task_bdd is built by first creating a task expr, then existing off the nexts, then picking and cubing it.
 

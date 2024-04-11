@@ -33,6 +33,7 @@
 #
 Landing_Site - 791F8
 Ship
+End
 L1
 L2
 R1			- PB
@@ -41,6 +42,7 @@ Ship -> (L1 R1 R2)	- X
 ALL -> L1	- | (& SB E) (& SJ (| B PB SA))
 L1 -> ALL	- | B PB SA
 ALL -> R1	- | (& SB E) SJ
+ALL -> End	- Mother_Brain
 
 Gauntlet_Entrance - 792B3
 L
