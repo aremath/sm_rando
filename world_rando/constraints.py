@@ -125,6 +125,7 @@ defaults = {
 def parse_constraint_patterns(pattern_file):
     pass
 
+#TODO
 def enforce_constraints(planning_graph, item_order, constraint_patterns):
     # Create the constraint pattern dictionary Item -> ConstraintPattern
     # by dropping patterns that are not consistent with the item order

@@ -6,6 +6,17 @@ from abstraction_validation.abstractify import abstractify_state, abstractify_bo
 from encoding.parse_rooms import parse_rooms, parse_exits, dictify_rooms
 from data_types.constraintgraph import Item, Boss
 
+from functools import reduce
+
+def reduce_and(context, clauses):
+    return reduce(lambda x, y: x & y, clauses, context.true)
+
+def reduce_or(context, clauses):
+    return reduce(lambda x, y: x | y, clauses, context.false)
+
+def var_levels(context):
+    return sorted(context.bdd.var_levels.items(), key=lambda x: x[1])
+
 # CONTEXT STUFF
 
 def static_order_score(name):
@@ -198,16 +209,17 @@ def abstractify_info(ram_data):
 
 # MAPS STUFF
 
-def mk_node_ids(rooms):
+def mk_node_ids(rooms, rename=False):
     all_nodes = []
     for r, room in rooms.items():
         for node in room.graph.name_node.keys():
             all_nodes.append(node)
     node_ids = {n:i for i,n in enumerate(all_nodes)}
     # Issue with design translation via chopping off the last _
-    #node_ids["Spore_Spawn_Spawn"] = node_ids["Spore_Spawn_Spore_Spawn"]
-    #node_ids["Golden_Torizo_Torizo"] = node_ids["Golden_Torizo_Golden_Torizo"]
-    #node_ids["Mother_Brain_Brain"] = node_ids["Mother_Brain_Mother_Brain"]
+    if rename:
+        node_ids["Spore_Spawn_Spawn"] = node_ids["Spore_Spawn_Spore_Spawn"]
+        node_ids["Golden_Torizo_Torizo"] = node_ids["Golden_Torizo_Golden_Torizo"]
+        node_ids["Mother_Brain_Brain"] = node_ids["Mother_Brain_Mother_Brain"]
     return node_ids
 
 def mk_node_memaddrs(rooms):
@@ -353,6 +365,14 @@ class MapsInfo(object):
     def get_edge_advice(self, state, policy):
         task = self.mk_task_concrete(state, policy)
         if task is None:
+            return None
+        edges = sorted(get_edges(policy, task, self.context))
+        return edges
+
+    #TODO: make whether current_state or current_goal are arguments or members consistent!
+    def get_edge_advice2(self, state, policy):
+        task = self.mk_task(state)
+        if task.count() == 0:
             return None
         edges = sorted(get_edges(policy, task, self.context))
         return edges

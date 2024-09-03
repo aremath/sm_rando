@@ -13,6 +13,8 @@ from world_rando.parse_rules import get_item_locations # returns Coord -> ItemSe
 from abstraction_validation.abstractify import area_offsets
 from world_rando.coord import Coord
 
+SLOT_WIDTH = 4
+
 def symbol(**kwargs):
     assert len(kwargs) == 1
     for tag, ident in kwargs.items(): 
@@ -307,7 +309,7 @@ def get_item_names(item_positions):
         return item_names
 
 #TODO items
-def get_locations(parsed, room, ignore_locs=[], is_global=True, area_offsets=area_offsets):
+def get_locations(parsed, room, ignore_locs=[], is_global=True, area_offsets=area_offsets, dummy=True):
         room_header = parsed[f"room_header_{hex(room.mem_address)}"]
         area_pos = area_offsets[room_header.area_index]
         room_map_pos = Coord(room_header.map_x, room_header.map_y)
@@ -333,6 +335,15 @@ def get_locations(parsed, room, ignore_locs=[], is_global=True, area_offsets=are
         door_posns = compute_name_positions(door_lists, doors, door_a, door_d)
         global_door_posns = {f"{room.name}_{k}": v + global_offset for k,v in door_posns.items()}
         name_posns.update(global_door_posns)
+        # Create dummy locations for nodes that haven't been matched
+        if dummy:
+            unplaced = set(room.graph.nodes) - set(name_posns.keys())
+            total_length = len(unplaced) * SLOT_WIDTH
+            room_center = Coord(room_header.width, room_header.height).scale(16).scale(0.5)
+            start = room_center - Coord(total_length / 2, 0)
+            for i,n in enumerate(unplaced):
+                loc = start + Coord(i * SLOT_WIDTH, 0)
+                name_posns[n] = loc + global_offset
         return name_posns
 
 ignore_locs = {

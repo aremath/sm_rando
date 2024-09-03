@@ -25,9 +25,11 @@
   <body>
     <main>
       <div id="map" style="height: 1000px; background: #444"></div>
+      <p hidden id="goal">Goal</p>
     </main>
     <script type="module">
       import all_rooms from "./all_rooms.json" assert { type: "json" };
+      import all_nodes from "./all_nodes.json" assert { type: "json" };
 
       // Create the leaflet map
       const base = {
@@ -166,6 +168,24 @@
       }
 
       //Object.keys(all_rooms).forEach(mk_room_rect);
+
+      function mk_node_circ(node_name) {
+        const pos = all_nodes[node_name];
+        const loc = pos_to_loc(pos)
+        const circ = L.circle(loc, {
+            radius: 0.2}).addTo(map);
+        //TODO: add click callback to write goal.json
+        circ.bindTooltip(
+          `${node_name.replaceAll("_", " ")}`
+        );
+        circ.on('click', (event) => {
+            console.log(node_name);
+            fetch(node_name); // Will Fail!
+            document.getElementById("goal").innerHTML = node_name;
+        });
+
+      }
+      Object.keys(all_nodes).forEach(mk_node_circ);
 
 
       function pos_to_loc(pos) {
