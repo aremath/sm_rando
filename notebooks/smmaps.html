@@ -28,8 +28,8 @@
       <p hidden id="goal">Goal</p>
     </main>
     <script type="module">
-      import all_rooms from "./all_rooms.json" assert { type: "json" };
-      import all_nodes from "./all_nodes.json" assert { type: "json" };
+      import all_rooms from "./all_rooms.json" with { type: "json" };
+      import all_nodes from "./all_nodes.json" with { type: "json" };
 
       // Create the leaflet map
       const base = {
@@ -200,7 +200,7 @@
       }).addTo(map);
 
       function updatepos() {
-      	//import player_pos from "./player_pos.json" assert { type: "json" };
+      	//import player_pos from "./player_pos.json" with { type: "json" };
 	const player_pos = fetch("./player_pos.json").then((response) => response.json())
 	.then((player_pos) => {
 	  //console.log(player_pos);
