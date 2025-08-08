@@ -85,12 +85,13 @@ def reify_rooms(room_info, parsed_rooms):
     return convert_rooms(all_room_d, parsed_rooms)
 
 def visualize_abstract_maps(settings, abstract_map_info):
+    out_f = settings.output_settings["output"]
     _, g, rsg, _ = abstract_map_info
     # Visualize the overall graph
-    g.visualize("output/graph")
+    g.visualize(f"{out_f}/graph")
     # Visualize the individual region graphs
     for region, graph in rsg.items():
-        graph.visualize(f"output/{region.name}/graph")
+        graph.visualize(f"{out_f}/{region.name}/graph")
 
 def visualize_concrete_maps(out_settings, concrete_map_info):
     out_f = out_settings["output"]

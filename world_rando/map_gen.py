@@ -25,11 +25,12 @@ def spring_model(node_locs, graph, n_iterations, spring_constant, spring_equilib
     # node locs is node_name -> node_position
     # node_name -> node_velocity
     # using mcoords as a vector
-    node_v = {n : Coord(0, 0) for n in node_locs}
-    # node_name -> node_acceleration
-    node_a = {n : Coord(0, 0) for n in node_locs}
+    #node_v = {n : Coord(0, 0) for n in node_locs} # <- OLD energy-conserving code
     iteration = 0
     while iteration < n_iterations:
+        # Compute everything based on the previous positions
+        node_locs_new = {k: v for k,v in node_locs.items()}
+        node_v = {n : Coord(0, 0) for n in node_locs}
         for n in node_locs:
             # Update node_v
             for e in graph.nodes[n].edges:
@@ -42,7 +43,8 @@ def spring_model(node_locs, graph, n_iterations, spring_constant, spring_equilib
                 node_v[n] = node_v[n] + n_to_t.scale(spring_constant * x * dt)
                 node_v[t] = node_v[t] + n_to_t.scale(-spring_constant * x * dt)
             # update node_locs
-            node_locs[n] = node_locs[n] + node_v[n].scale(dt)
+            node_locs_new[n] = node_locs[n] + node_v[n].scale(dt)
+        node_locs = node_locs_new
         iteration = iteration + 1
     # resolve to an int
     # TODO: is there a dict map function?

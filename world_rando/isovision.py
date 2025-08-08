@@ -159,7 +159,8 @@ def mk_airs(is_air):
         if is_air[c] == 1:
             airs.add(c)
     return airs
-            
+
+# Symmetric-set distances
 def mk_ssds(is_air, airs, visibles):
     ssds = np.zeros_like(is_air)
     for c in iter2d(is_air):
@@ -427,7 +428,7 @@ def cluster_threshold_structure(openness):
 # Find the first distance value of zero
 # TODO: this can go very wrong
 def cluster_threshold_distance(openness):
-    _, _, pairwise_dist = compute_initial_conditions(openness)
+    _, _, pairwise_dist = initial_conditions_open(openness)
     m = int(max(pairwise_dist.values()) + 1)
     hist, bin_edges = np.histogram(list(pairwise_dist.values()), bins=m)
     i=0

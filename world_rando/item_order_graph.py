@@ -72,6 +72,7 @@ def order_graph(order):
 
         # Add the new node
         #TODO: this doesn't necessarily use the appropriate nodetype
+        #TODO: this doesn't update the current node!
         g.add_node(item_name, NodeType.ITEM)
         g.add_edge(entrance, item_name, data=[current_items.copy()])
         current_items = current_items.add(item_name)
