@@ -234,3 +234,4 @@ def room_addr_tla(room_header):
 def mk_door_trans_for_rooms(door_trans, rooms, context):
     room_restriction = context.add_expr(" | ".join([room_addr_tla(r) for r in rooms]))
     return door_trans & room_restriction
+

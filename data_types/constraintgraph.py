@@ -560,6 +560,7 @@ class Room(object):
             # Inaccessible door
             if isinstance(t_d, Door) and t_d.items is None:
                 continue
+            #TODO: this is wrong if there is an internal node
             # Push the door item constraint into the edge
             elif isinstance(t_d, Door):
                 mss = mss * t_d.items

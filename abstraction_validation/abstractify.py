@@ -132,6 +132,17 @@ def abstractify_pos(frame):
 #    6: Ceres
 #    7: Debug
 #}
+area_offset_key = {
+    0: "Crateria",
+    1: "Brinstar",
+    2: "Norfair",
+    3: "Wrecked_Ship",
+    4: "Maridia",
+    5: "Tourian",
+    6: "Ceres_Station",
+    7: "Debug",
+}
+
 area_offsets = {
     0: Coord(3, 10),
     1: Coord(0, 29),
@@ -152,11 +163,11 @@ maptile_size = Coord(16, 16)
 def abstractify_pos_global(frame, aoffset = area_offsets):
     frame8 = frame.view("uint8")
     # Area pos
-    area_index = frame8[0x79f]
+    area_index = int(frame8[0x79f])
     area_pos = maptile_size * aoffset[area_index]
     # Map pos
-    map_x = frame8[0x07a1]
-    map_y = frame8[0x07a3]
+    map_x = int(frame8[0x07a1])
+    map_y = int(frame8[0x07a3])
     map_pos = maptile_size * Coord(map_x, map_y)
     # Room pos
     room_pos = abstractify_pos(frame)

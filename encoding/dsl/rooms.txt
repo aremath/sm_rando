@@ -332,8 +332,9 @@ B						- S
 R
 Spore_Spawn
 B <-> R					- Spore_Spawn
-B -> Spore_Spawn		- CB
-R -> Spore_Spawn		- X
+B -> Spore_Spawn		- | CB M
+R <-> Spore_Spawn		- X
+Spore_Spawn -> R		- Spore_Spawn
 
 Pink_Power_Bombs - 79E11
 R1
@@ -540,7 +541,7 @@ L						- Kraid
 R
 Kraid
 L -> Kraid				- CB
-R -> Kraid				- X
+R <-> Kraid				- X
 L <-> R					- Kraid
 
 Kraid2 - 7A59F
@@ -565,7 +566,9 @@ Statues - 7A66A
 L
 ET
 Statues
-L <-> (ET Statues)		- & Kraid Phantoon Draygon Ridley
+L <-> Statues		- & Kraid Phantoon Draygon Ridley
+Statues <-> ET		- Statues
+L <-> ET			- X
 
 Warehouse_Entrance - 7A6A1
 L
@@ -664,7 +667,7 @@ E
 Crocomire
 ALL -> E					- & (| G SJ E) Crocomire
 T <-> L						- Crocomire
-L -> Crocomire				- X
+L <-> Crocomire				- X
 ALL -> Crocomire			- CB
 
 Hi_Jump - 7A9E5
@@ -927,7 +930,7 @@ Drain
 R1 <-> Drain					- & PB SJ
 R1 <-> R2						- & Drain BlowUp
 ALL <-> ALL						- V
-R2 -> Drain						- X
+R2 <-> Drain					- X
 
 Main_Hall - 7B236
 L
@@ -1536,7 +1539,7 @@ L							- Botwoon
 R
 Botwoon
 L <-> R						- Botwoon
-R -> Botwoon				- X
+R <-> Botwoon				- X
 L -> Botwoon				- & E CB
 
 Space_Jump - 7D9AA
@@ -1561,8 +1564,8 @@ Draygon - 7DA60
 L
 R
 Draygon
-R -> L						- Draygon
-L -> R						- & Draygon GS (| HJ SJ)
+ALL -> L					- Draygon
+ALL -> R					- & Draygon GS (| HJ SJ)
 ALL -> Draygon				- & GS E S MB (| CB G)
 
 Draygon2 - 7DA60

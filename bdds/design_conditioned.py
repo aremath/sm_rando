@@ -150,7 +150,8 @@ def mk_majors_unchanged(context, design):
         major_items_unchanged &= context.add_expr(f"{i}_prev = {i}_next")
     return major_items_unchanged
 
-#TODO: inherit from MapsInfo
+#TODO: inherit from node_bdds / NodeEnv
+#TODO: rename to DesignEnv or NodeDesignEnv
 class DesignInfo(object):
 
     def __init__(self, rooms_path, exits_path, trans_important_path, load_important=True):

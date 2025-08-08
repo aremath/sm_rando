@@ -6,7 +6,7 @@ from abstraction_validation.abstractify import abstractify_state, abstractify_bo
 from encoding.parse_rooms import parse_rooms, parse_exits, dictify_rooms
 from data_types.constraintgraph import Item, Boss
 
-from functools import reduce
+from functools import reduce, cache
 
 def reduce_and(context, clauses):
     return reduce(lambda x, y: x & y, clauses, context.true)
@@ -55,6 +55,7 @@ goal_to_next = mk_replace(default_context_id, "goal", "next")
 goal_to_prev = mk_replace(default_context_id, "goal", "prev")
 prev_to_next = mk_replace(default_context_id, "prev", "next")
 next_to_prev = mk_replace(default_context_id, "next", "prev")
+temp_to_prev = mk_replace(default_context_id, "temp", "prev")
 temps = [k for k in default_context_id.vars.keys() if k.endswith("_temp")]
 nexts = [k for k in default_context_id.vars.keys() if k.endswith("_next")]
 prevs = [k for k in default_context_id.vars.keys() if k.endswith("_prev")]
@@ -409,3 +410,99 @@ class MapsInfo(object):
                 if which_next != which_current:
                     out[which_next].append(node)
             return out
+
+# Non-design-conditioned environment
+class NodeEnv(object):
+
+    def __init__(self, rooms_path, exits_path):
+        self.rooms = parse_rooms(rooms_path)
+        self.exits = parse_exits(exits_path)
+        self.design = dictify_rooms(self.rooms, self.exits)
+        self.node_ids = mk_node_ids(self.rooms, rename=True)
+        self.node_ids_rev = {i:n for n,i in self.node_ids.items()}
+        self.context = mk_context_id(self.node_ids)
+        self.trans = self.mk_trans()
+
+    def reduce_and(self, clauses):
+        return reduce(lambda x, y: x & y, clauses, self.context.true)
+
+    def reduce_or(self, clauses):
+        return reduce(lambda x, y: x | y, clauses, self.context.false)
+
+    def loc_id(self, room_name, node_name, when="prev"):
+        node_id = self.node_ids[f"{room_name}_{node_name}"]
+        return self.context.add_expr(f"node_id_{when} = {node_id}")
+
+    @cache
+    def item_transitions(self, item_gained=None):
+        if item_gained is None:
+            return self.context.add_expr("(items_unchanged)", with_ops = True)
+        clauses = []
+        for i in self.design["Items"] | self.design["Bosses"]:
+            if i == item_gained:
+                clause = self.context.add_expr(f"{i}_prev < {i}_next")
+            else:
+                clause = self.context.add_expr(f"{i}_prev = {i}_next")
+            clauses.append(clause)
+        return self.reduce_and(clauses)
+
+    def itemset_to_bdd(self, itemset):
+        if len(itemset) == 0:
+            return self.context.true
+        else:
+            return self.reduce_and([self.context.add_expr(f"{item}_prev = 1") for item in itemset])
+
+    def required_itemsets(self, itemsets):
+        return self.reduce_or([self.itemset_to_bdd(itemset) for itemset in itemsets])
+
+    # Build individual BDDs
+    def mk_trans(self):
+        room_bdds = []
+        door_bdds = []
+        for room_name, room in self.design['Rooms'].items():
+            links = []
+            for node_name in room['Nodes']:
+                s = self.loc_id(room_name, node_name) & self.loc_id(room_name, node_name, when="next") & self.item_transitions()
+                links.append(s)
+                if node_name in room['Drops']:
+                    s = self.loc_id(room_name, node_name) & self.loc_id(room_name, node_name, when="next") & self.item_transitions(room['Drops'][node_name])
+                    links.append(s)
+            for node_name, door in room['Doors'].items():
+                d = self.loc_id(room_name, node_name) & self.loc_id(door['Room'], door['Node'], when="next") & self.item_transitions()
+                door_bdds.append(d)
+            for node_name, edges in room['Edges'].items():
+                for edge in edges:
+                    other_node_name = edge['Terminal']
+                    s = self.loc_id(room_name, node_name) & self.loc_id(room_name, other_node_name, when="next") & self.required_itemsets(edge['Requirements']) & self.item_transitions()
+                    links.append(s)
+            room_bdd = self.reduce_or(links)
+            room_bdds.append(room_bdd)
+        doors_bdd = self.reduce_or(door_bdds)
+        rooms_bdd = self.reduce_or(room_bdds)
+        #print(rooms_bdd.count(), doors_bdd.count())
+        return doors_bdd | rooms_bdd
+
+    def mk_itemset_expr(self, itemset, when="prev"):
+        clauses = []
+        for i in item_mapping:
+            if i in itemset:
+                clause = self.context.add_expr(f"{i}_{when} = 1")
+            else:
+                clause = self.context.add_expr(f"{i}_{when} = 0")
+            clauses.append(clause)
+        return self.reduce_and(clauses)
+
+    #TODO: inherit this method, and use self.next_to_temp and self.prev_to_temp etc.
+    def mk_closure(self, trans):
+        n = 0
+        closure = trans
+        closure_last = self.context.false
+        while closure != closure_last:
+            closure_last = closure
+            closure_prev_temp = self.context.let(next_to_temp, closure_last)
+            closure_temp_next = self.context.let(prev_to_temp, closure_last)
+            closure |= self.context.exist(temps, closure_prev_temp & closure_temp_next)
+            print(n, closure.dag_size)
+            n+=1
+        closure_square = closure
+        return closure_square
