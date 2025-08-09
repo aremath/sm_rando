@@ -862,7 +862,7 @@ class LevelState(object):
 
     def copy(self):
         l = np.copy(self.level)
-        return LevelState(self.origin.copy(), l, self.liquid_type, self.liquid_level, self.items)
+        return LevelState(self.origin.copy(), l, self.liquid_type, self.liquid_level, self.items, self.doors.copy())
 
     def __hash__(self):
         return hash((self.origin, bytes(self.level.data), self.liquid_type, self.liquid_level))
