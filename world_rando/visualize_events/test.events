@@ -1,0 +1,6 @@
+[{"action": "create", "name": "d1", "parent": null, "interpretation": null, "type": "dict", "info": {"key_type": "int", "value_type": "int"}},
+{"action": "create", "name": "d2", "parent": "d1", "interpretation": null, "type": "dict", "info": {"key_type": "int", "value_type": "int"}},
+{"name": "d1", "action": "setitem", "key": 0, "value": 1},
+{"name": "d2", "action": "setitem", "key": 1, "value": 3},
+{"name": "d1", "action": "setitem", "key": 1, "value": 2},
+{"name": "d2", "action": "setitem", "key": 4, "value": 7}]

@@ -349,3 +349,4 @@ right = Coord(1,0)
 up = Coord(0,-1)
 down = Coord(0,1)
 
+cardinal_ds = [up, down, left, right]

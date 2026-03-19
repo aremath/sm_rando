@@ -408,8 +408,8 @@ def bfs_partition(space, means, meansets=None, priorities=None):
 # A room overlaps with another room when they have screens that
 # are in the same map position.
 # In practical terms, a way to check this is that a tile designated to
-# not room 1 appears in the bounding box created for the tiles of room 1,
-# or more generally, if the bounding box for room 1 and any other room overlap.
+# Room A appears in the bounding box created for the tiles of Room B,
+# or more generally, if the bounding box for Room A and any other room overlap.
 # The bounding box is via "extent".
 # A way to avoid this is with a "merging" partition. A map where
 # every room is one screen definitely does not have this problem.
@@ -443,12 +443,17 @@ def merging_partition(space, targetn, maxsize, implicit_bboxes):
         # Try to merge them
         if not can_merge(r, n, rooms, maxsize, implicit_bboxes):
             # If the merge didn't work out, then remove the neighbor
+            # Note: rooms only ever get larger, so if the bounding boxes overlap now,
+            # they will always overlap later in the process as well. We can just delete this connection.
             active_neighbors[r] -= set([n])
             # If that was the last neighbor, r is no longer active.
             if len(active_neighbors[r]) == 0:
                 del active_neighbors[r]
             continue
         # They can be merged...
+        # If we merge them, they will be represented by one room with all the external neighbors combined
+        # Merging them doesn't allow inactive neighbors to become active because any bounding box conflicts
+        # still exist
         new_neighbors = (active_neighbors[r] | active_neighbors[n]) - set([r, n])
         # If the merged room has no active neighbors, it is no longer active
         if len(new_neighbors) == 0:
@@ -458,6 +463,7 @@ def merging_partition(space, targetn, maxsize, implicit_bboxes):
         #print(f"Merging {r} and {n}")
         rooms[r] = rooms[r] | rooms[n]
         active_neighbors = active_replace(active_neighbors, n, r)
+        # r and n are merged and which coord is the representative is arbitrary
         del rooms[n]
     return rooms
 

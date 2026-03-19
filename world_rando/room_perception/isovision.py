@@ -381,7 +381,7 @@ def cluster_cleanup(cluster_state, threshold, randomly=True):
 # Where a pair of nodes is removed from pairwise_heap if the distance is larger than the average structure size (see below)
 # the "average structure size" is computed from the structure size within each cluster
 # AND clustering continues even when a pair are deemed incompatible
-# and only stops when ALL pairs are incampatible -- pairwise_heap is empty
+# and only stops when ALL pairs are incompatible -- pairwise_heap is empty
 # This allows the clustering condition to adapt to local structure within the clusters
 # without relying on features of the global statistics
 # For example, using global average structure size wouldn't work for a castle in a large field

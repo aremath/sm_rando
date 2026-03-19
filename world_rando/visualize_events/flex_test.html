@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    <link rel="stylesheet"
+        href="style.css">
+    </head>
+    <body>
+        <div class="node" id="node_root">
+            <div class="node_name">
+                root
+            </div>
+            <div class="children">
+                <div class="node" id="node_a">
+                    <div class="node_name">
+                        child_a<br>
+                        <p> DATA </p>
+                    </div>
+                    <div class="children" id="node_a_children">
+                        <div class="node" id="node_a_a">
+                            <div class="node_name">
+                                child_a_a
+                            </div>
+                        </div>
+                        <div class="node" id="node_a_b">
+                            <div class="node_name">
+                                child_a_b
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="node" id="node_b">
+                    <div class="node_name">
+                        child_b
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <script type="module">
+        //import { toggle_children, add_child_toggle_button } from "./dom_edit.js";
+        // This is stupid as hell, but we will load the script from the web server to get around CORS
+        import { get_children, get_node_name, add_child_toggle_button } from "http://localhost:8000/dom_edit.js";
+        import { create_node } from "http://localhost:8000/events.js";
+        /*
+        function toggle_children(el) {
+            // The "node" div containing this node_name
+            var node = el.parentNode.parentNode;
+            // Leaf nodes will not have a children_container
+            if (node.children.length < 3) {
+                return;
+            }
+            var children_container = node.children[2];
+            //console.log(children[1]);
+            //console.log(children_container.style.display);
+            // Initially, it's null, so the else branch triggers
+            // After that, it will be one or the other and toggle visibility appropriately
+            //TODO: display=hidden vs. display=none
+            if (children_container.style.display === "none") {
+                children_container.style.display = "block";
+                // Change the icon
+                el.children[0].src="eye-20-solid.svg";
+            } else {
+                children_container.style.display = "none";
+                el.children[0].src="eye-slash-20-solid.svg";
+            }
+        }
+        
+        function add_child_toggle_button(node) {
+            var d = document.createElement("div");
+            var b = document.createElement("button");
+            var img = document.createElement("img");
+            img.src = "eye-20-solid.svg"
+            //el.appendChild(b);
+            node.insertAdjacentElement("afterend", d);
+            d.appendChild(b);
+            // Each button toggles its own children
+            b.addEventListener("click", event => toggle_children(b));
+            b.appendChild(img);
+        }
+        */
+
+        // Add visibility buttons to each node
+        function add_visibility() {
+            [...document.querySelectorAll(".node")].forEach(el => {
+                if (get_children(el)) {
+                    add_child_toggle_button(get_node_name(el));
+                }
+            });
+        }
+        add_visibility();
+
+        // Use python3 server.py to serve the events file
+        // This is the stupidest thing I've ever seen
+        fetch("http://localhost:8000/test.events").then((response) => response.json()).then((json) => {
+            //console.log(json);
+            // Build the data tree from the events
+            json.forEach((event) => {
+                console.log(event);
+                if (event["action"] === "create") {
+                    create_node(event);
+                }
+            });
+        });
+    </script>
+    </body>
+</html>
