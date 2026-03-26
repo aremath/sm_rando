@@ -9,7 +9,7 @@ if __name__ == "__main__":
     warehouse_zeelas = rooms.pop("Warehouse_Zeelas")
 
     fixed_items = get_fixed_items()
-    #print fixed_items
+    #print(fixed_items)
     current_state = BFSItemsState("Warehouse_Zeelas_L2", set(["Item_Dummy", "Item_Dummy1"]), ItemSet(), {})
 
     wz_graph, wz_exits = dummy_exit_graph(warehouse_zeelas.graph, warehouse_zeelas.doors)
@@ -64,5 +64,5 @@ if __name__ == "__main__":
 
     # Test dummy exit graph:
     for room in rooms.values():
-        print room.name
+        print(room.name)
         dummy_graph, dummy_exits = dummy_exit_graph(room.graph, room.doors)

@@ -1,6 +1,10 @@
 from sm_rando.encoding.parse_rooms import *
-from sm_rando.data_types.constraintgraph import *
-from sm_rando.data_types.orderedset import OrderedSet
+if __name__ == "__main__":
+    from constraintgraph import *
+    from orderedset import OrderedSet
+else:
+    from .constraintgraph import *
+    from .orderedset import OrderedSet
 
 def test_network_flow():
     # Build a graph
@@ -39,6 +43,7 @@ def test_network_flow():
         edge_weights[(e1, e2)] = 2
         edge_weights[(e2, e1)] = 0
     # Now do network flow:
+    #TODO: Test with some inf weight edges
     return (g.network_flow(edge_weights, "source", "sink"))
 
 def test_bfs_items():

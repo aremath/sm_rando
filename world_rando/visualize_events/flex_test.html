@@ -5,33 +5,53 @@
         href="style.css">
     </head>
     <body>
+        <!-- Nodes -->
         <div class="node" id="node_root">
-            <div class="node_name">
-                root
+            <div class="node_info">
+                <div class="node_name">root</div>
             </div>
             <div class="children">
                 <div class="node" id="node_a">
-                    <div class="node_name">
-                        child_a<br>
-                        <p> DATA </p>
+                    <div class="node_info">
+                        <div class="node_name">child_a</div>
+                        <div class="node_data">DATA</div>
                     </div>
                     <div class="children" id="node_a_children">
                         <div class="node" id="node_a_a">
-                            <div class="node_name">
-                                child_a_a
+                            <div class="node_info">
+                                <div class="node_name">child_a_a</div>
                             </div>
                         </div>
                         <div class="node" id="node_a_b">
-                            <div class="node_name">
-                                child_a_b
+                            <div class="node_info">
+                                <div class="node_name">child_a_b</div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="node" id="node_b">
-                    <div class="node_name">
-                        child_b
+                    <div class="node_info">
+                        <div class="node_name">child_b</div>
                     </div>
+                </div>
+            </div>
+        </div>
+        <!-- Other Stuff -->
+        <!-- Controller -->
+        <div id="controls">
+            Controls:
+            <button id="pause_button">Pause</button>
+            <button id="step_button">Event</button>
+            <button id="step_tick_button">Tick</button>
+            <button id="play_events_button">Play Events</button>
+            <button id="play_ticks_button">Play Ticks</button>
+            <button id="reset_button">Reset</button>
+        </div>
+        <!-- Progress Bar -->
+        <div id="progress">
+            Progress Bar
+            <div class="progress_background">
+                <div class="progress_bar" id="progress_bar">
                 </div>
             </div>
         </div>
@@ -39,68 +59,66 @@
     <script type="module">
         //import { toggle_children, add_child_toggle_button } from "./dom_edit.js";
         // This is stupid as hell, but we will load the script from the web server to get around CORS
-        import { get_children, get_node_name, add_child_toggle_button } from "http://localhost:8000/dom_edit.js";
+        import { get_children, get_node_info, add_child_toggle_button, add_data_toggle_button,
+            toggle_data_default, get_classchild } from "http://localhost:8000/dom_edit.js";
+        //import { create_node } from "http://localhost:8000/events.js";
         import { create_node } from "http://localhost:8000/events.js";
-        /*
-        function toggle_children(el) {
-            // The "node" div containing this node_name
-            var node = el.parentNode.parentNode;
-            // Leaf nodes will not have a children_container
-            if (node.children.length < 3) {
-                return;
-            }
-            var children_container = node.children[2];
-            //console.log(children[1]);
-            //console.log(children_container.style.display);
-            // Initially, it's null, so the else branch triggers
-            // After that, it will be one or the other and toggle visibility appropriately
-            //TODO: display=hidden vs. display=none
-            if (children_container.style.display === "none") {
-                children_container.style.display = "block";
-                // Change the icon
-                el.children[0].src="eye-20-solid.svg";
-            } else {
-                children_container.style.display = "none";
-                el.children[0].src="eye-slash-20-solid.svg";
-            }
-        }
-        
-        function add_child_toggle_button(node) {
-            var d = document.createElement("div");
-            var b = document.createElement("button");
-            var img = document.createElement("img");
-            img.src = "eye-20-solid.svg"
-            //el.appendChild(b);
-            node.insertAdjacentElement("afterend", d);
-            d.appendChild(b);
-            // Each button toggles its own children
-            b.addEventListener("click", event => toggle_children(b));
-            b.appendChild(img);
-        }
-        */
-
+        import { EventStream, event_progressbar } from "http://localhost:8000/eventstream.js";
         // Add visibility buttons to each node
         function add_visibility() {
             [...document.querySelectorAll(".node")].forEach(el => {
                 if (get_children(el)) {
-                    add_child_toggle_button(get_node_name(el));
+                    add_child_toggle_button(get_classchild(el, "node_info"));
                 }
             });
         }
         add_visibility();
 
-        // Use python3 server.py to serve the events file
-        // This is the stupidest thing I've ever seen
-        fetch("http://localhost:8000/test.events").then((response) => response.json()).then((json) => {
-            //console.log(json);
-            // Build the data tree from the events
-            json.forEach((event) => {
-                console.log(event);
-                if (event["action"] === "create") {
-                    create_node(event);
+        function add_datatoggle() {
+            [...document.querySelectorAll(".node_name")].forEach(el => {
+                if (get_classchild(el.parentNode, "node_data")) {
+                    add_data_toggle_button(el, toggle_data_default);
                 }
             });
+        }
+        add_datatoggle();
+
+        var event_list = [];
+        var event_stream;
+        // Use python3 server.py to serve the events file
+        // This is the stupidest thing I've ever seen
+        fetch("http://localhost:8000/generate.events").then((response) => response.text()).then((text) => {
+            // Each line is an event
+            var lines = text.split("\n");
+            for (var line of lines) {
+                if (line === "") {
+                    break;
+                }
+                //console.log(line);
+                // Unfortunately, JSON.parse means that all keys will be strings...
+                var obj = JSON.parse(line);
+                //console.log(obj);
+                event_list.push(obj);
+
+            }
+            event_stream = new EventStream(event_list);
+            event_stream.event_callback = event_progressbar;
+            // Add callbacks to the control buttons
+            var pause = document.getElementById("pause_button");
+            pause.addEventListener("click", _ => event_stream.pause_playback());
+            var step = document.getElementById("step_button");
+            step.addEventListener("click", _ => event_stream.step_once());
+            var play_events = document.getElementById("play_events_button");
+            play_events.addEventListener("click", _ => event_stream.play_events());
+            var play_ticks = document.getElementById("play_ticks_button");
+            play_ticks.addEventListener("click", _ => event_stream.play_ticks());
+            var reset = document.getElementById("reset_button");
+            reset.addEventListener("click", _ => event_stream.reset());
         });
+        //console.log(event_list);
+
+        //TODO: mutual exclusion for the controls!
+        // (e.g. pressed-down button, and pausing or ticking unpresses)
     </script>
     </body>
 </html>

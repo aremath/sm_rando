@@ -1,4 +1,8 @@
-from basicgraph import *
+# Stupid relative import thing
+if __name__ == "__main__" and __package__ is None:
+    from basicgraph import *
+else:
+    from .basicgraph import *
 
 if __name__ == "__main__":
     g = BasicGraph()
@@ -6,5 +10,5 @@ if __name__ == "__main__":
     g.add_node("lmao")
     g.add_edge("ayy", "lmao")
     g.add_edge("lmao", "ayy")
-    g.visualize("ayylmao")
+    g.visualize("../output/ayylmao")
 

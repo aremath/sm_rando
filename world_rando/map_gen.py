@@ -65,7 +65,7 @@ def spring_model(node_locs, graph, n_iterations, spring_constant, spring_equilib
 #   A map with few nodes and a large region size should be small.
 #   A map with many nodes and a small region size should fill the region.
 
-def map_gen(dimensions, graph, settings):
+def map_gen(dimensions, graph, settings, gen_state=None):
     """
     Generate a concrete graph
     """
@@ -118,10 +118,11 @@ def map_gen(dimensions, graph, settings):
     # partition the map into random rooms
     room_size = len(cmap) // settings["room_size"]
     #_, rooms = cmap.random_rooms(room_size)
-    rooms: Dict[Coord, Set[Coord]] = cmap.random_rooms_alt(room_size, bboxes)
+    rooms: Dict[Coord, Set[Coord]] = cmap.random_rooms_alt(room_size, bboxes, gen_state)
     #TODO: Each room tries to grab the map tiles that are inside its bounding box!
     #TODO: Or could use a budgeted cellular automaton to fill in "corner" spaces with map tiles...
     #TODO: Phantoon's room winds up in rooms, as do elevators, etc...
+    #       ^ is this good or bad? I don't remember...
     return cmap, rooms, paths, node_info
 
 def random_node_place(graph, dimensions, up_es, down_es):
@@ -212,6 +213,7 @@ def connecting_path(cmap, t1, t2, threshold):
     assert t2 in cmap, str(t1) + " not in cmap."
     assert not cmap[t1].is_fixed
     assert not cmap[t2].is_fixed
+    #TODO: sometimes, travel through fixed rooms is actually allowed (e.g. Kraid's Room)
     _, o, f = cmap.map_bfs(t1, lambda x: x == t2, reach_pred=lambda x: x in cmap and not cmap[x].is_fixed)
     p = get_path(o, t1, t2)
     ratio = len(p) / (euclidean(t1, t2) + 1e-5) # epsilon for nonzero

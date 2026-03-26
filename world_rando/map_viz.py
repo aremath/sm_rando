@@ -193,7 +193,7 @@ def split_paths(paths):
     split = []
     for path in paths:
         for itemset in path.itemsets:
-            p = Path(path.start_node, path.end_node, path.coord_path, [itemset])
+            p = Path(path.start_node, path.start_type, path.end_node, path.end_type, path.coord_path, [itemset])
             split.append(p)
     return split
 

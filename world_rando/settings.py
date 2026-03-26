@@ -72,6 +72,8 @@ class Region(object):
     def __hash__(self):
         return hash(self.name)
 
+# Defaults
+
 default_regions = [Region(name) for name in sm_global.regions.keys()]
 
 global_settings_d = {

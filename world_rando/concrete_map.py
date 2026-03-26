@@ -5,11 +5,14 @@ import random
 from enum import Enum
 from typing import Dict, Set, List
 
+from world_rando.item_order_graph import NodeType
 from world_rando.coord import Coord, Rect
+from world_rando.event_logging import LogDict
+from world_rando.generation_state import GenerationState
 
 class Path(object):
 
-    def __init__(self, start_node, start_type, end_node, end_type, coord_path, itemsets):
+    def __init__(self, start_node, start_type: NodeType, end_node, end_type: NodeType, coord_path, itemsets):
         self.start_node = start_node
         self.start_type = start_type
         self.end_node = end_node
@@ -222,7 +225,7 @@ class ConcreteMap(object):
             self.room_walls(partitions[mean])
         return paths, partitions
 
-    def random_rooms_alt(self, n: int, implicit_bboxes: List[Rect]) -> Dict[Coord, Set[Coord]]:
+    def random_rooms_alt(self, n: int, implicit_bboxes: List[Rect], gen_state: GenerationState=None) -> Dict[Coord, Set[Coord]]:
         """
         Partition the rooms randomly by merging with neighbors
         Each partition merges with a neighboring partition until the desired number of
@@ -231,7 +234,7 @@ class ConcreteMap(object):
         """
         tile_set = self.non_fixed()
         #TODO: make magic numbers like this part of settings
-        rooms = merging_partition(tile_set, n, 24, implicit_bboxes)
+        rooms = merging_partition(tile_set, n, 24, implicit_bboxes, gen_state)
         for s in rooms.values():
             self.room_walls(s)
         return rooms
@@ -418,14 +421,22 @@ def bfs_partition(space, means, meansets=None, priorities=None):
 # do not overlap.
 # Pick a random room to merge, and a random of its neighbors.
 # Remove rooms for which none of their neighbors can be merged.
-def merging_partition(space, targetn, maxsize, implicit_bboxes):
+def merging_partition(space, targetn, maxsize, implicit_bboxes, gen_state=None):
     """
-    Partitions space into a set of "rooms" - tile sets. Targetn is the
+    Partitions space into a set of "rooms" - tile sets. targetn is the
     desired number of rooms, and maxsize is the maximum number of tiles
     that each room can occupy
     """
     # Initially, every room has only itself.
     rooms = {p: set([p]) for p in space}
+    # Make it into a logging dict if a gen_state is passed
+    if gen_state is not None:
+        gen_state.manager.tick("setup_partition")
+        region_name = gen_state.current_region.name
+        name = f"room_partition_{region_name}"
+        rooms = LogDict(gen_state.manager, name, f"cmap_{region_name}", "room_partition",
+            {"key_type": "Coord", "value_type": "Set(Coord)"}, rooms)
+        gen_state.manager.tick("partitioning")
     # The rooms on which forward progress can be made
     active_neighbors = collections.defaultdict(set)
     for p1, ps1 in rooms.items():
@@ -465,6 +476,8 @@ def merging_partition(space, targetn, maxsize, implicit_bboxes):
         active_neighbors = active_replace(active_neighbors, n, r)
         # r and n are merged and which coord is the representative is arbitrary
         del rooms[n]
+        if gen_state is not None:
+            gen_state.manager.tick("merging")
     return rooms
 
 def can_merge(room1, room2, rooms, maxsize, implicit_bboxes):

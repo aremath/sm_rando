@@ -34,7 +34,7 @@ def plot_room_dims(room_dims):
 def generate_abstract_map(settings):
     return item_order_graph.abstract_map(settings.abstract_map_settings, settings.global_settings)
 
-def generate_concrete_map(settings, abstract_map_info):
+def generate_concrete_map(settings, abstract_map_info, gen_state=None):
     o, g, rsg, ro = abstract_map_info
     region_cmaps = {}
     region_rooms = {}
@@ -47,7 +47,9 @@ def generate_concrete_map(settings, abstract_map_info):
     npaths = 0
     for region, graph in rsg.items():
         print(f"Generating map for {region}")
-        cmap, rooms, paths, node_info = map_gen.map_gen(region.size, graph, settings.concrete_map_settings)
+        if gen_state is not None:
+            gen_state.current_region = region
+        cmap, rooms, paths, node_info = map_gen.map_gen(region.size, graph, settings.concrete_map_settings, gen_state)
         region_cmaps[region] = cmap
         region_rooms[region] = rooms
         region_paths[region] = paths
@@ -93,19 +95,21 @@ def visualize_abstract_maps(settings, abstract_map_info):
     for region, graph in rsg.items():
         graph.visualize(f"{out_f}/{region.name}/graph")
 
-def visualize_concrete_maps(out_settings, concrete_map_info):
+def visualize_concrete_maps(settings, concrete_map_info):
+    out_settings = settings.output_settings
     out_f = out_settings["output"]
     region_cmaps, _, _, _, _ = concrete_map_info
     for region, rcmap in region_cmaps.items():
         map_viz.map_viz(rcmap, f"{out_f}/{region.name}/cmap.png", out_settings["map_tiles"])
 
 def mission_embeddings(settings, concrete_map_info, abstract_map_info):
+    out_f = settings.output_settings["output"]
     order, _, _, _ = abstract_map_info
     region_cmaps, _, region_paths, _, _ = concrete_map_info
     for region, rcmap in region_cmaps.items():
         print(f"Embedding for {region}")
         paths = region_paths[region]
-        fname = f"output/{region.name}/mission_embedding.png"
+        fname = f"{out_f}/{region.name}/mission_embedding.png"
         map_viz.mission_embedding(rcmap, paths, order, fname)
 
 def visualize_rooms(out_settings, room_info):
@@ -117,3 +121,4 @@ def visualize_rooms(out_settings, room_info):
                 room_def.viz_cmap(outstr, out_settings["map_tiles"])
                 room_def.viz_graph(outstr)
                 room_def.viz_level(outstr, out_settings["room_tiles"])
+
